@@ -176,17 +176,38 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           </div>
         )}
 
-        {/* Diff Toggle Button */}
+        {/* Diff Toggle Button with Live Status */}
         <button
           onClick={onToggleDiffMode}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all ${
             isDiffMode
-              ? 'bg-sky-500/15 text-brand-primary border-sky-500/40 shadow-sm'
-              : 'bg-canvas-surface text-slate-300 border-canvas-border hover:border-canvas-highlight hover:text-white'
+              ? 'bg-sky-500/15 text-brand-primary border-sky-500/50 shadow-sm ring-1 ring-sky-500/20'
+              : diffStats.hasChanges
+              ? 'bg-canvas-surface text-slate-200 border-amber-500/40 hover:border-amber-500/70 hover:bg-canvas-elevated'
+              : 'bg-canvas-surface text-slate-400 border-canvas-border hover:border-canvas-highlight hover:text-slate-200'
           }`}
+          title={
+            isDiffMode
+              ? 'Return to code editor'
+              : diffStats.hasChanges
+              ? `Inspect diff (${diffStats.added} added, ${diffStats.removed} removed)`
+              : 'Inspect diff (No unsaved changes against last saved version)'
+          }
         >
           {isDiffMode ? <Code className="w-3.5 h-3.5" /> : <Split className="w-3.5 h-3.5" />}
-          {isDiffMode ? 'Editor' : 'Inspect Diff'}
+          <span>{isDiffMode ? 'Editor' : 'Inspect Diff'}</span>
+
+          {!isDiffMode && (
+            diffStats.hasChanges ? (
+              <span className="flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-400 border border-amber-800/40">
+                +{diffStats.added}/-{diffStats.removed}
+              </span>
+            ) : (
+              <span className="text-[10px] font-sans px-1.5 py-0.2 rounded bg-canvas-elevated text-slate-500 border border-canvas-border">
+                No diff
+              </span>
+            )
+          )}
         </button>
 
         {/* Side-by-side vs Inline toggle (Diff mode only) */}
