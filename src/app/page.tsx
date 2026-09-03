@@ -234,7 +234,14 @@ export default function WorkspacePage() {
         setSnippets((prev) =>
           prev.map((s) =>
             s.id === activeId
-              ? { ...s, title: title.trim() || 'Untitled Snippet', filename: filename.trim() || null, language, updatedAt: new Date().toISOString() }
+              ? { 
+                  ...s, 
+                  title: title.trim() || 'Untitled Snippet', 
+                  filename: filename.trim() || null, 
+                  language, 
+                  updatedAt: new Date().toISOString(),
+                  versions: updated.versions || s.versions,
+                }
               : s
           )
         );
