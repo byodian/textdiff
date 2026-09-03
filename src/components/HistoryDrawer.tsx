@@ -110,17 +110,19 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
 
       {/* Active Diff Status Banner */}
       {isCustomDiffActive && (
-        <div className="px-4 py-2.5 bg-sky-950/40 border-b border-sky-900/40 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sky-300 font-mono text-[11px]">
-            <span>v{selectedVersionA?.versionNo}</span>
-            <ArrowRight className="w-3 h-3 text-sky-400" />
-            <span>{selectedVersionB ? `v${selectedVersionB.versionNo}` : 'Current Draft'}</span>
+        <div className="px-4 py-2 bg-sky-950/50 border-b border-sky-800/40 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-sky-300 font-mono text-[11px] truncate">
+            <span className="font-semibold text-slate-100">v{selectedVersionA?.versionNo}</span>
+            <ArrowRight className="w-3 h-3 text-sky-400 shrink-0" />
+            <span className="font-semibold text-sky-300">{selectedVersionB ? `v${selectedVersionB.versionNo}` : 'Current Draft'}</span>
           </div>
           <button
             onClick={onClearCustomDiff}
-            className="text-[11px] text-slate-400 hover:text-white underline transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-canvas-surface text-slate-300 border border-canvas-border hover:border-canvas-highlight hover:text-white hover:bg-canvas-elevated active:scale-95 transition-all shadow-sm shrink-0"
+            title="Exit version diff and restore editor"
           >
-            Reset Diff
+            <RotateCcw className="w-3 h-3 text-slate-400" />
+            <span>Reset Diff</span>
           </button>
         </div>
       )}
