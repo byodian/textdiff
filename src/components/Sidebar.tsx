@@ -6,8 +6,11 @@ import {
   Plus, 
   Search, 
   Trash2, 
+  Copy, 
   Clock, 
-  FolderGit2 
+  FolderGit2,
+  PanelLeftClose,
+  PanelLeft
 } from 'lucide-react';
 
 export interface SnippetSummary {
@@ -23,9 +26,12 @@ interface SidebarProps {
   snippets: SnippetSummary[];
   activeId: string | null;
   searchQuery: string;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
   onSearchChange: (q: string) => void;
   onSelectSnippet: (id: string) => void;
   onNewSnippet: () => void;
+  onDuplicateSnippet: (id: string, e: React.MouseEvent) => void;
   onDeleteSnippet: (id: string, e: React.MouseEvent) => void;
 }
 
@@ -33,9 +39,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   snippets,
   activeId,
   searchQuery,
+  isCollapsed,
+  onToggleCollapse,
   onSearchChange,
   onSelectSnippet,
   onNewSnippet,
+  onDuplicateSnippet,
   onDeleteSnippet,
 }) => {
   const filtered = snippets.filter((s) => {
@@ -47,30 +56,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
   });
 
+  if (isCollapsed) {
+    return (
+      <aside className="w-14 bg-canvas-elevated border-r border-canvas-border flex flex-col items-center py-3 select-none h-full transition-all">
+        <button
+          onClick={onToggleCollapse}
+          className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-canvas-surface transition-colors"
+          title="Expand Sidebar"
+        >
+          <PanelLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onNewSnippet}
+          className="mt-3 p-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-brand-primary hover:bg-sky-500/20 transition-colors"
+          title="New Snippet"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="w-72 bg-canvas-elevated border-r border-canvas-border flex flex-col h-full select-none">
+    <aside className="w-72 bg-canvas-elevated border-r border-canvas-border flex flex-col h-full select-none transition-all">
       {/* Brand Header */}
       <div className="h-14 px-4 flex items-center justify-between border-b border-canvas-border">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-brand-primary">
             <FolderGit2 className="w-4 h-4" />
           </div>
-          <div>
-            <h1 className="font-semibold text-sm tracking-wide text-slate-100 flex items-center gap-1.5">
-              CodeDiff
-              <span className="text-[10px] font-mono font-normal uppercase px-1.5 py-0.5 rounded bg-sky-950/60 text-sky-400 border border-sky-800/40">
-                PRO
-              </span>
-            </h1>
-          </div>
+          <h1 className="font-semibold text-sm tracking-wide text-slate-100">
+            CodeDiff
+          </h1>
         </div>
-        <button
-          onClick={onNewSnippet}
-          className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors border border-transparent hover:border-canvas-border"
-          title="New Snippet"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onNewSnippet}
+            className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors border border-transparent hover:border-canvas-border"
+            title="New Snippet"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onToggleCollapse}
+            className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors border border-transparent hover:border-canvas-border"
+            title="Collapse Sidebar"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -128,13 +162,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={(e) => onDeleteSnippet(s.id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-diff-removed transition-opacity rounded"
-                  title="Delete snippet"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
+                  <button
+                    onClick={(e) => onDuplicateSnippet(s.id, e)}
+                    className="p-1 hover:text-brand-primary transition-colors rounded"
+                    title="Duplicate snippet"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={(e) => onDeleteSnippet(s.id, e)}
+                    className="p-1 hover:text-diff-removed transition-colors rounded"
+                    title="Delete snippet"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             );
           })

@@ -10,7 +10,10 @@ import {
   Check, 
   Sparkles, 
   Code, 
-  Split 
+  Split,
+  ChevronDown,
+  ChevronUp,
+  FileDiff
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/languages';
 
@@ -22,7 +25,8 @@ interface EditorHeaderProps {
   isSideBySide: boolean;
   diffStats: { added: number; removed: number; hasChanges: boolean };
   hasUnsavedChanges: boolean;
-  copied: boolean;
+  copiedCode: boolean;
+  copiedDiff: boolean;
   onTitleChange: (val: string) => void;
   onFilenameChange: (val: string) => void;
   onLanguageChange: (lang: string) => void;
@@ -32,6 +36,9 @@ interface EditorHeaderProps {
   onSavePrompt: () => void;
   onFormatDocument: () => void;
   onCopyContent: () => void;
+  onCopyDiff: () => void;
+  onNextDiffChunk: () => void;
+  onPrevDiffChunk: () => void;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -42,7 +49,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   isSideBySide,
   diffStats,
   hasUnsavedChanges,
-  copied,
+  copiedCode,
+  copiedDiff,
   onTitleChange,
   onFilenameChange,
   onLanguageChange,
@@ -52,6 +60,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onSavePrompt,
   onFormatDocument,
   onCopyContent,
+  onCopyDiff,
+  onNextDiffChunk,
+  onPrevDiffChunk,
 }) => {
   return (
     <header className="h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-4 flex items-center justify-between gap-4 select-none">
@@ -97,12 +108,32 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Action toolbars */}
       <div className="flex items-center gap-2">
-        {/* Diff Stats Badge (when changes exist) */}
+        {/* Diff Stats Badge */}
         {diffStats.hasChanges && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-canvas-surface border border-canvas-border text-xs font-mono">
             <span className="text-diff-added font-semibold">+{diffStats.added}</span>
             <span className="text-slate-600">/</span>
             <span className="text-diff-removed font-semibold">-{diffStats.removed}</span>
+          </div>
+        )}
+
+        {/* Diff Navigation controls (Diff mode only) */}
+        {isDiffMode && (
+          <div className="flex items-center gap-0.5 bg-canvas-surface border border-canvas-border rounded p-0.5">
+            <button
+              onClick={onPrevDiffChunk}
+              className="p-1 text-slate-400 hover:text-slate-100 rounded hover:bg-canvas-elevated"
+              title="Previous Change Chunk"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={onNextDiffChunk}
+              className="p-1 text-slate-400 hover:text-slate-100 rounded hover:bg-canvas-elevated"
+              title="Next Change Chunk"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
@@ -116,7 +147,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           }`}
         >
           {isDiffMode ? <Code className="w-3.5 h-3.5" /> : <Split className="w-3.5 h-3.5" />}
-          {isDiffMode ? 'Editor View' : 'Diff View'}
+          {isDiffMode ? 'Editor' : 'Inspect Diff'}
         </button>
 
         {/* Side-by-side vs Inline toggle (Diff mode only) */}
@@ -151,13 +182,25 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           </button>
         )}
 
-        {/* Copy snippet button */}
+        {/* Copy Patch/Diff button */}
+        {isDiffMode && (
+          <button
+            onClick={onCopyDiff}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-canvas-surface border border-canvas-border text-xs text-slate-300 hover:border-canvas-highlight hover:text-white transition-colors"
+            title="Copy Diff Output (Unified Patch)"
+          >
+            {copiedDiff ? <Check className="w-3.5 h-3.5 text-diff-added" /> : <FileDiff className="w-3.5 h-3.5" />}
+            <span>Copy Diff</span>
+          </button>
+        )}
+
+        {/* Copy code button */}
         <button
           onClick={onCopyContent}
           className="p-1.5 rounded bg-canvas-surface border border-canvas-border text-slate-400 hover:text-slate-100 hover:border-canvas-highlight transition-colors"
           title="Copy Code"
         >
-          {copied ? <Check className="w-4 h-4 text-diff-added" /> : <Copy className="w-4 h-4" />}
+          {copiedCode ? <Check className="w-4 h-4 text-diff-added" /> : <Copy className="w-4 h-4" />}
         </button>
 
         {/* History timeline toggle */}

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Editor, { DiffEditor, loader } from '@monaco-editor/react';
+import Editor, { DiffEditor, loader, DiffOnMount } from '@monaco-editor/react';
 
 loader.config({
   paths: {
@@ -13,6 +13,12 @@ export type MonacoEditorInstance = {
   getAction: (id: string) => { run: () => void } | null;
 };
 
+export type MonacoDiffEditorInstance = {
+  getDiffNavigator?: () => { next: () => void; previous: () => void };
+  next?: () => void;
+  previous?: () => void;
+};
+
 interface CodeCanvasProps {
   language: string;
   code: string;
@@ -21,6 +27,7 @@ interface CodeCanvasProps {
   isSideBySide: boolean;
   onCodeChange: (val: string) => void;
   editorRef: React.MutableRefObject<MonacoEditorInstance | null>;
+  diffEditorRef: React.MutableRefObject<MonacoDiffEditorInstance | null>;
 }
 
 export const CodeCanvas: React.FC<CodeCanvasProps> = ({
@@ -31,9 +38,14 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   isSideBySide,
   onCodeChange,
   editorRef,
+  diffEditorRef,
 }) => {
   const handleEditorDidMount = (editor: MonacoEditorInstance) => {
     editorRef.current = editor;
+  };
+
+  const handleDiffEditorDidMount: DiffOnMount = (editor) => {
+    diffEditorRef.current = editor as unknown as MonacoDiffEditorInstance;
   };
 
   return (
@@ -44,6 +56,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
           language={language}
           original={originalCode}
           modified={code}
+          onMount={handleDiffEditorDidMount}
           theme="vs-dark"
           options={{
             renderSideBySide: isSideBySide,
