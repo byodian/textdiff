@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] 初始化 Next.js + Tailwind CSS + Prisma (SQLite) 架构与数据库迁移
-- [ ] 基础编辑界面（Monaco Editor），能输入与编辑代码
-- [ ] 提供 Snippet 的创建、读取、更新与侧边栏列表切换
-- [ ] 自动化测试验证 Snippet CRUD 的 API/持久化契约
+- [x] 初始化 Next.js + Tailwind CSS + Prisma (SQLite) 架构与数据库迁移
+- [x] 基础编辑界面（Monaco Editor），能输入与编辑代码
+- [x] 提供 Snippet 的创建、读取、更新与侧边栏列表切换
+- [x] 自动化测试验证 Snippet CRUD 的 API/持久化契约
