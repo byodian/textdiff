@@ -1,0 +1,184 @@
+'use client';
+
+import React from 'react';
+import { 
+  Columns, 
+  Rows, 
+  History, 
+  Save, 
+  Copy, 
+  Check, 
+  Sparkles, 
+  Code, 
+  Split 
+} from 'lucide-react';
+import { SUPPORTED_LANGUAGES } from '@/lib/languages';
+
+interface EditorHeaderProps {
+  title: string;
+  filename: string;
+  language: string;
+  isDiffMode: boolean;
+  isSideBySide: boolean;
+  diffStats: { added: number; removed: number; hasChanges: boolean };
+  hasUnsavedChanges: boolean;
+  copied: boolean;
+  onTitleChange: (val: string) => void;
+  onFilenameChange: (val: string) => void;
+  onLanguageChange: (lang: string) => void;
+  onToggleDiffMode: () => void;
+  onToggleSideBySide: () => void;
+  onOpenHistory: () => void;
+  onSavePrompt: () => void;
+  onFormatDocument: () => void;
+  onCopyContent: () => void;
+}
+
+export const EditorHeader: React.FC<EditorHeaderProps> = ({
+  title,
+  filename,
+  language,
+  isDiffMode,
+  isSideBySide,
+  diffStats,
+  hasUnsavedChanges,
+  copied,
+  onTitleChange,
+  onFilenameChange,
+  onLanguageChange,
+  onToggleDiffMode,
+  onToggleSideBySide,
+  onOpenHistory,
+  onSavePrompt,
+  onFormatDocument,
+  onCopyContent,
+}) => {
+  return (
+    <header className="h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-4 flex items-center justify-between gap-4 select-none">
+      {/* Title and Filename inputs */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Snippet Title"
+          className="bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-sm font-medium text-slate-100 px-1 py-0.5 outline-none transition-colors max-w-xs truncate"
+        />
+
+        <span className="text-slate-600">/</span>
+
+        <input
+          type="text"
+          value={filename}
+          onChange={(e) => onFilenameChange(e.target.value)}
+          placeholder="e.g. index.ts, app.py"
+          className="bg-canvas-surface border border-canvas-border rounded px-2 py-1 text-xs font-mono text-slate-300 placeholder-slate-600 focus:outline-none focus:border-brand-primary w-36 transition-colors"
+        />
+
+        {/* Language select */}
+        <select
+          value={language}
+          onChange={(e) => onLanguageChange(e.target.value)}
+          className="bg-canvas-surface border border-canvas-border text-slate-300 text-xs rounded px-2 py-1 focus:outline-none focus:border-brand-primary cursor-pointer hover:border-canvas-highlight transition-colors"
+        >
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <option key={lang.id} value={lang.id} className="bg-canvas-surface text-slate-200">
+              {lang.name}
+            </option>
+          ))}
+        </select>
+
+        {hasUnsavedChanges && (
+          <span className="flex items-center gap-1 text-[11px] text-amber-400 font-medium px-2 py-0.5 rounded bg-amber-950/40 border border-amber-900/50 animate-pulse">
+            ● Unsaved edits
+          </span>
+        )}
+      </div>
+
+      {/* Action toolbars */}
+      <div className="flex items-center gap-2">
+        {/* Diff Stats Badge (when changes exist) */}
+        {diffStats.hasChanges && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-canvas-surface border border-canvas-border text-xs font-mono">
+            <span className="text-diff-added font-semibold">+{diffStats.added}</span>
+            <span className="text-slate-600">/</span>
+            <span className="text-diff-removed font-semibold">-{diffStats.removed}</span>
+          </div>
+        )}
+
+        {/* Diff Toggle Button */}
+        <button
+          onClick={onToggleDiffMode}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all ${
+            isDiffMode
+              ? 'bg-sky-500/15 text-brand-primary border-sky-500/40 shadow-sm'
+              : 'bg-canvas-surface text-slate-300 border-canvas-border hover:border-canvas-highlight hover:text-white'
+          }`}
+        >
+          {isDiffMode ? <Code className="w-3.5 h-3.5" /> : <Split className="w-3.5 h-3.5" />}
+          {isDiffMode ? 'Editor View' : 'Diff View'}
+        </button>
+
+        {/* Side-by-side vs Inline toggle (Diff mode only) */}
+        {isDiffMode && (
+          <button
+            onClick={onToggleSideBySide}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-canvas-surface border border-canvas-border text-xs text-slate-300 hover:border-canvas-highlight hover:text-white transition-colors"
+            title={isSideBySide ? 'Switch to Unified Inline View' : 'Switch to Split Side-by-Side View'}
+          >
+            {isSideBySide ? (
+              <>
+                <Columns className="w-3.5 h-3.5 text-brand-primary" />
+                <span>Side-by-Side</span>
+              </>
+            ) : (
+              <>
+                <Rows className="w-3.5 h-3.5 text-brand-primary" />
+                <span>Inline</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Format Document Button */}
+        {!isDiffMode && (
+          <button
+            onClick={onFormatDocument}
+            className="p-1.5 rounded bg-canvas-surface border border-canvas-border text-slate-400 hover:text-brand-primary hover:border-canvas-highlight transition-colors"
+            title="Format Document (Shift+Alt+F)"
+          >
+            <Sparkles className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Copy snippet button */}
+        <button
+          onClick={onCopyContent}
+          className="p-1.5 rounded bg-canvas-surface border border-canvas-border text-slate-400 hover:text-slate-100 hover:border-canvas-highlight transition-colors"
+          title="Copy Code"
+        >
+          {copied ? <Check className="w-4 h-4 text-diff-added" /> : <Copy className="w-4 h-4" />}
+        </button>
+
+        {/* History timeline toggle */}
+        <button
+          onClick={onOpenHistory}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-canvas-surface border border-canvas-border text-xs text-slate-300 hover:border-canvas-highlight hover:text-white transition-colors"
+          title="View Revisions & History"
+        >
+          <History className="w-3.5 h-3.5" />
+          <span>Revisions</span>
+        </button>
+
+        {/* Save Version Snapshot */}
+        <button
+          onClick={onSavePrompt}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-brand-primary hover:bg-sky-400 text-slate-950 font-semibold text-xs shadow-md shadow-sky-500/20 transition-all active:scale-95"
+        >
+          <Save className="w-3.5 h-3.5" />
+          <span>Save Version</span>
+        </button>
+      </div>
+    </header>
+  );
+};

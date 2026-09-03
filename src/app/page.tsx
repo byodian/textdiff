@@ -1,101 +1,284 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Sidebar, SnippetSummary } from '@/components/Sidebar';
+import { EditorHeader } from '@/components/EditorHeader';
+import { HistoryDrawer, VersionItem } from '@/components/HistoryDrawer';
+import { SaveModal } from '@/components/SaveModal';
+import { CodeCanvas, MonacoEditorInstance } from '@/components/CodeCanvas';
+import { detectLanguageFromFilename } from '@/lib/languages';
+import { calculateDiffStats } from '@/lib/diff-utils';
+
+export default function WorkspacePage() {
+  const [snippets, setSnippets] = useState<SnippetSummary[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Active Snippet State
+  const [title, setTitle] = useState('Untitled Snippet');
+  const [filename, setFilename] = useState('');
+  const [language, setLanguage] = useState('typescript');
+  const [code, setCode] = useState('');
+  const [lastSavedCode, setLastSavedCode] = useState('');
+  const [versions, setVersions] = useState<VersionItem[]>([]);
+
+  // Diff & Mode State
+  const [isDiffMode, setIsDiffMode] = useState(false);
+  const [isSideBySide, setIsSideBySide] = useState(true);
+
+  // History comparison pair
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [versionA, setVersionA] = useState<VersionItem | null>(null);
+  const [versionB, setVersionB] = useState<VersionItem | null>(null);
+
+  // Copy feedback
+  const [copied, setCopied] = useState(false);
+
+  // Editor ref for format document
+  const editorRef = useRef<MonacoEditorInstance | null>(null);
+
+  // 1. Load snippet detail
+  const loadSnippet = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/snippets/${id}`);
+      if (!res.ok) return;
+      const s = await res.json();
+      setActiveId(s.id);
+      setTitle(s.title);
+      setFilename(s.filename || '');
+      setLanguage(s.language || 'typescript');
+      setCode(s.currentCode);
+      setLastSavedCode(s.currentCode);
+      setVersions(s.versions || []);
+      setVersionA(null);
+      setVersionB(null);
+      setIsDiffMode(false);
+    } catch (err) {
+      console.error('Failed to load snippet', err);
+    }
+  }, []);
+
+  // 2. New snippet
+  const handleNewSnippet = useCallback(async () => {
+    const defaultSnippet = {
+      title: 'New Snippet',
+      filename: 'index.ts',
+      language: 'typescript',
+      currentCode: '// Start drafting or paste code here...\nfunction greeting(name: string): string {\n  return `Hello, ${name}!`;\n}\n',
+    };
+
+    try {
+      const res = await fetch('/api/snippets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(defaultSnippet),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setSnippets((prev) => [created, ...prev]);
+        loadSnippet(created.id);
+      }
+    } catch (err) {
+      console.error('Failed to create snippet', err);
+    }
+  }, [loadSnippet]);
+
+  // 3. Fetch initial snippet list
+  const fetchSnippets = useCallback(async () => {
+    try {
+      const res = await fetch('/api/snippets');
+      if (!res.ok) return;
+      const data = await res.json();
+      setSnippets(data);
+      if (data.length > 0) {
+        loadSnippet(data[0].id);
+      } else {
+        handleNewSnippet();
+      }
+    } catch (err) {
+      console.error('Failed to fetch snippets', err);
+    }
+  }, [loadSnippet, handleNewSnippet]);
+
+  useEffect(() => {
+    fetchSnippets();
+  }, [fetchSnippets]);
+
+  // 4. Delete snippet
+  const handleDeleteSnippet = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this snippet?')) return;
+    try {
+      const res = await fetch(`/api/snippets/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const updated = snippets.filter((s) => s.id !== id);
+        setSnippets(updated);
+        if (activeId === id) {
+          if (updated.length > 0) {
+            loadSnippet(updated[0].id);
+          } else {
+            handleNewSnippet();
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete snippet', err);
+    }
+  };
+
+  // 5. Filename change auto-detects language
+  const handleFilenameChange = (val: string) => {
+    setFilename(val);
+    const detected = detectLanguageFromFilename(val);
+    setLanguage(detected);
+  };
+
+  // 6. Save version snapshot
+  const handleSaveVersion = async (commitMsg: string) => {
+    if (!activeId) return;
+
+    try {
+      const res = await fetch(`/api/snippets/${activeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          filename,
+          language,
+          currentCode: code,
+          createVersion: true,
+          commitMsg,
+        }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setLastSavedCode(code);
+        setVersions(updated.versions || []);
+        // update summary in sidebar
+        setSnippets((prev) =>
+          prev.map((s) => (s.id === activeId ? { ...s, title, filename, language, updatedAt: new Date().toISOString() } : s))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to save version', err);
+    }
+  };
+
+  // 7. Format document via Monaco Action
+  const handleFormatDocument = () => {
+    if (editorRef.current) {
+      editorRef.current.getAction('editor.action.formatDocument')?.run();
+    }
+  };
+
+  // 8. Copy to clipboard
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // 9. Revert to a specific history version
+  const handleRevertToVersion = (ver: VersionItem) => {
+    if (confirm(`Revert workspace code to v${ver.versionNo}?`)) {
+      setCode(ver.code);
+      setIsDiffMode(false);
+      setHistoryOpen(false);
+    }
+  };
+
+  // 10. Diff sources calculation
+  const originalDiffCode = useMemo(() => {
+    if (versionA) return versionA.code;
+    return lastSavedCode;
+  }, [versionA, lastSavedCode]);
+
+  const targetDiffCode = useMemo(() => {
+    if (versionB) return versionB.code;
+    return code;
+  }, [versionB, code]);
+
+  const diffStats = useMemo(() => {
+    return calculateDiffStats(originalDiffCode, targetDiffCode);
+  }, [originalDiffCode, targetDiffCode]);
+
+  const hasUnsavedChanges = code !== lastSavedCode;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="flex h-screen w-screen overflow-hidden bg-canvas text-slate-100 antialiased">
+      {/* Sidebar navigation */}
+      <Sidebar
+        snippets={snippets}
+        activeId={activeId}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSelectSnippet={loadSnippet}
+        onNewSnippet={handleNewSnippet}
+        onDeleteSnippet={handleDeleteSnippet}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Main Workspace */}
+      <main className="flex-1 flex flex-col h-full min-w-0">
+        <EditorHeader
+          title={title}
+          filename={filename}
+          language={language}
+          isDiffMode={isDiffMode}
+          isSideBySide={isSideBySide}
+          diffStats={diffStats}
+          hasUnsavedChanges={hasUnsavedChanges}
+          copied={copied}
+          onTitleChange={setTitle}
+          onFilenameChange={handleFilenameChange}
+          onLanguageChange={setLanguage}
+          onToggleDiffMode={() => setIsDiffMode(!isDiffMode)}
+          onToggleSideBySide={() => setIsSideBySide(!isSideBySide)}
+          onOpenHistory={() => setHistoryOpen(true)}
+          onSavePrompt={() => setSaveModalOpen(true)}
+          onFormatDocument={handleFormatDocument}
+          onCopyContent={handleCopy}
+        />
+
+        <div className="flex-1 relative overflow-hidden">
+          <CodeCanvas
+            language={language}
+            code={code}
+            originalCode={originalDiffCode}
+            isDiffMode={isDiffMode}
+            isSideBySide={isSideBySide}
+            onCodeChange={setCode}
+            editorRef={editorRef}
+          />
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      {/* History Revisions Drawer */}
+      <HistoryDrawer
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        versions={versions}
+        selectedVersionA={versionA}
+        selectedVersionB={versionB}
+        onSelectVersionA={(v) => {
+          setVersionA(versionA?.id === v.id ? null : v);
+          setIsDiffMode(true);
+        }}
+        onSelectVersionB={(v) => {
+          setVersionB(versionB?.id === v.id ? null : v);
+          setIsDiffMode(true);
+        }}
+        onRevertToVersion={handleRevertToVersion}
+      />
+
+      {/* Save Version Modal */}
+      <SaveModal
+        isOpen={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        onConfirm={handleSaveVersion}
+        currentVersionNo={versions[0]?.versionNo ?? 0}
+      />
     </div>
   );
 }

@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Snippet {
+  id          String           @id @default(cuid())
+  title       String
+  filename    String?
+  language    String           @default("typescript")
+  currentCode String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  versions    SnippetVersion[]
+}
+
+model SnippetVersion {
+  id        String   @id @default(cuid())
+  snippetId String
+  snippet   Snippet  @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  versionNo Int
+  title     String
+  code      String
+  commitMsg String?
+  createdAt DateTime @default(now())
+
+  @@index([snippetId, versionNo])
+}
