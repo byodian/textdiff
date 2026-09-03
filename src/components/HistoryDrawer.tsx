@@ -10,7 +10,7 @@ import {
   ArrowRight, 
   CheckSquare, 
   Square,
-  Info
+  Sparkles
 } from 'lucide-react';
 
 export interface VersionItem {
@@ -73,6 +73,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
   };
 
   const isCustomDiffActive = !!selectedVersionA;
+  const activeSelectedVersion = selectedVersionA || versions[0] || null;
 
   return (
     <div className="fixed inset-y-0 right-0 w-96 bg-canvas-elevated border-l border-canvas-border shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
@@ -108,7 +109,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
       </div>
 
       {/* Active Diff Status Banner */}
-      {isCustomDiffActive ? (
+      {isCustomDiffActive && (
         <div className="px-4 py-2.5 bg-sky-950/40 border-b border-sky-900/40 text-xs flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-sky-300 font-mono text-[11px]">
             <span>v{selectedVersionA?.versionNo}</span>
@@ -122,19 +123,10 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
             Reset Diff
           </button>
         </div>
-      ) : (
-        <div className="px-4 py-2 bg-canvas-surface/40 border-b border-canvas-border text-[11px] text-slate-400 flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-          <span>
-            {pickMode 
-              ? 'Click two versions below to compare them directly' 
-              : 'Click "Compare" on any version to diff against current code'}
-          </span>
-        </div>
       )}
 
       {/* Timeline List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
         {versions.length === 0 ? (
           <div className="text-center py-12 text-xs text-slate-500">
             No history versions saved yet. Click &quot;Save Version&quot; to create one.
@@ -145,19 +137,22 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
             const isPicked = pickedIds.includes(ver.id);
             const isLatest = idx === 0;
 
+            // Highlight state: currently comparing, or picked, or if idle highlight the Latest card
+            const isHighlighted = isComparingWithCurrent || isPicked || (!isCustomDiffActive && isLatest && !pickMode);
+
             return (
               <div 
                 key={ver.id} 
-                className={`relative pl-5 pb-1 border-l transition-all ${
-                  isComparingWithCurrent || isPicked 
-                    ? 'border-brand-primary' 
+                className={`relative pl-5 pb-0.5 border-l transition-all ${
+                  isHighlighted 
+                    ? 'border-brand-primary/80' 
                     : 'border-canvas-border'
                 } last:border-l-0`}
               >
                 {/* Timeline node icon */}
                 <div 
-                  className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
-                    isComparingWithCurrent || isPicked
+                  className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                    isHighlighted
                       ? 'bg-sky-500 border-sky-400 text-slate-950'
                       : 'bg-canvas-surface border-canvas-border text-slate-400'
                   }`}
@@ -173,18 +168,14 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                       onCompareWithCurrent(ver);
                     }
                   }}
-                  className={`group/card rounded-lg p-3 text-xs space-y-2 border transition-all cursor-pointer ${
+                  className={`group rounded-lg p-3 text-xs space-y-2 border transition-all cursor-pointer select-none active:scale-[0.99] ${
                     isComparingWithCurrent || isPicked
-                      ? 'bg-sky-950/30 border-sky-500 shadow-md ring-1 ring-sky-500/30'
+                      ? 'bg-sky-950/40 border-sky-500 shadow-md ring-1 ring-sky-500/40'
+                      : isLatest && !isCustomDiffActive && !pickMode
+                      ? 'bg-sky-950/20 border-sky-600/40 hover:border-sky-500/70 hover:bg-sky-950/30'
                       : 'bg-canvas-surface/80 border-canvas-border hover:border-canvas-highlight hover:bg-canvas-surface'
                   }`}
-                  title={
-                    pickMode
-                      ? 'Click to select for comparison'
-                      : isComparingWithCurrent
-                      ? 'Currently comparing (click to reset)'
-                      : 'Click to inspect diff against current draft'
-                  }
+                  title={pickMode ? 'Click to select' : 'Click card to compare'}
                 >
                   {/* Card Title Bar */}
                   <div className="flex items-center justify-between">
@@ -194,7 +185,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                           {isPicked ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5 text-slate-500" />}
                         </div>
                       )}
-                      <span className="font-mono font-semibold text-slate-200 text-xs flex items-center gap-1">
+                      <span className="font-mono font-semibold text-slate-200 text-xs flex items-center gap-1.5">
                         v{ver.versionNo}
                         {isComparingWithCurrent && (
                           <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-sky-500 text-slate-950 font-bold">
@@ -203,12 +194,13 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                         )}
                       </span>
                       {isLatest && (
-                        <span className="text-[9px] font-sans px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+                        <span className="text-[9px] font-sans px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
                           Latest
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                    <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
                       <Clock className="w-2.5 h-2.5" />
                       {new Date(ver.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -218,33 +210,38 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                   <p className="text-slate-300 font-medium text-xs leading-relaxed">
                     {ver.commitMsg || 'Snapshot'}
                   </p>
-
-                  {/* Card Footer */}
-                  {!pickMode && (
-                    <div className="pt-2 border-t border-canvas-border/50 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 group-hover/card:text-sky-400 transition-colors">
-                        {isComparingWithCurrent ? '● Active comparison' : 'Click card to compare'}
-                      </span>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRevertToVersion(ver);
-                        }}
-                        className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-amber-400 hover:bg-amber-950/40 hover:text-amber-300 transition-colors"
-                        title="Revert current editor code to this version"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Revert</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             );
           })
         )}
       </div>
+
+      {/* Unified Single Action Footer */}
+      {versions.length > 0 && (
+        <div className="p-3 bg-canvas-surface border-t border-canvas-border flex items-center justify-between gap-3">
+          <div className="text-[11px] text-slate-400 min-w-0 truncate">
+            {activeSelectedVersion ? (
+              <span>Target: <strong className="text-slate-200 font-mono">v{activeSelectedVersion.versionNo}</strong></span>
+            ) : (
+              <span>No version selected</span>
+            )}
+          </div>
+          <button
+            disabled={!activeSelectedVersion}
+            onClick={() => {
+              if (activeSelectedVersion) {
+                onRevertToVersion(activeSelectedVersion);
+              }
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-500/60 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={`Restore workspace code to v${activeSelectedVersion?.versionNo ?? ''}`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Revert to v{activeSelectedVersion?.versionNo ?? ''}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
