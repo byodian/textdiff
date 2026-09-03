@@ -14,9 +14,10 @@ export type MonacoEditorInstance = {
 };
 
 export type MonacoDiffEditorInstance = {
-  getDiffNavigator?: () => { next: () => void; previous: () => void };
-  next?: () => void;
-  previous?: () => void;
+  goToDiff?: (target: 'next' | 'previous') => void;
+  getLineChanges?: () => unknown[] | null;
+  getModifiedEditor?: () => { getAction: (id: string) => { run: () => void } | null } | null;
+  getOriginalEditor?: () => { getAction: (id: string) => { run: () => void } | null } | null;
 };
 
 interface CodeCanvasProps {

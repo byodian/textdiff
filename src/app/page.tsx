@@ -276,15 +276,23 @@ export default function WorkspacePage() {
   // 12. Diff navigation
   const handleNextDiffChunk = () => {
     if (diffEditorRef.current) {
-      const nav = diffEditorRef.current.getDiffNavigator?.() || diffEditorRef.current;
-      nav.next?.();
+      if (typeof diffEditorRef.current.goToDiff === 'function') {
+        diffEditorRef.current.goToDiff('next');
+      } else {
+        const modifiedEditor = diffEditorRef.current.getModifiedEditor?.();
+        modifiedEditor?.getAction?.('editor.action.diffReview.next')?.run();
+      }
     }
   };
 
   const handlePrevDiffChunk = () => {
     if (diffEditorRef.current) {
-      const nav = diffEditorRef.current.getDiffNavigator?.() || diffEditorRef.current;
-      nav.previous?.();
+      if (typeof diffEditorRef.current.goToDiff === 'function') {
+        diffEditorRef.current.goToDiff('previous');
+      } else {
+        const modifiedEditor = diffEditorRef.current.getModifiedEditor?.();
+        modifiedEditor?.getAction?.('editor.action.diffReview.prev')?.run();
+      }
     }
   };
 
