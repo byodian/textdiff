@@ -8,7 +8,6 @@ import {
   Clock, 
   Layers, 
   ArrowRight, 
-  Eye, 
   CheckSquare, 
   Square,
   Info
@@ -170,26 +169,38 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                   onClick={() => {
                     if (pickMode) {
                       handleTogglePick(ver.id);
+                    } else {
+                      onCompareWithCurrent(ver);
                     }
                   }}
-                  className={`rounded-lg p-3 text-xs space-y-2 border transition-all ${
-                    pickMode ? 'cursor-pointer' : ''
-                  } ${
+                  className={`group/card rounded-lg p-3 text-xs space-y-2 border transition-all cursor-pointer ${
                     isComparingWithCurrent || isPicked
-                      ? 'bg-sky-950/20 border-sky-500/50 shadow-sm'
-                      : 'bg-canvas-surface/80 border-canvas-border hover:border-canvas-highlight'
+                      ? 'bg-sky-950/30 border-sky-500 shadow-md ring-1 ring-sky-500/30'
+                      : 'bg-canvas-surface/80 border-canvas-border hover:border-canvas-highlight hover:bg-canvas-surface'
                   }`}
+                  title={
+                    pickMode
+                      ? 'Click to select for comparison'
+                      : isComparingWithCurrent
+                      ? 'Currently comparing (click to reset)'
+                      : 'Click to inspect diff against current draft'
+                  }
                 >
                   {/* Card Title Bar */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       {pickMode && (
-                        <button className="text-brand-primary">
+                        <div className="text-brand-primary">
                           {isPicked ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5 text-slate-500" />}
-                        </button>
+                        </div>
                       )}
-                      <span className="font-mono font-semibold text-slate-200 text-xs">
+                      <span className="font-mono font-semibold text-slate-200 text-xs flex items-center gap-1">
                         v{ver.versionNo}
+                        {isComparingWithCurrent && (
+                          <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-sky-500 text-slate-950 font-bold">
+                            Diffing
+                          </span>
+                        )}
                       </span>
                       {isLatest && (
                         <span className="text-[9px] font-sans px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
@@ -208,25 +219,19 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                     {ver.commitMsg || 'Snapshot'}
                   </p>
 
-                  {/* Action Bar (Simplified & clear) */}
+                  {/* Card Footer */}
                   {!pickMode && (
-                    <div className="pt-2 border-t border-canvas-border/60 flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => onCompareWithCurrent(ver)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
-                          isComparingWithCurrent
-                            ? 'bg-sky-500 text-slate-950 border-sky-400 font-semibold'
-                            : 'bg-canvas-elevated text-slate-300 border-canvas-border hover:text-white hover:border-canvas-highlight'
-                        }`}
-                        title="Compare this historical version with your current working code"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>{isComparingWithCurrent ? 'Comparing' : 'Compare'}</span>
-                      </button>
+                    <div className="pt-2 border-t border-canvas-border/50 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 group-hover/card:text-sky-400 transition-colors">
+                        {isComparingWithCurrent ? '● Active comparison' : 'Click card to compare'}
+                      </span>
 
                       <button
-                        onClick={() => onRevertToVersion(ver)}
-                        className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-amber-400 hover:bg-amber-950/40 hover:text-amber-300 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRevertToVersion(ver);
+                        }}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-amber-400 hover:bg-amber-950/40 hover:text-amber-300 transition-colors"
                         title="Revert current editor code to this version"
                       >
                         <RotateCcw className="w-3 h-3" />
