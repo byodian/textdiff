@@ -429,6 +429,7 @@ export default function WorkspacePage() {
                 language={language}
                 code={code}
                 originalCode={originalDiffCode}
+                targetCode={targetDiffCode}
                 isDiffMode={isDiffMode}
                 isSideBySide={isSideBySide}
                 onCodeChange={setCode}

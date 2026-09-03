@@ -24,6 +24,7 @@ interface CodeCanvasProps {
   language: string;
   code: string;
   originalCode: string;
+  targetCode?: string;
   isDiffMode: boolean;
   isSideBySide: boolean;
   onCodeChange: (val: string) => void;
@@ -35,6 +36,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   language,
   code,
   originalCode,
+  targetCode,
   isDiffMode,
   isSideBySide,
   onCodeChange,
@@ -49,6 +51,8 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     diffEditorRef.current = editor as unknown as MonacoDiffEditorInstance;
   };
 
+  const modifiedValue = targetCode !== undefined ? targetCode : code;
+
   return (
     <div className="flex-1 h-full w-full relative bg-canvas">
       {isDiffMode ? (
@@ -56,7 +60,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
           height="100%"
           language={language}
           original={originalCode}
-          modified={code}
+          modified={modifiedValue}
           onMount={handleDiffEditorDidMount}
           theme="vs-dark"
           options={{

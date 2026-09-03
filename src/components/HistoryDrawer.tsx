@@ -51,23 +51,31 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
   if (!isOpen) return null;
 
   const handleTogglePick = (id: string) => {
+    let next: string[];
     if (pickedIds.includes(id)) {
-      setPickedIds(pickedIds.filter((item) => item !== id));
+      next = pickedIds.filter((item) => item !== id);
     } else {
       if (pickedIds.length >= 2) {
-        setPickedIds([pickedIds[1], id]);
+        // Keep the second picked version and replace the first with the new one
+        next = [pickedIds[1], id];
       } else {
-        const next = [...pickedIds, id];
-        setPickedIds(next);
-        if (next.length === 2) {
-          const v1 = versions.find((v) => v.id === next[0]);
-          const v2 = versions.find((v) => v.id === next[1]);
-          if (v1 && v2) {
-            // older version as Base, newer as Target
-            const [base, target] = v1.versionNo < v2.versionNo ? [v1, v2] : [v2, v1];
-            onCompareTwoVersions(base, target);
-          }
-        }
+        next = [...pickedIds, id];
+      }
+    }
+    setPickedIds(next);
+
+    if (next.length === 2) {
+      const v1 = versions.find((v) => v.id === next[0]);
+      const v2 = versions.find((v) => v.id === next[1]);
+      if (v1 && v2) {
+        // older version as Base, newer as Target
+        const [base, target] = v1.versionNo < v2.versionNo ? [v1, v2] : [v2, v1];
+        onCompareTwoVersions(base, target);
+      }
+    } else if (next.length === 1) {
+      const v = versions.find((item) => item.id === next[0]);
+      if (v) {
+        onCompareWithCurrent(v);
       }
     }
   };
@@ -117,7 +125,10 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
             <span className="font-semibold text-sky-300">{selectedVersionB ? `v${selectedVersionB.versionNo}` : 'Current Draft'}</span>
           </div>
           <button
-            onClick={onClearCustomDiff}
+            onClick={() => {
+              setPickedIds([]);
+              onClearCustomDiff();
+            }}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-canvas-surface text-slate-300 border border-canvas-border hover:border-canvas-highlight hover:text-white hover:bg-canvas-elevated active:scale-95 transition-all shadow-sm shrink-0"
             title="Exit version diff and restore editor"
           >
