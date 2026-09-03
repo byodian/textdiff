@@ -94,7 +94,6 @@ export default function WorkspacePage() {
     if (!source) return;
 
     try {
-      // fetch full details to get current code
       const detailRes = await fetch(`/api/snippets/${id}`);
       if (!detailRes.ok) return;
       const detail = await detailRes.json();
@@ -173,7 +172,44 @@ export default function WorkspacePage() {
     setLanguage(detected);
   };
 
-  // 7. Save version snapshot
+  // 7. Auto-save metadata (title, filename, language) without creating a new version
+  const handleAutoSaveMeta = useCallback(async (newTitle = title, newFilename = filename, newLanguage = language) => {
+    if (!activeId) return;
+
+    try {
+      const res = await fetch(`/api/snippets/${activeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTitle.trim() || 'Untitled Snippet',
+          filename: newFilename.trim() || null,
+          language: newLanguage,
+          currentCode: code,
+          createVersion: false,
+        }),
+      });
+
+      if (res.ok) {
+        setSnippets((prev) =>
+          prev.map((s) =>
+            s.id === activeId
+              ? { ...s, title: newTitle.trim() || 'Untitled Snippet', filename: newFilename.trim() || null, language: newLanguage, updatedAt: new Date().toISOString() }
+              : s
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Failed to auto-save metadata', err);
+    }
+  }, [activeId, title, filename, language, code]);
+
+  // 8. Language change with auto-save
+  const handleLanguageChange = (newLang: string) => {
+    setLanguage(newLang);
+    handleAutoSaveMeta(title, filename, newLang);
+  };
+
+  // 9. Save version snapshot
   const handleSaveVersion = async (commitMsg: string) => {
     if (!activeId) return;
 
@@ -182,8 +218,8 @@ export default function WorkspacePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          filename,
+          title: title.trim() || 'Untitled Snippet',
+          filename: filename.trim() || null,
           language,
           currentCode: code,
           createVersion: true,
@@ -195,9 +231,12 @@ export default function WorkspacePage() {
         const updated = await res.json();
         setLastSavedCode(code);
         setVersions(updated.versions || []);
-        // update summary in sidebar
         setSnippets((prev) =>
-          prev.map((s) => (s.id === activeId ? { ...s, title, filename, language, updatedAt: new Date().toISOString() } : s))
+          prev.map((s) =>
+            s.id === activeId
+              ? { ...s, title: title.trim() || 'Untitled Snippet', filename: filename.trim() || null, language, updatedAt: new Date().toISOString() }
+              : s
+          )
         );
       }
     } catch (err) {
@@ -205,14 +244,29 @@ export default function WorkspacePage() {
     }
   };
 
-  // 8. Format document via Monaco Action
+  // 10. Global keyboard shortcut (Ctrl+S / Cmd+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (activeId) {
+          setSaveModalOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeId]);
+
+  // 11. Format document via Monaco Action
   const handleFormatDocument = () => {
     if (editorRef.current) {
       editorRef.current.getAction('editor.action.formatDocument')?.run();
     }
   };
 
-  // 9. Diff navigation
+  // 12. Diff navigation
   const handleNextDiffChunk = () => {
     if (diffEditorRef.current) {
       const nav = diffEditorRef.current.getDiffNavigator?.() || diffEditorRef.current;
@@ -227,23 +281,51 @@ export default function WorkspacePage() {
     }
   };
 
-  // 10. Copy code to clipboard
+  // 13. Copy code to clipboard
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  // 11. Revert to a specific history version
+  // 14. Revert to a specific history version
   const handleRevertToVersion = (ver: VersionItem) => {
     if (confirm(`Revert workspace code to v${ver.versionNo}?`)) {
       setCode(ver.code);
+      setVersionA(null);
+      setVersionB(null);
       setIsDiffMode(false);
       setHistoryOpen(false);
     }
   };
 
-  // 12. Diff sources calculation
+  // 15. History comparison triggers
+  const handleCompareWithCurrent = (ver: VersionItem) => {
+    if (versionA?.id === ver.id && !versionB) {
+      // Toggle off
+      setVersionA(null);
+      setVersionB(null);
+      setIsDiffMode(false);
+    } else {
+      setVersionA(ver);
+      setVersionB(null);
+      setIsDiffMode(true);
+    }
+  };
+
+  const handleCompareTwoVersions = (base: VersionItem, target: VersionItem) => {
+    setVersionA(base);
+    setVersionB(target);
+    setIsDiffMode(true);
+  };
+
+  const handleExitCustomDiff = () => {
+    setVersionA(null);
+    setVersionB(null);
+    setIsDiffMode(false);
+  };
+
+  // 16. Diff sources calculation
   const originalDiffCode = useMemo(() => {
     if (versionA) return versionA.code;
     return lastSavedCode;
@@ -258,7 +340,17 @@ export default function WorkspacePage() {
     return calculateDiffStats(originalDiffCode, targetDiffCode);
   }, [originalDiffCode, targetDiffCode]);
 
-  // 13. Copy diff patch
+  const customDiffLabel = useMemo(() => {
+    if (versionA && versionB) {
+      return `v${versionA.versionNo} ↔ v${versionB.versionNo}`;
+    }
+    if (versionA) {
+      return `v${versionA.versionNo} ↔ Current Draft`;
+    }
+    return null;
+  }, [versionA, versionB]);
+
+  // 17. Copy diff patch
   const handleCopyDiff = () => {
     const patch = createUnifiedPatchText(filename || 'snippet', originalDiffCode, targetDiffCode);
     navigator.clipboard.writeText(patch);
@@ -298,9 +390,13 @@ export default function WorkspacePage() {
               hasUnsavedChanges={hasUnsavedChanges}
               copiedCode={copiedCode}
               copiedDiff={copiedDiff}
+              customDiffLabel={customDiffLabel}
+              onExitCustomDiff={handleExitCustomDiff}
               onTitleChange={setTitle}
+              onTitleBlur={() => handleAutoSaveMeta(title, filename, language)}
               onFilenameChange={handleFilenameChange}
-              onLanguageChange={setLanguage}
+              onFilenameBlur={() => handleAutoSaveMeta(title, filename, language)}
+              onLanguageChange={handleLanguageChange}
               onToggleDiffMode={() => setIsDiffMode(!isDiffMode)}
               onToggleSideBySide={() => setIsSideBySide(!isSideBySide)}
               onOpenHistory={() => setHistoryOpen(true)}
@@ -314,6 +410,7 @@ export default function WorkspacePage() {
 
             <div className="flex-1 relative overflow-hidden">
               <CodeCanvas
+                key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}`}
                 language={language}
                 code={code}
                 originalCode={originalDiffCode}
@@ -345,14 +442,9 @@ export default function WorkspacePage() {
         versions={versions}
         selectedVersionA={versionA}
         selectedVersionB={versionB}
-        onSelectVersionA={(v) => {
-          setVersionA(versionA?.id === v.id ? null : v);
-          setIsDiffMode(true);
-        }}
-        onSelectVersionB={(v) => {
-          setVersionB(versionB?.id === v.id ? null : v);
-          setIsDiffMode(true);
-        }}
+        onCompareWithCurrent={handleCompareWithCurrent}
+        onCompareTwoVersions={handleCompareTwoVersions}
+        onClearCustomDiff={handleExitCustomDiff}
         onRevertToVersion={handleRevertToVersion}
       />
 

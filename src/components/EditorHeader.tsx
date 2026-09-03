@@ -13,7 +13,8 @@ import {
   Split,
   ChevronDown,
   ChevronUp,
-  FileDiff
+  FileDiff,
+  X
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/languages';
 
@@ -27,8 +28,12 @@ interface EditorHeaderProps {
   hasUnsavedChanges: boolean;
   copiedCode: boolean;
   copiedDiff: boolean;
+  customDiffLabel?: string | null;
+  onExitCustomDiff?: () => void;
   onTitleChange: (val: string) => void;
+  onTitleBlur: () => void;
   onFilenameChange: (val: string) => void;
+  onFilenameBlur: () => void;
   onLanguageChange: (lang: string) => void;
   onToggleDiffMode: () => void;
   onToggleSideBySide: () => void;
@@ -51,8 +56,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   hasUnsavedChanges,
   copiedCode,
   copiedDiff,
+  customDiffLabel,
+  onExitCustomDiff,
   onTitleChange,
+  onTitleBlur,
   onFilenameChange,
+  onFilenameBlur,
   onLanguageChange,
   onToggleDiffMode,
   onToggleSideBySide,
@@ -72,8 +81,15 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
+          onBlur={onTitleBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
           placeholder="Snippet Title"
           className="bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-sm font-medium text-slate-100 px-1 py-0.5 outline-none transition-colors max-w-xs truncate"
+          title="Click to edit title (auto-saves on blur)"
         />
 
         <span className="text-slate-600">/</span>
@@ -82,8 +98,15 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           type="text"
           value={filename}
           onChange={(e) => onFilenameChange(e.target.value)}
+          onBlur={onFilenameBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
           placeholder="e.g. index.ts, app.py"
           className="bg-canvas-surface border border-canvas-border rounded px-2 py-1 text-xs font-mono text-slate-300 placeholder-slate-600 focus:outline-none focus:border-brand-primary w-36 transition-colors"
+          title="Click to edit filename (auto-saves on blur)"
         />
 
         {/* Language select */}
@@ -103,6 +126,22 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           <span className="flex items-center gap-1 text-[11px] text-amber-400 font-medium px-2 py-0.5 rounded bg-amber-950/40 border border-amber-900/50 animate-pulse">
             ● Unsaved edits
           </span>
+        )}
+
+        {/* Custom Version Diff banner if active */}
+        {customDiffLabel && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-sky-950/70 border border-sky-600/50 text-xs text-sky-300 font-mono">
+            <span>Diff: {customDiffLabel}</span>
+            {onExitCustomDiff && (
+              <button
+                onClick={onExitCustomDiff}
+                className="hover:text-white p-0.5 rounded"
+                title="Exit version comparison and return to editor"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -217,9 +256,13 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         <button
           onClick={onSavePrompt}
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-brand-primary hover:bg-sky-400 text-slate-950 font-semibold text-xs shadow-md shadow-sky-500/20 transition-all active:scale-95"
+          title="Save Version (Ctrl+S / Cmd+S)"
         >
           <Save className="w-3.5 h-3.5" />
           <span>Save Version</span>
+          <kbd className="hidden sm:inline-block text-[10px] opacity-75 font-mono px-1 py-0.2 rounded bg-black/20">
+            Ctrl+S
+          </kbd>
         </button>
       </div>
     </header>
