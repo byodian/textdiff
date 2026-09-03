@@ -147,14 +147,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Action toolbars */}
       <div className="flex items-center gap-2">
-        {/* Diff Stats Badge */}
-        {diffStats.hasChanges && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-canvas-surface border border-canvas-border text-xs font-mono">
-            <span className="text-diff-added font-semibold">+{diffStats.added}</span>
-            <span className="text-slate-600">/</span>
-            <span className="text-diff-removed font-semibold">-{diffStats.removed}</span>
-          </div>
-        )}
 
         {/* Diff Navigation controls (Diff mode only) */}
         {isDiffMode && (
