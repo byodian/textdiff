@@ -18,6 +18,14 @@ export default function WorkspacePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // Notify components and editor to recalculate layout after sidebar collapse transition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [isSidebarCollapsed]);
+
   // Active Snippet State
   const [title, setTitle] = useState('Untitled Snippet');
   const [filename, setFilename] = useState('');
