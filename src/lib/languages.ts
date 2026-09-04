@@ -27,7 +27,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { id: 'plaintext', name: 'Plain Text', extensions: ['.txt', '.log'] },
 ];
 
-export function detectLanguageFromFilename(filename: string, fallback = 'typescript'): string {
+export function detectLanguageFromFilename(filename: string, fallback = 'plaintext'): string {
   if (!filename) return fallback;
   const lower = filename.toLowerCase();
 

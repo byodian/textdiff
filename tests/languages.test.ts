@@ -30,8 +30,9 @@ describe('Language detection and configuration seam', () => {
   });
 
   it('falls back to default language for unknown extension or empty name', () => {
-    expect(detectLanguageFromFilename('file.unknown')).toBe('typescript');
-    expect(detectLanguageFromFilename('')).toBe('typescript');
+    expect(detectLanguageFromFilename('file.unknown')).toBe('plaintext');
+    expect(detectLanguageFromFilename('')).toBe('plaintext');
+    expect(detectLanguageFromFilename('file.unknown', 'javascript')).toBe('javascript');
   });
 
   it('includes all registered languages in supported list', () => {

@@ -18,7 +18,7 @@ export default function WorkspacePage() {
   // Active Snippet State
   const [title, setTitle] = useState('Untitled Snippet');
   const [filename, setFilename] = useState('');
-  const [language, setLanguage] = useState('typescript');
+  const [language, setLanguage] = useState('plaintext');
   const [code, setCode] = useState('');
   const [lastSavedCode, setLastSavedCode] = useState('');
   const [versions, setVersions] = useState<VersionItem[]>([]);
@@ -51,7 +51,7 @@ export default function WorkspacePage() {
       setActiveId(s.id);
       setTitle(s.title);
       setFilename(s.filename || '');
-      setLanguage(s.language || 'typescript');
+      setLanguage(s.language || 'plaintext');
       setCode(s.currentCode);
       setLastSavedCode(s.currentCode);
       setVersions(s.versions || []);
@@ -63,13 +63,13 @@ export default function WorkspacePage() {
     }
   }, []);
 
-  // 2. New snippet
+  // 2. New snippet (VS Code style: blank buffer, no default code, plaintext language)
   const handleNewSnippet = useCallback(async () => {
     const defaultSnippet = {
-      title: 'New Snippet',
-      filename: 'index.ts',
-      language: 'typescript',
-      currentCode: '// Start drafting or paste code here...\nfunction greeting(name: string): string {\n  return `Hello, ${name}!`;\n}\n',
+      title: 'Untitled Snippet',
+      filename: '',
+      language: 'plaintext',
+      currentCode: '',
     };
 
     try {

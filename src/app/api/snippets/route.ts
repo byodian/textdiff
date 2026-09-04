@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       data: {
         title: title || 'Untitled Snippet',
         filename: filename || null,
-        language: language || 'typescript',
+        language: language || 'plaintext',
         currentCode: currentCode || '',
         versions: {
           create: {
