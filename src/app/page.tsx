@@ -26,6 +26,7 @@ export default function WorkspacePage() {
   // Diff & Mode State
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [isSideBySide, setIsSideBySide] = useState(true);
+  const [markdownViewMode, setMarkdownViewMode] = useState<'edit' | 'split' | 'preview'>('split');
 
   // History comparison pair
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -401,6 +402,8 @@ export default function WorkspacePage() {
               language={language}
               isDiffMode={isDiffMode}
               isSideBySide={isSideBySide}
+              markdownViewMode={markdownViewMode}
+              onMarkdownViewModeChange={setMarkdownViewMode}
               diffStats={diffStats}
               hasUnsavedChanges={hasUnsavedChanges}
               copiedCode={copiedCode}
@@ -425,13 +428,14 @@ export default function WorkspacePage() {
 
             <div className="flex-1 relative overflow-hidden">
               <CodeCanvas
-                key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}`}
+                key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}-${language === 'markdown' ? markdownViewMode : 'code'}`}
                 language={language}
                 code={code}
                 originalCode={originalDiffCode}
                 targetCode={targetDiffCode}
                 isDiffMode={isDiffMode}
                 isSideBySide={isSideBySide}
+                markdownViewMode={markdownViewMode}
                 onCodeChange={setCode}
                 editorRef={editorRef}
                 diffEditorRef={diffEditorRef}
