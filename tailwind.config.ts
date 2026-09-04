@@ -10,14 +10,14 @@ const config: Config = {
     extend: {
       colors: {
         canvas: {
-          DEFAULT: '#0b0f19',
-          elevated: '#111827',
-          surface: '#161e2e',
-          border: '#1f293d',
-          highlight: '#28354f',
+          DEFAULT: 'var(--color-canvas-default, #0b0f19)',
+          elevated: 'var(--color-canvas-elevated, #111827)',
+          surface: 'var(--color-canvas-surface, #161e2e)',
+          border: 'var(--color-canvas-border, #1f293d)',
+          highlight: 'var(--color-canvas-highlight, #28354f)',
         },
         brand: {
-          primary: '#38bdf8', // Electric Sky
+          primary: 'var(--color-brand-primary, #38bdf8)', // Electric Sky / Accent
           glow: '#0284c7',
         },
         diff: {

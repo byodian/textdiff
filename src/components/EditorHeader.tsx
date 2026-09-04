@@ -141,7 +141,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             type="button"
             onClick={onOpenThemePalette}
             className="text-slate-400 hover:text-brand-primary transition-colors"
-            title="Open Theme Quick Pick (Ctrl+K Ctrl+T / Ctrl+Shift+P)"
+            title="Open Command Palette / Themes (Ctrl+Shift+P)"
           >
             <Palette className="w-3.5 h-3.5 shrink-0" />
           </button>
@@ -149,7 +149,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             value={theme}
             onChange={(e) => onThemeChange(e.target.value)}
             className="bg-transparent text-slate-300 text-xs focus:outline-none cursor-pointer pr-1"
-            title="Editor Color Theme (Click palette icon or press Ctrl+K Ctrl+T for quick search)"
+            title="Editor Color Theme (Ctrl+Shift+P for Command Palette)"
           >
             <optgroup label="Standard Themes" className="bg-canvas-surface text-slate-200">
               <option value="vs-dark">VS Dark</option>

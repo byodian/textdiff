@@ -5,10 +5,12 @@ import { Sidebar, SnippetSummary } from '@/components/Sidebar';
 import { EditorHeader } from '@/components/EditorHeader';
 import { HistoryDrawer, VersionItem } from '@/components/HistoryDrawer';
 import { SaveModal } from '@/components/SaveModal';
-import { ThemeCommandPalette } from '@/components/ThemeCommandPalette';
+import { CommandPalette } from '@/components/CommandPalette';
 import { CodeCanvas, MonacoEditorInstance, MonacoDiffEditorInstance } from '@/components/CodeCanvas';
 import { detectLanguageFromFilename } from '@/lib/languages';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
+import { ALL_THEMES } from '@/lib/themes';
+import { applyGlobalThemeColors } from '@/lib/theme-colors';
 
 export default function WorkspacePage() {
   const [snippets, setSnippets] = useState<SnippetSummary[]>([]);
@@ -29,7 +31,7 @@ export default function WorkspacePage() {
   const [isSideBySide, setIsSideBySide] = useState(true);
   const [markdownViewMode, setMarkdownViewMode] = useState<'edit' | 'split' | 'preview'>('split');
   const [editorTheme, setEditorTheme] = useState('vs-dark');
-  const [themePaletteOpen, setThemePaletteOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   // Load persisted theme on mount
   useEffect(() => {
@@ -38,6 +40,13 @@ export default function WorkspacePage() {
       setEditorTheme(saved);
     }
   }, []);
+
+  // Apply website-wide color theme whenever editorTheme changes
+  useEffect(() => {
+    const found = ALL_THEMES.find((t) => t.id === editorTheme);
+    const isLight = found ? found.type === 'light' : false;
+    applyGlobalThemeColors(editorTheme, isLight);
+  }, [editorTheme]);
 
   const handleThemeChange = (newTheme: string) => {
     setEditorTheme(newTheme);
@@ -276,14 +285,11 @@ export default function WorkspacePage() {
     }
   };
 
-  // 10. Global keyboard shortcuts (Ctrl+S for Save, Ctrl+K Ctrl+T or Ctrl+Shift+T for Themes)
+  // 10. Global keyboard shortcuts (Ctrl+S for Save, Ctrl+Shift+P / Cmd+Shift+P for Command Palette)
   useEffect(() => {
-    let chordWaitingForT = false;
-    let chordTimer: NodeJS.Timeout | null = null;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       // 1. Ctrl+S / Cmd+S => Save Version
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (activeId) {
           setSaveModalOpen(true);
@@ -291,34 +297,10 @@ export default function WorkspacePage() {
         return;
       }
 
-      // 2. VS Code Chord: Ctrl+K then Ctrl+T (or plain T)
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      // 2. Ctrl+Shift+P / Cmd+Shift+P => Open Command Palette
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
-        chordWaitingForT = true;
-        if (chordTimer) clearTimeout(chordTimer);
-        chordTimer = setTimeout(() => {
-          chordWaitingForT = false;
-        }, 1500); // 1.5s window for second key
-        return;
-      }
-
-      if (chordWaitingForT) {
-        if (e.key.toLowerCase() === 't') {
-          e.preventDefault();
-          chordWaitingForT = false;
-          if (chordTimer) clearTimeout(chordTimer);
-          setThemePaletteOpen(true);
-          return;
-        } else {
-          chordWaitingForT = false;
-          if (chordTimer) clearTimeout(chordTimer);
-        }
-      }
-
-      // 3. Alternative direct shortcut: Ctrl+Alt+T / Cmd+Alt+T
-      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 't') {
-        e.preventDefault();
-        setThemePaletteOpen((prev) => !prev);
+        setCommandPaletteOpen((prev) => !prev);
         return;
       }
     };
@@ -326,7 +308,6 @@ export default function WorkspacePage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      if (chordTimer) clearTimeout(chordTimer);
     };
   }, [activeId]);
 
@@ -465,7 +446,7 @@ export default function WorkspacePage() {
               language={language}
               theme={editorTheme}
               onThemeChange={handleThemeChange}
-              onOpenThemePalette={() => setThemePaletteOpen(true)}
+              onOpenThemePalette={() => setCommandPaletteOpen(true)}
               isDiffMode={isDiffMode}
               isSideBySide={isSideBySide}
               markdownViewMode={markdownViewMode}
@@ -543,16 +524,27 @@ export default function WorkspacePage() {
         currentVersionNo={versions[0]?.versionNo ?? 0}
       />
 
-      {/* VS Code-style Theme Command Palette (Ctrl+K Ctrl+T / Ctrl+Alt+T) */}
-      <ThemeCommandPalette
-        isOpen={themePaletteOpen}
+      {/* VS Code-style Command Palette (Ctrl+Shift+P) */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
         currentTheme={editorTheme}
+        isDiffMode={isDiffMode}
+        isMarkdown={language === 'markdown'}
+        markdownViewMode={markdownViewMode}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNewSnippet={handleNewSnippet}
+        onSavePrompt={() => setSaveModalOpen(true)}
+        onOpenHistory={() => setHistoryOpen(true)}
+        onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
+        onToggleSideBySide={() => setIsSideBySide((prev) => !prev)}
+        onFormatDocument={handleFormatDocument}
+        onCopyContent={handleCopyCode}
+        onCopyDiff={handleCopyDiff}
+        onSetMarkdownViewMode={setMarkdownViewMode}
         onSelectTheme={(th) => {
           handleThemeChange(th);
-          setThemePaletteOpen(false);
         }}
         onPreviewTheme={handlePreviewTheme}
-        onClose={() => setThemePaletteOpen(false)}
       />
     </div>
   );

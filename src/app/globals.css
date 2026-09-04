@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 :root {
+  --color-canvas-default: #0b0f19;
+  --color-canvas-elevated: #111827;
+  --color-canvas-surface: #161e2e;
+  --color-canvas-border: #1f293d;
+  --color-canvas-highlight: #28354f;
+  --color-brand-primary: #38bdf8;
   --foreground: #f1f5f9;
   --background: #0b0f19;
 }
@@ -12,6 +18,21 @@ body {
   background: var(--background);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow: hidden;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Light theme overrides for general texts if needed */
+.light-theme {
+  color-scheme: light;
+}
+
+.light-theme input,
+.light-theme select {
+  color-scheme: light;
+}
+
+.dark-theme {
+  color-scheme: dark;
 }
 
 /* Custom subtle scrollbar */
