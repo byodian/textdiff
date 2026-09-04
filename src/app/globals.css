@@ -1,9 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-canvas-default: #0b0f19;
+  --color-editor-bg: #1e1e1e;
+  --color-editor-fg: #d4d4d4;
   --color-canvas-elevated: #111827;
   --color-canvas-surface: #161e2e;
   --color-canvas-border: #1f293d;

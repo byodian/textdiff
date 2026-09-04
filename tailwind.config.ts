@@ -11,6 +11,7 @@ const config: Config = {
       colors: {
         canvas: {
           DEFAULT: 'var(--color-canvas-default, #0b0f19)',
+          editor: 'var(--color-editor-bg, #1e1e1e)',
           elevated: 'var(--color-canvas-elevated, #111827)',
           surface: 'var(--color-canvas-surface, #161e2e)',
           border: 'var(--color-canvas-border, #1f293d)',

@@ -99,7 +99,10 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   );
 
   return (
-    <div className="flex-1 h-full w-full relative bg-canvas">
+    <div 
+      className="flex-1 h-full w-full relative bg-canvas transition-colors duration-150"
+      style={{ backgroundColor: 'var(--color-editor-bg, var(--color-canvas-default))' }}
+    >
       {isDiffMode ? (
         <DiffEditor
           height="100%"
@@ -122,14 +125,14 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
           }}
         />
       ) : isMarkdownPreview ? (
-        <MarkdownPreview content={code} />
+        <MarkdownPreview content={code} theme={theme} />
       ) : isMarkdownSplit ? (
         <div className="grid grid-cols-1 md:grid-cols-2 h-full w-full divide-y md:divide-y-0 md:divide-x divide-canvas-border">
           <div className="h-full w-full min-h-0 overflow-hidden">
             {editorElement}
           </div>
           <div className="h-full w-full min-h-0 overflow-hidden">
-            <MarkdownPreview content={code} />
+            <MarkdownPreview content={code} theme={theme} />
           </div>
         </div>
       ) : (
