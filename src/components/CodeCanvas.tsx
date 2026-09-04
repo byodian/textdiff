@@ -86,38 +86,72 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
 
   const [isDraggingSplit, setIsDraggingSplit] = React.useState(false);
   const splitContainerRef = React.useRef<HTMLDivElement>(null);
+  const lastClickTimeRef = React.useRef(0);
+  const isPointerDownRef = React.useRef(false);
+  const dragStartPosRef = React.useRef({ x: 0, y: 0 });
 
-  const handleSplitPointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    setIsDraggingSplit(true);
-  };
-
-  const handleSplitDoubleClick = () => {
+  const resetSplitRatio = React.useCallback(() => {
     setSplitRatio(0.5);
+    lastClickTimeRef.current = 0;
     try {
       localStorage.setItem('codediff_markdown_split_ratio', '0.5');
     } catch {}
     editorRef.current?.layout?.();
+  }, [editorRef]);
+
+  const handleSplitPointerDown = (e: React.PointerEvent) => {
+    const now = Date.now();
+    // Fast double-click detection (within 350ms)
+    if (now - lastClickTimeRef.current < 350) {
+      resetSplitRatio();
+      lastClickTimeRef.current = 0;
+      isPointerDownRef.current = false;
+      setIsDraggingSplit(false);
+      return;
+    }
+    lastClickTimeRef.current = now;
+    isPointerDownRef.current = true;
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleSplitDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resetSplitRatio();
   };
 
   React.useEffect(() => {
-    if (!isDraggingSplit) return;
-
     const onPointerMove = (e: PointerEvent) => {
-      if (!splitContainerRef.current) return;
-      const rect = splitContainerRef.current.getBoundingClientRect();
-      if (rect.width <= 0) return;
-      const newRatio = (e.clientX - rect.left) / rect.width;
-      const clampedRatio = Math.min(Math.max(newRatio, 0.15), 0.85);
-      setSplitRatio(clampedRatio);
+      if (!isPointerDownRef.current || !splitContainerRef.current) return;
+
+      const dx = Math.abs(e.clientX - dragStartPosRef.current.x);
+      const dy = Math.abs(e.clientY - dragStartPosRef.current.y);
+
+      // Only enter dragging state after moving past a tiny 2px threshold
+      if (!isDraggingSplit && (dx > 2 || dy > 2)) {
+        setIsDraggingSplit(true);
+      }
+
+      if (isDraggingSplit || dx > 2) {
+        const rect = splitContainerRef.current.getBoundingClientRect();
+        if (rect.width <= 0) return;
+        const newRatio = (e.clientX - rect.left) / rect.width;
+        const clampedRatio = Math.min(Math.max(newRatio, 0.15), 0.85);
+        setSplitRatio(clampedRatio);
+      }
     };
 
     const onPointerUp = () => {
-      setIsDraggingSplit(false);
-      try {
-        localStorage.setItem('codediff_markdown_split_ratio', splitRatio.toString());
-      } catch {}
-      editorRef.current?.layout?.();
+      if (isPointerDownRef.current) {
+        isPointerDownRef.current = false;
+        if (isDraggingSplit) {
+          setIsDraggingSplit(false);
+          try {
+            localStorage.setItem('codediff_markdown_split_ratio', splitRatio.toString());
+          } catch {}
+          editorRef.current?.layout?.();
+        }
+      }
     };
 
     window.addEventListener('pointermove', onPointerMove);
@@ -201,14 +235,14 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
           <div
             onPointerDown={handleSplitPointerDown}
             onDoubleClick={handleSplitDoubleClick}
-            className={`relative flex items-center justify-center w-2 cursor-col-resize select-none touch-none z-20 group transition-colors ${
+            className={`relative flex items-center justify-center w-2.5 cursor-col-resize select-none touch-none z-40 group transition-colors ${
               isDraggingSplit ? 'bg-brand-primary/50' : 'bg-canvas-border hover:bg-brand-primary/60'
             }`}
             title="Drag to resize (Double-click to reset 50/50)"
           >
             {/* Visual Center Grip Indicator */}
             <div
-              className={`w-0.5 h-7 rounded-full transition-colors ${
+              className={`w-0.5 h-7 rounded-full transition-colors pointer-events-none ${
                 isDraggingSplit ? 'bg-brand-primary' : 'bg-slate-400/60 group-hover:bg-brand-primary'
               }`}
             />

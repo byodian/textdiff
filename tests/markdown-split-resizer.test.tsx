@@ -92,5 +92,22 @@ describe('Markdown Split Pane Draggable Resizer', () => {
     });
 
     expect(leftPane.style.width).toBe('50%');
+
+    // Drag to 300px (30%)
+    act(() => {
+      fireEvent.pointerDown(divider, { clientX: 500 });
+      fireEvent.pointerMove(window, { clientX: 300 });
+      fireEvent.pointerUp(window, { clientX: 300 });
+    });
+
+    expect(leftPane.style.width).toBe('30%');
+
+    // Rapid double pointerdown also triggers reset (<350ms)
+    act(() => {
+      fireEvent.pointerDown(divider, { clientX: 300 });
+      fireEvent.pointerDown(divider, { clientX: 300 });
+    });
+
+    expect(leftPane.style.width).toBe('50%');
   });
 });
