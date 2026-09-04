@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CodeDiff PRO — Code Snippet & Diff Inspector',
+  title: 'TextDiff — Text & Code Snippet & Diff Inspector',
   description: 'A focused, aesthetic workspace for drafting snippets, inspecting real-time diffs, and traversing revision histories.',
 };
 

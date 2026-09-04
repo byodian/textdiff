@@ -43,7 +43,7 @@ export default function WorkspacePage() {
 
   // Load persisted theme on mount
   useEffect(() => {
-    const saved = localStorage.getItem('codediff_theme');
+    const saved = localStorage.getItem('textdiff_theme') || localStorage.getItem('codediff_theme');
     if (saved) {
       setEditorTheme(saved);
     }
@@ -59,7 +59,7 @@ export default function WorkspacePage() {
   const handleThemeChange = (newTheme: string) => {
     setEditorTheme(newTheme);
     try {
-      localStorage.setItem('codediff_theme', newTheme);
+      localStorage.setItem('textdiff_theme', newTheme);
     } catch {
       // ignore
     }

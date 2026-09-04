@@ -74,7 +74,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   const [splitRatio, setSplitRatio] = React.useState<number>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('codediff_markdown_split_ratio');
+        const saved = localStorage.getItem('textdiff_markdown_split_ratio') || localStorage.getItem('codediff_markdown_split_ratio');
         if (saved) {
           const val = parseFloat(saved);
           if (!isNaN(val) && val >= 0.15 && val <= 0.85) return val;
@@ -94,7 +94,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     setSplitRatio(0.5);
     lastClickTimeRef.current = 0;
     try {
-      localStorage.setItem('codediff_markdown_split_ratio', '0.5');
+      localStorage.setItem('textdiff_markdown_split_ratio', '0.5');
     } catch {}
     editorRef.current?.layout?.();
   }, [editorRef]);
@@ -147,7 +147,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
         if (isDraggingSplit) {
           setIsDraggingSplit(false);
           try {
-            localStorage.setItem('codediff_markdown_split_ratio', splitRatio.toString());
+            localStorage.setItem('textdiff_markdown_split_ratio', splitRatio.toString());
           } catch {}
           editorRef.current?.layout?.();
         }

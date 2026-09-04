@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <FolderGit2 className="w-4 h-4" />
             </div>
             <h1 className="font-semibold text-sm tracking-wide text-slate-100">
-              CodeDiff
+              TextDiff
             </h1>
           </div>
           <div className="flex items-center gap-1">

@@ -39,6 +39,7 @@ describe('Sidebar smooth collapse and expand transition', () => {
     expect(aside?.className).toContain('transition-[width]');
     expect(aside?.className).toContain('duration-300');
     expect(aside?.className).toContain('overflow-hidden');
+    expect(screen.getByText('TextDiff')).toBeDefined();
 
     // PanelLeftClose button is available
     const collapseBtn = screen.getByTitle(/Collapse Sidebar/i);
