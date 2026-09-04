@@ -15,7 +15,8 @@ import {
   ChevronUp,
   FileDiff,
   X,
-  Eye
+  Eye,
+  Palette
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/languages';
 
@@ -23,6 +24,8 @@ interface EditorHeaderProps {
   title: string;
   filename: string;
   language: string;
+  theme: string;
+  onThemeChange: (theme: string) => void;
   isDiffMode: boolean;
   isSideBySide: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
@@ -53,6 +56,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   title,
   filename,
   language,
+  theme,
+  onThemeChange,
   isDiffMode,
   isSideBySide,
   markdownViewMode = 'edit',
@@ -119,6 +124,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           value={language}
           onChange={(e) => onLanguageChange(e.target.value)}
           className="bg-canvas-surface border border-canvas-border text-slate-300 text-xs rounded px-2 py-1 focus:outline-none focus:border-brand-primary cursor-pointer hover:border-canvas-highlight transition-colors"
+          title="Select Language"
         >
           {SUPPORTED_LANGUAGES.map((lang) => (
             <option key={lang.id} value={lang.id} className="bg-canvas-surface text-slate-200">
@@ -126,6 +132,49 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             </option>
           ))}
         </select>
+
+        {/* Theme select */}
+        <div className="flex items-center gap-1.5 bg-canvas-surface border border-canvas-border rounded px-2 py-1 hover:border-canvas-highlight transition-colors">
+          <Palette className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <select
+            value={theme}
+            onChange={(e) => onThemeChange(e.target.value)}
+            className="bg-transparent text-slate-300 text-xs focus:outline-none cursor-pointer pr-1"
+            title="Editor Color Theme"
+          >
+            <optgroup label="Standard Themes" className="bg-canvas-surface text-slate-200">
+              <option value="vs-dark">VS Dark</option>
+              <option value="vs">VS Light</option>
+              <option value="hc-black">High Contrast</option>
+            </optgroup>
+            <optgroup label="Popular Dark Themes" className="bg-canvas-surface text-slate-200">
+              <option value="github-dark">GitHub Dark</option>
+              <option value="dracula">Dracula</option>
+              <option value="monokai">Monokai</option>
+              <option value="monokai-bright">Monokai Bright</option>
+              <option value="nord">Nord</option>
+              <option value="night-owl">Night Owl</option>
+              <option value="cobalt2">Cobalt2</option>
+              <option value="oceanic-next">Oceanic Next</option>
+              <option value="solarized-dark">Solarized Dark</option>
+              <option value="tomorrow-night">Tomorrow Night</option>
+              <option value="tomorrow-night-blue">Tomorrow Night Blue</option>
+              <option value="twilight">Twilight</option>
+              <option value="blackboard">Blackboard</option>
+              <option value="clouds-midnight">Clouds Midnight</option>
+              <option value="zenburnesque">Zenburn</option>
+            </optgroup>
+            <optgroup label="Popular Light Themes" className="bg-canvas-surface text-slate-200">
+              <option value="github-light">GitHub Light</option>
+              <option value="solarized-light">Solarized Light</option>
+              <option value="chrome-devtools">Chrome DevTools</option>
+              <option value="xcode-default">Xcode Default</option>
+              <option value="tomorrow">Tomorrow (Light)</option>
+              <option value="clouds">Clouds (Light)</option>
+              <option value="active4d">Active4D (Light)</option>
+            </optgroup>
+          </select>
+        </div>
 
         {hasUnsavedChanges && (
           <span className="flex items-center gap-1 text-[11px] text-amber-400 font-medium px-2 py-0.5 rounded bg-amber-950/40 border border-amber-900/50 animate-pulse">

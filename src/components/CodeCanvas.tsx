@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import Editor, { DiffEditor, loader, DiffOnMount } from '@monaco-editor/react';
+import Editor, { DiffEditor, loader, DiffOnMount, Monaco } from '@monaco-editor/react';
 import { MarkdownPreview } from './MarkdownPreview';
+import { applyMonacoTheme } from '@/lib/themes';
 
 loader.config({
   paths: {
@@ -26,6 +27,7 @@ interface CodeCanvasProps {
   code: string;
   originalCode: string;
   targetCode?: string;
+  theme?: string;
   isDiffMode: boolean;
   isSideBySide: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
@@ -39,6 +41,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   code,
   originalCode,
   targetCode,
+  theme = 'vs-dark',
   isDiffMode,
   isSideBySide,
   markdownViewMode = 'edit',
@@ -46,13 +49,26 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   editorRef,
   diffEditorRef,
 }) => {
-  const handleEditorDidMount = (editor: MonacoEditorInstance) => {
+  const monacoRef = React.useRef<Monaco | null>(null);
+
+  const handleEditorDidMount = (editor: MonacoEditorInstance, monaco: Monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
+    applyMonacoTheme(monaco, theme);
   };
 
-  const handleDiffEditorDidMount: DiffOnMount = (editor) => {
+  const handleDiffEditorDidMount: DiffOnMount = (editor, monaco) => {
     diffEditorRef.current = editor as unknown as MonacoDiffEditorInstance;
+    monacoRef.current = monaco;
+    applyMonacoTheme(monaco, theme);
   };
+
+  // Re-apply theme dynamically when theme changes
+  React.useEffect(() => {
+    if (monacoRef.current) {
+      applyMonacoTheme(monacoRef.current, theme);
+    }
+  }, [theme]);
 
   const modifiedValue = targetCode !== undefined ? targetCode : code;
   const isMarkdownPreview = !isDiffMode && language === 'markdown' && markdownViewMode === 'preview';
@@ -65,7 +81,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       value={code}
       onChange={(val) => onCodeChange(val || '')}
       onMount={handleEditorDidMount}
-      theme="vs-dark"
+      theme={theme}
       options={{
         minimap: { enabled: false },
         fontSize: 13,
@@ -91,7 +107,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
           original={originalCode}
           modified={modifiedValue}
           onMount={handleDiffEditorDidMount}
-          theme="vs-dark"
+          theme={theme}
           options={{
             renderSideBySide: isSideBySide,
             readOnly: false,

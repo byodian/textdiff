@@ -27,6 +27,24 @@ export default function WorkspacePage() {
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [isSideBySide, setIsSideBySide] = useState(true);
   const [markdownViewMode, setMarkdownViewMode] = useState<'edit' | 'split' | 'preview'>('split');
+  const [editorTheme, setEditorTheme] = useState('vs-dark');
+
+  // Load persisted theme on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('codediff_theme');
+    if (saved) {
+      setEditorTheme(saved);
+    }
+  }, []);
+
+  const handleThemeChange = (newTheme: string) => {
+    setEditorTheme(newTheme);
+    try {
+      localStorage.setItem('codediff_theme', newTheme);
+    } catch {
+      // ignore
+    }
+  };
 
   // History comparison pair
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -400,6 +418,8 @@ export default function WorkspacePage() {
               title={title}
               filename={filename}
               language={language}
+              theme={editorTheme}
+              onThemeChange={handleThemeChange}
               isDiffMode={isDiffMode}
               isSideBySide={isSideBySide}
               markdownViewMode={markdownViewMode}
@@ -433,6 +453,7 @@ export default function WorkspacePage() {
                 code={code}
                 originalCode={originalDiffCode}
                 targetCode={targetDiffCode}
+                theme={editorTheme}
                 isDiffMode={isDiffMode}
                 isSideBySide={isSideBySide}
                 markdownViewMode={markdownViewMode}
