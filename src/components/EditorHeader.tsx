@@ -26,6 +26,7 @@ interface EditorHeaderProps {
   language: string;
   theme: string;
   onThemeChange: (theme: string) => void;
+  onOpenThemePalette?: () => void;
   isDiffMode: boolean;
   isSideBySide: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
@@ -58,6 +59,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   language,
   theme,
   onThemeChange,
+  onOpenThemePalette,
   isDiffMode,
   isSideBySide,
   markdownViewMode = 'edit',
@@ -133,14 +135,21 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           ))}
         </select>
 
-        {/* Theme select */}
+        {/* Theme select with Quick Command Palette trigger */}
         <div className="flex items-center gap-1.5 bg-canvas-surface border border-canvas-border rounded px-2 py-1 hover:border-canvas-highlight transition-colors">
-          <Palette className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <button
+            type="button"
+            onClick={onOpenThemePalette}
+            className="text-slate-400 hover:text-brand-primary transition-colors"
+            title="Open Theme Quick Pick (Ctrl+K Ctrl+T / Ctrl+Shift+P)"
+          >
+            <Palette className="w-3.5 h-3.5 shrink-0" />
+          </button>
           <select
             value={theme}
             onChange={(e) => onThemeChange(e.target.value)}
             className="bg-transparent text-slate-300 text-xs focus:outline-none cursor-pointer pr-1"
-            title="Editor Color Theme"
+            title="Editor Color Theme (Click palette icon or press Ctrl+K Ctrl+T for quick search)"
           >
             <optgroup label="Standard Themes" className="bg-canvas-surface text-slate-200">
               <option value="vs-dark">VS Dark</option>

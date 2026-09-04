@@ -5,6 +5,7 @@ import { Sidebar, SnippetSummary } from '@/components/Sidebar';
 import { EditorHeader } from '@/components/EditorHeader';
 import { HistoryDrawer, VersionItem } from '@/components/HistoryDrawer';
 import { SaveModal } from '@/components/SaveModal';
+import { ThemeCommandPalette } from '@/components/ThemeCommandPalette';
 import { CodeCanvas, MonacoEditorInstance, MonacoDiffEditorInstance } from '@/components/CodeCanvas';
 import { detectLanguageFromFilename } from '@/lib/languages';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
@@ -28,6 +29,7 @@ export default function WorkspacePage() {
   const [isSideBySide, setIsSideBySide] = useState(true);
   const [markdownViewMode, setMarkdownViewMode] = useState<'edit' | 'split' | 'preview'>('split');
   const [editorTheme, setEditorTheme] = useState('vs-dark');
+  const [themePaletteOpen, setThemePaletteOpen] = useState(false);
 
   // Load persisted theme on mount
   useEffect(() => {
@@ -44,6 +46,10 @@ export default function WorkspacePage() {
     } catch {
       // ignore
     }
+  };
+
+  const handlePreviewTheme = (previewThemeId: string) => {
+    setEditorTheme(previewThemeId);
   };
 
   // History comparison pair
@@ -270,19 +276,58 @@ export default function WorkspacePage() {
     }
   };
 
-  // 10. Global keyboard shortcut (Ctrl+S / Cmd+S)
+  // 10. Global keyboard shortcuts (Ctrl+S for Save, Ctrl+K Ctrl+T or Ctrl+Shift+T for Themes)
   useEffect(() => {
+    let chordWaitingForT = false;
+    let chordTimer: NodeJS.Timeout | null = null;
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. Ctrl+S / Cmd+S => Save Version
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (activeId) {
           setSaveModalOpen(true);
         }
+        return;
+      }
+
+      // 2. VS Code Chord: Ctrl+K then Ctrl+T (or plain T)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        chordWaitingForT = true;
+        if (chordTimer) clearTimeout(chordTimer);
+        chordTimer = setTimeout(() => {
+          chordWaitingForT = false;
+        }, 1500); // 1.5s window for second key
+        return;
+      }
+
+      if (chordWaitingForT) {
+        if (e.key.toLowerCase() === 't') {
+          e.preventDefault();
+          chordWaitingForT = false;
+          if (chordTimer) clearTimeout(chordTimer);
+          setThemePaletteOpen(true);
+          return;
+        } else {
+          chordWaitingForT = false;
+          if (chordTimer) clearTimeout(chordTimer);
+        }
+      }
+
+      // 3. Alternative direct shortcut: Ctrl+Alt+T / Cmd+Alt+T
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setThemePaletteOpen((prev) => !prev);
+        return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (chordTimer) clearTimeout(chordTimer);
+    };
   }, [activeId]);
 
   // 11. Format document via Monaco Action
@@ -420,6 +465,7 @@ export default function WorkspacePage() {
               language={language}
               theme={editorTheme}
               onThemeChange={handleThemeChange}
+              onOpenThemePalette={() => setThemePaletteOpen(true)}
               isDiffMode={isDiffMode}
               isSideBySide={isSideBySide}
               markdownViewMode={markdownViewMode}
@@ -495,6 +541,18 @@ export default function WorkspacePage() {
         onClose={() => setSaveModalOpen(false)}
         onConfirm={handleSaveVersion}
         currentVersionNo={versions[0]?.versionNo ?? 0}
+      />
+
+      {/* VS Code-style Theme Command Palette (Ctrl+K Ctrl+T / Ctrl+Alt+T) */}
+      <ThemeCommandPalette
+        isOpen={themePaletteOpen}
+        currentTheme={editorTheme}
+        onSelectTheme={(th) => {
+          handleThemeChange(th);
+          setThemePaletteOpen(false);
+        }}
+        onPreviewTheme={handlePreviewTheme}
+        onClose={() => setThemePaletteOpen(false)}
       />
     </div>
   );
