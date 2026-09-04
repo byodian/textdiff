@@ -75,8 +75,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const initialThemeRef = useRef(currentTheme);
+  const currentThemeRef = useRef(currentTheme);
+  currentThemeRef.current = currentTheme;
+  const prevOpenRef = useRef(isOpen);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenThemePicker = React.useCallback(() => {
+    initialThemeRef.current = currentThemeRef.current;
+    setMode('theme-picker');
+    setQuery('');
+    const activeIdx = ALL_THEMES.findIndex((t) => t.id === currentThemeRef.current);
+    setSelectedIndex(activeIdx >= 0 ? activeIdx : 0);
+    setTimeout(() => inputRef.current?.focus(), 30);
+  }, []);
 
   // Available commands list
   const commands: CommandItem[] = React.useMemo(() => {
@@ -86,11 +98,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Preferences: Color Theme...',
         category: 'Preferences',
         icon: <Palette className="w-4 h-4 text-brand-primary" />,
-        action: () => {
-          setMode('theme-picker');
-          setQuery('');
-          setSelectedIndex(0);
-        },
+        action: handleOpenThemePicker,
         keywords: 'color theme scheme skin dark light dracula github monokai',
       },
       {
@@ -247,7 +255,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onFormatDocument, 
     onCopyContent, 
     onSetMarkdownViewMode,
-    markdownViewMode
+    markdownViewMode,
+    handleOpenThemePicker
   ]);
 
   // Filter themes if in theme-picker mode
@@ -280,14 +289,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   // On open or reset
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevOpenRef.current) {
       setMode('commands');
       setQuery('');
       setSelectedIndex(0);
-      initialThemeRef.current = currentTheme;
+      initialThemeRef.current = currentThemeRef.current;
       setTimeout(() => inputRef.current?.focus(), 40);
+    } else if (!isOpen && prevOpenRef.current) {
+      // Revert theme preview if closed unconfirmed
+      if (mode === 'theme-picker') {
+        onPreviewTheme(initialThemeRef.current);
+      }
+      setQuery('');
     }
-  }, [isOpen, currentTheme]);
+    prevOpenRef.current = isOpen;
+  }, [isOpen, mode, onPreviewTheme]);
 
   // Index clamp
   useEffect(() => {
@@ -311,51 +327,103 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     const container = listRef.current;
     if (container) {
       const el = container.children[selectedIndex] as HTMLElement;
-      if (el) el.scrollIntoView({ block: 'nearest' });
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ block: 'nearest' });
+      }
     }
   }, [selectedIndex, isOpen]);
 
-  if (!isOpen) return null;
+  const handleSelectTheme = React.useCallback((themeId: string) => {
+    initialThemeRef.current = themeId;
+    onSelectTheme(themeId);
+    onClose();
+  }, [onSelectTheme, onClose]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % (activeCount || 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + activeCount) % (activeCount || 1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (mode === 'commands') {
-        const cmd = filteredCommands[selectedIndex];
-        if (cmd) cmd.action();
-      } else {
-        const th = filteredThemes[selectedIndex];
-        if (th) {
-          onSelectTheme(th.id);
-          onClose();
-        }
-      }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      if (mode === 'theme-picker') {
-        // Back to commands mode & revert preview
-        onPreviewTheme(initialThemeRef.current);
-        setMode('commands');
-        setQuery('');
-        setSelectedIndex(0);
-      } else {
-        onClose();
-      }
-    }
-  };
+  const handleExitThemePicker = React.useCallback(() => {
+    onPreviewTheme(initialThemeRef.current);
+    setMode('commands');
+    setQuery('');
+    setSelectedIndex(0);
+    setTimeout(() => inputRef.current?.focus(), 30);
+  }, [onPreviewTheme]);
 
-  const handleCancel = () => {
+  const handleCancel = React.useCallback(() => {
     if (mode === 'theme-picker') {
       onPreviewTheme(initialThemeRef.current);
     }
     onClose();
-  };
+  }, [mode, onPreviewTheme, onClose]);
+
+  // Global capture-phase keydown listener when palette is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (mode === 'theme-picker') {
+          handleExitThemePicker();
+        } else {
+          onClose();
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex((prev) => (prev + 1) % (activeCount || 1));
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex((prev) => (prev - 1 + activeCount) % (activeCount || 1));
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (mode === 'commands') {
+          const cmd = filteredCommands[selectedIndex];
+          if (cmd) cmd.action();
+        } else {
+          const th = filteredThemes[selectedIndex];
+          if (th) {
+            handleSelectTheme(th.id);
+          }
+        }
+        return;
+      }
+
+      if (e.key === 'Backspace' && query === '' && mode === 'theme-picker') {
+        e.preventDefault();
+        handleExitThemePicker();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown, true);
+    };
+  }, [
+    isOpen,
+    mode,
+    query,
+    activeCount,
+    selectedIndex,
+    filteredCommands,
+    filteredThemes,
+    handleExitThemePicker,
+    handleSelectTheme,
+    onClose,
+  ]);
+
+  if (!isOpen) return null;
 
   return (
     <div 
@@ -365,18 +433,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       <div
         className="w-full max-w-xl bg-canvas-elevated border border-canvas-border rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh] ring-1 ring-white/10"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
       >
         {/* Input Bar */}
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-canvas-border bg-canvas-surface/70">
           {mode === 'theme-picker' ? (
             <button
-              onClick={() => {
-                onPreviewTheme(initialThemeRef.current);
-                setMode('commands');
-                setQuery('');
-                setSelectedIndex(0);
-              }}
+              onClick={handleExitThemePicker}
               className="flex items-center gap-1 text-xs text-brand-primary hover:underline shrink-0"
               title="Return to Command List"
             >
@@ -464,10 +526,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 return (
                   <div
                     key={t.id}
-                    onClick={() => {
-                      onSelectTheme(t.id);
-                      onClose();
-                    }}
+                    onClick={() => handleSelectTheme(t.id)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
