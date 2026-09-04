@@ -472,9 +472,15 @@ export function applyGlobalThemeColors(themeId: string, isLight: boolean): void 
   root.style.setProperty('--background', colors.bgDefault);
 
   if (colors.isLight) {
+    root.style.setProperty('--scrollbar-thumb', 'rgba(55, 53, 47, 0.2)');
+    root.style.setProperty('--scrollbar-thumb-hover', 'rgba(55, 53, 47, 0.38)');
+    root.style.setProperty('--scrollbar-thumb-active', 'rgba(55, 53, 47, 0.55)');
     root.classList.add('light-theme');
     root.classList.remove('dark-theme');
   } else {
+    root.style.setProperty('--scrollbar-thumb', 'rgba(255, 255, 255, 0.18)');
+    root.style.setProperty('--scrollbar-thumb-hover', 'rgba(255, 255, 255, 0.35)');
+    root.style.setProperty('--scrollbar-thumb-active', 'rgba(255, 255, 255, 0.55)');
     root.classList.add('dark-theme');
     root.classList.remove('light-theme');
   }

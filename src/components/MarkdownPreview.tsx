@@ -41,6 +41,9 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, theme
         '--preview-elevated': colors.bgElevated,
         '--preview-border': colors.border,
         '--preview-brand': colors.brandPrimary,
+        '--scrollbar-thumb': isLight ? 'rgba(55, 53, 47, 0.2)' : 'rgba(255, 255, 255, 0.18)',
+        '--scrollbar-thumb-hover': isLight ? 'rgba(55, 53, 47, 0.38)' : 'rgba(255, 255, 255, 0.35)',
+        '--scrollbar-thumb-active': isLight ? 'rgba(55, 53, 47, 0.55)' : 'rgba(255, 255, 255, 0.55)',
       } as React.CSSProperties}
     >
       <div 

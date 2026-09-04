@@ -186,6 +186,17 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
         formatOnPaste: true,
         formatOnType: true,
         suggestOnTriggerCharacters: true,
+        scrollbar: {
+          vertical: 'auto',
+          horizontal: 'auto',
+          verticalScrollbarSize: 9,
+          horizontalScrollbarSize: 9,
+          verticalSliderSize: 5,
+          horizontalSliderSize: 5,
+          useShadows: false,
+          verticalHasArrows: false,
+          horizontalHasArrows: false,
+        },
       }}
     />
   );
@@ -214,6 +225,17 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             diffWordWrap: 'off',
             renderIndicators: true,
+            scrollbar: {
+              vertical: 'auto',
+              horizontal: 'auto',
+              verticalScrollbarSize: 9,
+              horizontalScrollbarSize: 9,
+              verticalSliderSize: 5,
+              horizontalSliderSize: 5,
+              useShadows: false,
+              verticalHasArrows: false,
+              horizontalHasArrows: false,
+            },
           }}
         />
       ) : isMarkdownPreview ? (

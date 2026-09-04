@@ -17,6 +17,9 @@
   --color-brand-primary: #38bdf8;
   --foreground: #f1f5f9;
   --background: #0b0f19;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.35);
+  --scrollbar-thumb-active: rgba(255, 255, 255, 0.55);
 }
 
 body {
@@ -30,6 +33,9 @@ body {
 /* Light theme overrides for rich contrast typography */
 .light-theme {
   color-scheme: light;
+  --scrollbar-thumb: rgba(55, 53, 47, 0.2);
+  --scrollbar-thumb-hover: rgba(55, 53, 47, 0.38);
+  --scrollbar-thumb-active: rgba(55, 53, 47, 0.55);
 }
 
 .light-theme input,
@@ -77,10 +83,20 @@ body {
   color-scheme: dark;
 }
 
-/* Custom subtle scrollbar */
+/* ==========================================================================
+   Notion-Style Minimal Scrollbars
+   ========================================================================== */
+
+/* Firefox standard scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, rgba(150, 150, 150, 0.2)) transparent;
+}
+
+/* WebKit / Chromium / Safari / Edge Notion-style floating pill scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
 }
 
 ::-webkit-scrollbar-track {
@@ -88,10 +104,60 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f293d;
-  border-radius: 3px;
+  background-color: var(--scrollbar-thumb, rgba(150, 150, 150, 0.2));
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #28354f;
+  background-color: var(--scrollbar-thumb-hover, rgba(150, 150, 150, 0.38));
 }
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active, rgba(150, 150, 150, 0.55));
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Code block horizontal scrollbars inside markdown and pre elements */
+pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+/* Monaco Editor Notion-Style Scrollbars */
+.monaco-editor .shadow {
+  display: none !important;
+  box-shadow: none !important;
+}
+
+.monaco-editor .scrollbar {
+  background: transparent !important;
+}
+
+.monaco-editor .scrollbar .slider {
+  border-radius: 9999px !important;
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.18)) !important;
+  transition: background-color 0.15s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+.monaco-editor .scrollbar.vertical .slider {
+  left: 2px !important;
+}
+
+.monaco-editor .scrollbar.horizontal .slider {
+  top: 2px !important;
+}
+
+.monaco-editor .scrollbar .slider:hover,
+.monaco-editor .scrollbar:hover .slider {
+  background: var(--scrollbar-thumb-hover, rgba(255, 255, 255, 0.35)) !important;
+}
+
+.monaco-editor .scrollbar .slider.active {
+  background: var(--scrollbar-thumb-active, rgba(255, 255, 255, 0.55)) !important;
+}
+
