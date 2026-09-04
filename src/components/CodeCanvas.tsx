@@ -13,6 +13,7 @@ loader.config({
 
 export type MonacoEditorInstance = {
   getAction: (id: string) => { run: () => void } | null;
+  layout?: () => void;
 };
 
 export type MonacoDiffEditorInstance = {
@@ -69,6 +70,63 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       applyMonacoTheme(monacoRef.current, theme);
     }
   }, [theme]);
+
+  const [splitRatio, setSplitRatio] = React.useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('codediff_markdown_split_ratio');
+        if (saved) {
+          const val = parseFloat(saved);
+          if (!isNaN(val) && val >= 0.15 && val <= 0.85) return val;
+        }
+      } catch {}
+    }
+    return 0.5;
+  });
+
+  const [isDraggingSplit, setIsDraggingSplit] = React.useState(false);
+  const splitContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const handleSplitPointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    setIsDraggingSplit(true);
+  };
+
+  const handleSplitDoubleClick = () => {
+    setSplitRatio(0.5);
+    try {
+      localStorage.setItem('codediff_markdown_split_ratio', '0.5');
+    } catch {}
+    editorRef.current?.layout?.();
+  };
+
+  React.useEffect(() => {
+    if (!isDraggingSplit) return;
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!splitContainerRef.current) return;
+      const rect = splitContainerRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const newRatio = (e.clientX - rect.left) / rect.width;
+      const clampedRatio = Math.min(Math.max(newRatio, 0.15), 0.85);
+      setSplitRatio(clampedRatio);
+    };
+
+    const onPointerUp = () => {
+      setIsDraggingSplit(false);
+      try {
+        localStorage.setItem('codediff_markdown_split_ratio', splitRatio.toString());
+      } catch {}
+      editorRef.current?.layout?.();
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+  }, [isDraggingSplit, splitRatio, editorRef]);
 
   const modifiedValue = targetCode !== undefined ? targetCode : code;
   const isMarkdownPreview = !isDiffMode && language === 'markdown' && markdownViewMode === 'preview';
@@ -127,13 +185,44 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       ) : isMarkdownPreview ? (
         <MarkdownPreview content={code} theme={theme} />
       ) : isMarkdownSplit ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 h-full w-full divide-y md:divide-y-0 md:divide-x divide-canvas-border">
-          <div className="h-full w-full min-h-0 overflow-hidden">
+        <div 
+          ref={splitContainerRef}
+          className="relative flex flex-row h-full w-full overflow-hidden select-none"
+        >
+          {/* Left Editor Pane */}
+          <div 
+            className="h-full min-h-0 overflow-hidden"
+            style={{ width: `${splitRatio * 100}%`, flexShrink: 0 }}
+          >
             {editorElement}
           </div>
-          <div className="h-full w-full min-h-0 overflow-hidden">
+
+          {/* Draggable Divider Handle */}
+          <div
+            onPointerDown={handleSplitPointerDown}
+            onDoubleClick={handleSplitDoubleClick}
+            className={`relative flex items-center justify-center w-2 cursor-col-resize select-none touch-none z-20 group transition-colors ${
+              isDraggingSplit ? 'bg-brand-primary/50' : 'bg-canvas-border hover:bg-brand-primary/60'
+            }`}
+            title="Drag to resize (Double-click to reset 50/50)"
+          >
+            {/* Visual Center Grip Indicator */}
+            <div
+              className={`w-0.5 h-7 rounded-full transition-colors ${
+                isDraggingSplit ? 'bg-brand-primary' : 'bg-slate-400/60 group-hover:bg-brand-primary'
+              }`}
+            />
+          </div>
+
+          {/* Right Markdown Preview Pane */}
+          <div className="h-full min-h-0 flex-1 overflow-hidden min-w-0">
             <MarkdownPreview content={code} theme={theme} />
           </div>
+
+          {/* Transparent drag overlay to prevent event hijacking during drag */}
+          {isDraggingSplit && (
+            <div className="absolute inset-0 z-30 cursor-col-resize select-none bg-transparent" />
+          )}
         </div>
       ) : (
         editorElement
