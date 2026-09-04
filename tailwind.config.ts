@@ -15,6 +15,9 @@ const config: Config = {
           surface: 'var(--color-canvas-surface, #161e2e)',
           border: 'var(--color-canvas-border, #1f293d)',
           highlight: 'var(--color-canvas-highlight, #28354f)',
+          text: 'var(--color-text-primary, #f8fafc)',
+          secondary: 'var(--color-text-secondary, #cbd5e1)',
+          muted: 'var(--color-text-muted, #64748b)',
         },
         brand: {
           primary: 'var(--color-brand-primary, #38bdf8)', // Electric Sky / Accent

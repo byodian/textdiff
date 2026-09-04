@@ -225,6 +225,9 @@ export function applyGlobalThemeColors(themeId: string, isLight: boolean): void 
   root.style.setProperty('--color-canvas-border', colors.border);
   root.style.setProperty('--color-canvas-highlight', colors.highlight);
   root.style.setProperty('--color-brand-primary', colors.brandPrimary);
+  root.style.setProperty('--color-text-primary', colors.textPrimary);
+  root.style.setProperty('--color-text-secondary', colors.textSecondary);
+  root.style.setProperty('--color-text-muted', colors.textMuted);
   root.style.setProperty('--foreground', colors.textPrimary);
   root.style.setProperty('--background', colors.bgDefault);
 
