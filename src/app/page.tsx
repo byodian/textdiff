@@ -481,7 +481,7 @@ export default function WorkspacePage() {
               onPrevDiffChunk={handlePrevDiffChunk}
             />
 
-            <div className="flex-1 relative overflow-hidden">
+            <div className="flex-1 relative overflow-hidden isolate">
               <CodeCanvas
                 key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}-${language === 'markdown' ? markdownViewMode : 'code'}`}
                 language={language}
@@ -503,7 +503,7 @@ export default function WorkspacePage() {
             <p className="text-sm font-medium mb-3">No active snippet selected</p>
             <button
               onClick={handleNewSnippet}
-              className="px-4 py-2 rounded-lg bg-brand-primary text-slate-950 text-xs font-semibold shadow-md shadow-sky-500/20 hover:bg-sky-400 transition-all"
+              className="px-4 py-2 rounded-lg bg-brand-primary text-brand-text text-xs font-semibold shadow-md shadow-sky-500/20 hover:brightness-110 transition-all"
             >
               Create New Snippet
             </button>

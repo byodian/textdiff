@@ -14,10 +14,11 @@ export default defineConfig({
     env: {
       DATABASE_URL: 'file:./test.db',
     },
+    setupFiles: ['./tests/setup.ts'],
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 });

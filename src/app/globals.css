@@ -79,6 +79,175 @@ body {
   border-color: var(--color-canvas-border, #e2e8f0);
 }
 
+/* Ensure buttons and badges with solid dark or saturated backgrounds always have light/white text in light themes.
+   Exclude any low-opacity tint classes containing a slash '/' like bg-brand-primary/15. */
+.light-theme .bg-brand-primary:not([class*="/"]),
+.light-theme button.bg-brand-primary:not([class*="/"]),
+.light-theme button.bg-sky-500:not([class*="/"]),
+.light-theme button.bg-sky-600:not([class*="/"]),
+.light-theme button.bg-slate-800:not([class*="/"]),
+.light-theme button.bg-slate-900:not([class*="/"]),
+.light-theme button.bg-slate-950:not([class*="/"]),
+.light-theme .bg-sky-500:not([class*="/"]),
+.light-theme .bg-sky-600:not([class*="/"]) {
+  color: #ffffff !important;
+}
+
+.light-theme .bg-brand-primary:not([class*="/"]) *,
+.light-theme button.bg-brand-primary:not([class*="/"]) *,
+.light-theme button.bg-sky-500:not([class*="/"]) *,
+.light-theme button.bg-sky-600:not([class*="/"]) *,
+.light-theme button.bg-slate-800:not([class*="/"]) *,
+.light-theme button.bg-slate-900:not([class*="/"]) *,
+.light-theme button.bg-slate-950:not([class*="/"]) * {
+  color: #ffffff !important;
+}
+
+.light-theme button.bg-brand-primary:not([class*="/"]) kbd {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Ensure elements inside dark contrast containers retain light text */
+.light-theme [class*="bg-sky-950"] .text-slate-100,
+.light-theme [class*="bg-amber-950"] .text-slate-100,
+.light-theme [class*="bg-slate-900"] .text-slate-100 {
+  color: #f8fafc !important;
+}
+
+/* ==========================================================================
+   Command Palette Theme Picker: Dark & Light badges and filter buttons
+   ========================================================================== */
+
+/* Dark theme badge button */
+.theme-badge-dark {
+  background-color: #1e293b;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+.theme-badge-dark:hover {
+  background-color: #334155;
+  color: #f8fafc !important;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+.light-theme .theme-badge-dark {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #020617 !important;
+}
+.light-theme .theme-badge-dark:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* Light theme badge button */
+.theme-badge-light {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fcd34d !important;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.theme-badge-light:hover {
+  background-color: rgba(245, 158, 11, 0.25);
+  color: #fef08a !important;
+  border-color: rgba(245, 158, 11, 0.6);
+}
+.light-theme .theme-badge-light {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fcd34d !important;
+}
+.light-theme .theme-badge-light:hover {
+  background-color: #fde68a !important;
+  color: #78350f !important;
+}
+
+/* Theme Filter Buttons in Command Palette Header */
+.theme-filter-btn-dark.active {
+  background-color: #1e293b;
+  color: #f8fafc !important;
+  border-color: #475569;
+}
+.light-theme .theme-filter-btn-dark.active {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #020617 !important;
+}
+
+.theme-filter-btn-light.active {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fcd34d !important;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+.light-theme .theme-filter-btn-light.active {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fcd34d !important;
+}
+
+.theme-filter-btn-all.active {
+  background-color: rgba(56, 189, 248, 0.15);
+  color: var(--color-brand-primary, #38bdf8) !important;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+.light-theme .theme-filter-btn-all.active {
+  background-color: #ffffff !important;
+  color: var(--color-brand-primary, #0284c7) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* In light theme, ensure inactive filter buttons have clear contrast */
+.light-theme .theme-filter-btn-all:not(.active),
+.light-theme .theme-filter-btn-dark:not(.active),
+.light-theme .theme-filter-btn-light:not(.active) {
+  color: #475569 !important;
+}
+.light-theme .theme-filter-btn-all:not(.active):hover,
+.light-theme .theme-filter-btn-dark:not(.active):hover,
+.light-theme .theme-filter-btn-light:not(.active):hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* List item highlight in Command Palette & Color Theme Palette */
+.light-theme .theme-item-highlight {
+  background-color: rgba(2, 132, 199, 0.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(2, 132, 199, 0.35) !important;
+}
+
+.light-theme .theme-item-highlight .theme-item-title,
+.light-theme .theme-item-highlight span.theme-item-title {
+  color: #020617 !important; /* Deepest jet black slate for crystal clear contrast */
+  font-weight: 600 !important;
+}
+
+.light-theme .theme-item-highlight kbd {
+  background-color: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+  color: #0369a1 !important;
+}
+
+.light-theme .theme-item-highlight svg {
+  color: #0284c7 !important;
+}
+
+.light-theme .theme-item-highlight .theme-badge-dark {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #020617 !important;
+}
+
+.light-theme .theme-item-highlight .theme-badge-light {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fcd34d !important;
+}
+
+.light-theme .text-emerald-400 {
+  color: #059669 !important;
+}
+
 .dark-theme {
   color-scheme: dark;
 }

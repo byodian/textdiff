@@ -12,6 +12,7 @@ export interface UiThemeColors {
   textSecondary: string;
   textMuted: string;
   brandPrimary: string;
+  brandText: string;
   isLight: boolean;
 }
 
@@ -408,6 +409,7 @@ export function getUiThemeColors(themeId: string, isLight: boolean): UiThemeColo
       textSecondary: preset.textSecondary || (isLight ? '#334155' : '#cbd5e1'),
       textMuted: preset.textMuted || '#64748b',
       brandPrimary: preset.brandPrimary || (isLight ? '#0284c7' : '#38bdf8'),
+      brandText: preset.brandText || (isLight ? '#ffffff' : '#020617'),
       isLight,
     };
   }
@@ -426,6 +428,7 @@ export function getUiThemeColors(themeId: string, isLight: boolean): UiThemeColo
       textSecondary: '#334155',
       textMuted: '#64748b',
       brandPrimary: '#0284c7',
+      brandText: '#ffffff',
       isLight: true,
     };
   }
@@ -442,6 +445,7 @@ export function getUiThemeColors(themeId: string, isLight: boolean): UiThemeColo
     textSecondary: '#cbd5e1',
     textMuted: '#64748b',
     brandPrimary: '#38bdf8',
+    brandText: '#020617',
     isLight: false,
   };
 }
@@ -465,6 +469,7 @@ export function applyGlobalThemeColors(themeId: string, isLight: boolean): void 
   root.style.setProperty('--color-canvas-border', colors.border);
   root.style.setProperty('--color-canvas-highlight', colors.highlight);
   root.style.setProperty('--color-brand-primary', colors.brandPrimary);
+  root.style.setProperty('--color-brand-text', colors.brandText);
   root.style.setProperty('--color-text-primary', colors.textPrimary);
   root.style.setProperty('--color-text-secondary', colors.textSecondary);
   root.style.setProperty('--color-text-muted', colors.textMuted);
@@ -477,11 +482,13 @@ export function applyGlobalThemeColors(themeId: string, isLight: boolean): void 
     root.style.setProperty('--scrollbar-thumb-active', 'rgba(55, 53, 47, 0.55)');
     root.classList.add('light-theme');
     root.classList.remove('dark-theme');
+    root.classList.remove('dark');
   } else {
     root.style.setProperty('--scrollbar-thumb', 'rgba(255, 255, 255, 0.18)');
     root.style.setProperty('--scrollbar-thumb-hover', 'rgba(255, 255, 255, 0.35)');
     root.style.setProperty('--scrollbar-thumb-active', 'rgba(255, 255, 255, 0.55)');
     root.classList.add('dark-theme');
+    root.classList.add('dark');
     root.classList.remove('light-theme');
   }
 }

@@ -134,7 +134,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
             }}
             className={`px-2.5 py-1 rounded text-xs transition-all font-medium ${
               pickMode
-                ? 'bg-sky-500 text-slate-950 shadow-sm'
+                ? 'bg-brand-primary text-brand-text shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-canvas-surface border border-transparent'
             }`}
             title="Set a Base version and easily switch target versions to compare"
@@ -240,9 +240,9 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                     isBase
                       ? 'bg-amber-400 border-amber-300 text-slate-950 font-bold'
                       : isTarget || isComparingWithCurrent
-                      ? 'bg-sky-500 border-sky-400 text-slate-950'
+                      ? 'bg-brand-primary border-sky-400 text-brand-text'
                       : isHighlighted
-                      ? 'bg-sky-500/80 border-sky-400 text-slate-950'
+                      ? 'bg-brand-primary/80 border-sky-400 text-brand-text'
                       : 'bg-canvas-surface border-canvas-border text-slate-400'
                   }`}
                 >
@@ -290,14 +290,14 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                           </span>
                         )}
                         {pickMode && isTarget && (
-                          <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-sky-500 text-slate-950 font-bold">
+                          <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-brand-primary text-brand-text font-bold">
                             Comparing
                           </span>
                         )}
 
                         {/* Single Mode Diffing Badge */}
                         {!pickMode && isComparingWithCurrent && (
-                          <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-sky-500 text-slate-950 font-bold">
+                          <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-brand-primary text-brand-text font-bold">
                             Diffing
                           </span>
                         )}

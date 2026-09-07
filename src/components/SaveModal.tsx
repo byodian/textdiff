@@ -70,7 +70,7 @@ export const SaveModal: React.FC<SaveModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-brand-primary hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-500/20 transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-brand-primary hover:brightness-110 text-brand-text shadow-md shadow-sky-500/20 transition-all active:scale-95"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Confirm & Save</span>

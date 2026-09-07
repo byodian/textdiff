@@ -135,4 +135,153 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(handleSelectTheme).toHaveBeenCalled();
     expect(handleClose).toHaveBeenCalled();
   });
+
+  it('renders Dark, Light, and All filter buttons in theme-picker mode with proper theme classes', () => {
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: vi.fn(),
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+      })
+    );
+
+    // Open Theme Picker
+    fireEvent.click(screen.getByText('Preferences: Color Theme...'));
+
+    // Verify filter buttons exist
+    const allBtn = screen.getByTitle('Show all themes');
+    const darkBtn = screen.getByTitle('Filter to dark themes only');
+    const lightBtn = screen.getByTitle('Filter to light themes only');
+
+    expect(allBtn).toBeDefined();
+    expect(darkBtn).toBeDefined();
+    expect(lightBtn).toBeDefined();
+
+    // Verify initial "All" is active
+    expect(allBtn.className).toContain('theme-filter-btn-all');
+    expect(allBtn.className).toContain('active');
+
+    // Theme badge buttons exist and have theme-badge-dark / theme-badge-light
+    const darkBadges = document.querySelectorAll('.theme-badge-dark');
+    const lightBadges = document.querySelectorAll('.theme-badge-light');
+    expect(darkBadges.length).toBeGreaterThan(0);
+    expect(lightBadges.length).toBeGreaterThan(0);
+
+    // Filter to Light themes
+    fireEvent.click(lightBtn);
+    expect(lightBtn.className).toContain('active');
+    expect(darkBtn.className).not.toContain('active');
+
+    // Only light themes should be rendered now
+    const filteredDarkBadges = document.querySelectorAll('.theme-badge-dark');
+    expect(filteredDarkBadges.length).toBe(0);
+    const filteredLightBadges = document.querySelectorAll('.theme-badge-light');
+    expect(filteredLightBadges.length).toBeGreaterThan(0);
+
+    // Filter to Dark themes
+    fireEvent.click(darkBtn);
+    expect(darkBtn.className).toContain('active');
+    expect(lightBtn.className).not.toContain('active');
+
+    const filteredDarkBadgesAfter = document.querySelectorAll('.theme-badge-dark');
+    expect(filteredDarkBadgesAfter.length).toBeGreaterThan(0);
+    const filteredLightBadgesAfter = document.querySelectorAll('.theme-badge-light');
+    expect(filteredLightBadgesAfter.length).toBe(0);
+  });
+
+  it('filters theme type when clicking a theme badge button in the list', () => {
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: vi.fn(),
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+      })
+    );
+
+    // Open Theme Picker
+    fireEvent.click(screen.getByText('Preferences: Color Theme...'));
+
+    // Click the first "light" badge button in the list
+    const firstLightBadge = document.querySelector('.theme-badge-light') as HTMLElement;
+    expect(firstLightBadge).toBeTruthy();
+    fireEvent.click(firstLightBadge);
+
+    // Now only light themes should be visible
+    const darkBadges = document.querySelectorAll('.theme-badge-dark');
+    expect(darkBadges.length).toBe(0);
+  });
+
+  it('applies high-contrast theme-item-highlight and theme-item-title classes on hover/focus', () => {
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: vi.fn(),
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+      })
+    );
+
+    // Initial command items: first item is highlighted
+    const highlightedCmd = document.querySelector('.theme-item-highlight');
+    expect(highlightedCmd).toBeTruthy();
+    const titleSpan = highlightedCmd?.querySelector('.theme-item-title');
+    expect(titleSpan).toBeTruthy();
+    expect(titleSpan?.className).toContain('text-slate-950');
+    expect(titleSpan?.className).toContain('font-semibold');
+
+    // Hover over second command
+    const commandItems = document.querySelectorAll('.cursor-pointer');
+    if (commandItems[1]) {
+      fireEvent.mouseEnter(commandItems[1]);
+      const newHighlighted = document.querySelector('.theme-item-highlight');
+      expect(newHighlighted).toBe(commandItems[1]);
+      const newTitle = newHighlighted?.querySelector('.theme-item-title');
+      expect(newTitle?.className).toContain('text-slate-950');
+    }
+
+    // Switch to theme-picker mode
+    fireEvent.click(screen.getByText('Preferences: Color Theme...'));
+
+    const highlightedTheme = document.querySelector('.theme-item-highlight');
+    expect(highlightedTheme).toBeTruthy();
+    const themeTitle = highlightedTheme?.querySelector('.theme-item-title');
+    expect(themeTitle).toBeTruthy();
+    expect(themeTitle?.className).toContain('text-slate-950');
+    expect(themeTitle?.className).toContain('font-semibold');
+  });
 });

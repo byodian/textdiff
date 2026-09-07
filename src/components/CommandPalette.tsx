@@ -15,7 +15,9 @@ import {
   Check, 
   X,
   ChevronRight,
-  Columns
+  Columns,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 
@@ -72,6 +74,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const [mode, setMode] = useState<PaletteMode>('commands');
   const [query, setQuery] = useState('');
+  const [themeTypeFilter, setThemeTypeFilter] = useState<'all' | 'dark' | 'light'>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const initialThemeRef = useRef(currentTheme);
@@ -85,6 +88,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     initialThemeRef.current = currentThemeRef.current;
     setMode('theme-picker');
     setQuery('');
+    setThemeTypeFilter('all');
     const activeIdx = ALL_THEMES.findIndex((t) => t.id === currentThemeRef.current);
     setSelectedIndex(activeIdx >= 0 ? activeIdx : 0);
     setTimeout(() => inputRef.current?.focus(), 30);
@@ -263,14 +267,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const filteredThemes: EditorThemeOption[] = React.useMemo(() => {
     if (mode !== 'theme-picker') return [];
     const q = query.trim().toLowerCase();
-    if (!q) return ALL_THEMES;
-    return ALL_THEMES.filter(
-      (t) =>
+    return ALL_THEMES.filter((t) => {
+      const matchesType = themeTypeFilter === 'all' || t.type === themeTypeFilter;
+      if (!matchesType) return false;
+      if (!q) return true;
+      return (
         t.name.toLowerCase().includes(q) ||
         t.id.toLowerCase().includes(q) ||
         t.type.toLowerCase().includes(q)
-    );
-  }, [mode, query]);
+      );
+    });
+  }, [mode, query, themeTypeFilter]);
 
   // Filter commands if in commands mode
   const filteredCommands: CommandItem[] = React.useMemo(() => {
@@ -292,6 +299,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     if (isOpen && !prevOpenRef.current) {
       setMode('commands');
       setQuery('');
+      setThemeTypeFilter('all');
       setSelectedIndex(0);
       initialThemeRef.current = currentThemeRef.current;
       setTimeout(() => inputRef.current?.focus(), 40);
@@ -301,6 +309,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onPreviewTheme(initialThemeRef.current);
       }
       setQuery('');
+      setThemeTypeFilter('all');
     }
     prevOpenRef.current = isOpen;
   }, [isOpen, mode, onPreviewTheme]);
@@ -343,6 +352,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onPreviewTheme(initialThemeRef.current);
     setMode('commands');
     setQuery('');
+    setThemeTypeFilter('all');
     setSelectedIndex(0);
     setTimeout(() => inputRef.current?.focus(), 30);
   }, [onPreviewTheme]);
@@ -473,6 +483,68 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           </button>
         </div>
 
+        {/* Theme Filter Bar (Theme Picker Mode only) */}
+        {mode === 'theme-picker' && (
+          <div className="flex items-center justify-between px-3.5 py-1.5 border-b border-canvas-border bg-canvas-surface/40 text-xs">
+            <div className="flex items-center gap-1.5" role="group" aria-label="Filter theme by type">
+              <button
+                type="button"
+                onClick={() => {
+                  setThemeTypeFilter('all');
+                  setSelectedIndex(0);
+                }}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                  themeTypeFilter === 'all'
+                    ? 'theme-filter-btn theme-filter-btn-all active ring-1 ring-brand-primary/30'
+                    : 'theme-filter-btn theme-filter-btn-all border-transparent text-slate-400 hover:text-slate-200 hover:bg-canvas-surface'
+                }`}
+                title="Show all themes"
+              >
+                <Palette className="w-3 h-3" />
+                <span>All ({ALL_THEMES.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setThemeTypeFilter('dark');
+                  setSelectedIndex(0);
+                }}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                  themeTypeFilter === 'dark'
+                    ? 'theme-filter-btn theme-filter-btn-dark active ring-1 ring-slate-500/30'
+                    : 'theme-filter-btn theme-filter-btn-dark border-transparent text-slate-400 hover:text-slate-200 hover:bg-canvas-surface'
+                }`}
+                title="Filter to dark themes only"
+              >
+                <Moon className="w-3 h-3" />
+                <span>Dark ({ALL_THEMES.filter((t) => t.type === 'dark').length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setThemeTypeFilter('light');
+                  setSelectedIndex(0);
+                }}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                  themeTypeFilter === 'light'
+                    ? 'theme-filter-btn theme-filter-btn-light active ring-1 ring-amber-500/30'
+                    : 'theme-filter-btn theme-filter-btn-light border-transparent text-slate-400 hover:text-slate-200 hover:bg-canvas-surface'
+                }`}
+                title="Filter to light themes only"
+              >
+                <Sun className="w-3 h-3" />
+                <span>Light ({ALL_THEMES.filter((t) => t.type === 'light').length})</span>
+              </button>
+            </div>
+
+            <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+              {filteredThemes.length} {filteredThemes.length === 1 ? 'theme' : 'themes'}
+            </span>
+          </div>
+        )}
+
         {/* List items */}
         <div ref={listRef} className="flex-1 overflow-y-auto p-1.5 space-y-0.5 select-none">
           {mode === 'commands' ? (
@@ -490,24 +562,28 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'bg-sky-500/20 text-sky-200 ring-1 ring-sky-500/40'
-                        : 'text-slate-300 hover:bg-canvas-surface/70'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-canvas-surface/70'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="shrink-0">{cmd.icon}</div>
-                      <span className="font-medium text-sm text-slate-100 truncate">
+                      <span className={`theme-item-title font-medium text-sm truncate ${
+                        isHighlighted
+                          ? 'text-slate-950 dark:text-white font-semibold'
+                          : 'text-slate-800 dark:text-slate-100'
+                      }`}>
                         {cmd.title}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       {cmd.shortcut && (
-                        <kbd className="px-1.5 py-0.5 rounded bg-canvas-surface border border-canvas-border text-[10px] text-slate-400 font-mono">
+                        <kbd className="px-1.5 py-0.5 rounded bg-canvas-surface border border-canvas-border text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                           {cmd.shortcut}
                         </kbd>
                       )}
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                     </div>
                   </div>
                 );
@@ -530,28 +606,39 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'bg-sky-500/20 text-sky-200 ring-1 ring-sky-500/40'
-                        : 'text-slate-300 hover:bg-canvas-surface/70'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-canvas-surface/70'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="font-medium text-sm text-slate-100 truncate">
+                      <span className={`theme-item-title font-medium text-sm truncate ${
+                        isHighlighted
+                          ? 'text-slate-950 dark:text-white font-semibold'
+                          : 'text-slate-800 dark:text-slate-100'
+                      }`}>
                         {t.name}
                       </span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setThemeTypeFilter(t.type);
+                          setSelectedIndex(0);
+                        }}
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold transition-all shrink-0 cursor-pointer ${
                           t.type === 'dark'
-                            ? 'bg-slate-800 text-slate-400 border border-slate-700/50'
-                            : 'bg-amber-950/40 text-amber-300 border border-amber-800/40'
+                            ? 'theme-badge-dark'
+                            : 'theme-badge-light'
                         }`}
+                        title={`Filter by ${t.type} themes`}
                       >
                         {t.type}
-                      </span>
+                      </button>
                     </div>
 
                     <div className="flex items-center gap-2">
                       {isCurrent && (
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                        <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                           <Check className="w-3.5 h-3.5" />
                           <span>Active</span>
                         </span>

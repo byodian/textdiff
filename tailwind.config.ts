@@ -22,6 +22,7 @@ const config: Config = {
         },
         brand: {
           primary: 'var(--color-brand-primary, #38bdf8)', // Electric Sky / Accent
+          text: 'var(--color-brand-text, #ffffff)',
           glow: '#0284c7',
         },
         diff: {
