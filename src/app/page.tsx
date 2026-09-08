@@ -11,6 +11,7 @@ import { detectLanguageFromFilename } from '@/lib/languages';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
 import { ALL_THEMES } from '@/lib/themes';
 import { applyGlobalThemeColors } from '@/lib/theme-colors';
+import { saveDraft, loadDraft, clearDraft } from '@/lib/draft-storage';
 
 export default function WorkspacePage() {
   const [snippets, setSnippets] = useState<SnippetSummary[]>([]);
@@ -93,8 +94,12 @@ export default function WorkspacePage() {
       setTitle(s.title);
       setFilename(s.filename || '');
       setLanguage(s.language || 'plaintext');
-      setCode(s.currentCode);
+
+      // Restore unsaved draft from localStorage if one exists
+      const draft = loadDraft(s.id, s.currentCode);
+      setCode(draft ?? s.currentCode);
       setLastSavedCode(s.currentCode);
+
       setVersions(s.versions || []);
       setVersionA(null);
       setVersionB(null);
@@ -187,6 +192,7 @@ export default function WorkspacePage() {
     try {
       const res = await fetch(`/api/snippets/${id}`, { method: 'DELETE' });
       if (res.ok) {
+        clearDraft(id);
         const updated = snippets.filter((s) => s.id !== id);
         setSnippets(updated);
         if (activeId === id) {
@@ -272,6 +278,7 @@ export default function WorkspacePage() {
       if (res.ok) {
         const updated = await res.json();
         setLastSavedCode(code);
+        clearDraft(activeId);
         setVersions(updated.versions || []);
         setSnippets((prev) =>
           prev.map((s) =>
@@ -427,6 +434,19 @@ export default function WorkspacePage() {
   };
 
   const hasUnsavedChanges = code !== lastSavedCode;
+
+  // Auto-persist draft to localStorage (debounced)
+  useEffect(() => {
+    if (!activeId) return;
+    const timer = setTimeout(() => {
+      if (code !== lastSavedCode) {
+        saveDraft(activeId, code);
+      } else {
+        clearDraft(activeId);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [activeId, code, lastSavedCode]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-canvas text-slate-100 antialiased">
