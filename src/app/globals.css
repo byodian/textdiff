@@ -252,6 +252,18 @@ body {
   color-scheme: dark;
 }
 
+/* Dark theme list item contrast in Command Palette & Color Theme Palette */
+.dark-theme .theme-item-title,
+:root:not(.light-theme) .theme-item-title {
+  color: #f8fafc;
+}
+
+.dark-theme .theme-item-highlight .theme-item-title,
+:root:not(.light-theme) .theme-item-highlight .theme-item-title {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
 /* ==========================================================================
    Notion-Style Minimal Scrollbars
    ========================================================================== */

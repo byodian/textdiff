@@ -563,15 +563,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
                         ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-canvas-surface/70'
+                        : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="shrink-0">{cmd.icon}</div>
                       <span className={`theme-item-title font-medium text-sm truncate ${
                         isHighlighted
-                          ? 'text-slate-950 dark:text-white font-semibold'
-                          : 'text-slate-800 dark:text-slate-100'
+                          ? 'text-white font-semibold'
+                          : 'text-slate-100'
                       }`}>
                         {cmd.title}
                       </span>
@@ -579,11 +579,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
                     <div className="flex items-center gap-2 shrink-0">
                       {cmd.shortcut && (
-                        <kbd className="px-1.5 py-0.5 rounded bg-canvas-surface border border-canvas-border text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                        <kbd className="px-1.5 py-0.5 rounded bg-canvas-surface border border-canvas-border text-[10px] text-slate-400 font-mono">
                           {cmd.shortcut}
                         </kbd>
                       )}
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                     </div>
                   </div>
                 );
@@ -607,14 +607,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
                         ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-canvas-surface/70'
+                        : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className={`theme-item-title font-medium text-sm truncate ${
                         isHighlighted
-                          ? 'text-slate-950 dark:text-white font-semibold'
-                          : 'text-slate-800 dark:text-slate-100'
+                          ? 'text-white font-semibold'
+                          : 'text-slate-100'
                       }`}>
                         {t.name}
                       </span>
@@ -638,7 +638,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
                     <div className="flex items-center gap-2">
                       {isCurrent && (
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
                           <Check className="w-3.5 h-3.5" />
                           <span>Active</span>
                         </span>
