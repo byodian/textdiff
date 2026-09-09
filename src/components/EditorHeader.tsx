@@ -474,8 +474,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* Primary Action: Save Version Snapshot */}
         <button
           onClick={onSavePrompt}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded bg-brand-primary hover:brightness-110 text-brand-text font-semibold text-xs shadow-md shadow-sky-500/20 transition-all active:scale-95 shrink-0"
-          title="Save Version (Ctrl+S / Cmd+S)"
+          className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded bg-brand-primary text-brand-text font-semibold text-xs shadow-md shadow-sky-500/20 transition-all shrink-0 ${
+            hasUnsavedChanges
+              ? 'hover:brightness-110 active:scale-95'
+              : 'opacity-70'
+          }`}
+          title={hasUnsavedChanges ? "Save Version (Ctrl+S / Cmd+S)" : "Save Version (No modifications to save)"}
         >
           <Save className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">Save Version</span>

@@ -44,9 +44,13 @@ export default function WorkspacePage() {
 
   // Load persisted theme on mount
   useEffect(() => {
-    const saved = localStorage.getItem('textdiff_theme') || localStorage.getItem('codediff_theme');
-    if (saved) {
-      setEditorTheme(saved);
+    try {
+      const saved = typeof window !== 'undefined' ? (window.localStorage?.getItem('textdiff_theme') || window.localStorage?.getItem('codediff_theme')) : null;
+      if (saved) {
+        setEditorTheme(saved);
+      }
+    } catch {
+      // ignore
     }
   }, []);
 
@@ -300,13 +304,25 @@ export default function WorkspacePage() {
     }
   };
 
+  const hasUnsavedChanges = code !== lastSavedCode;
+
+  // Keep ref to avoid stale closures in window event listener
+  const canSavePromptRef = useRef(false);
+  canSavePromptRef.current = Boolean(activeId && hasUnsavedChanges);
+
+  // Guarded Save Prompt: only open modal if there are unsaved modifications
+  const handleSavePrompt = useCallback(() => {
+    if (!activeId || code === lastSavedCode) return;
+    setSaveModalOpen(true);
+  }, [activeId, code, lastSavedCode]);
+
   // 10. Global keyboard shortcuts (Ctrl+S for Save, Ctrl+Shift+P / Cmd+Shift+P for Command Palette)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Ctrl+S / Cmd+S => Save Version
+      // 1. Ctrl+S / Cmd+S => Save Version (only if there are modifications)
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        if (activeId) {
+        if (canSavePromptRef.current) {
           setSaveModalOpen(true);
         }
         return;
@@ -324,7 +340,7 @@ export default function WorkspacePage() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeId]);
+  }, []);
 
   // 11. Format document via Monaco Action
   const handleFormatDocument = () => {
@@ -433,8 +449,6 @@ export default function WorkspacePage() {
     setTimeout(() => setCopiedDiff(false), 2000);
   };
 
-  const hasUnsavedChanges = code !== lastSavedCode;
-
   // Auto-persist draft to localStorage (debounced)
   useEffect(() => {
     if (!activeId) return;
@@ -493,7 +507,7 @@ export default function WorkspacePage() {
               onToggleDiffMode={() => setIsDiffMode(!isDiffMode)}
               onToggleSideBySide={() => setIsSideBySide(!isSideBySide)}
               onOpenHistory={() => setHistoryOpen(true)}
-              onSavePrompt={() => setSaveModalOpen(true)}
+              onSavePrompt={handleSavePrompt}
               onFormatDocument={handleFormatDocument}
               onCopyContent={handleCopyCode}
               onCopyDiff={handleCopyDiff}
@@ -546,7 +560,7 @@ export default function WorkspacePage() {
 
       {/* Save Version Modal */}
       <SaveModal
-        isOpen={saveModalOpen}
+        isOpen={saveModalOpen && hasUnsavedChanges}
         onClose={() => setSaveModalOpen(false)}
         onConfirm={handleSaveVersion}
         currentVersionNo={versions[0]?.versionNo ?? 0}
@@ -561,7 +575,7 @@ export default function WorkspacePage() {
         markdownViewMode={markdownViewMode}
         onClose={() => setCommandPaletteOpen(false)}
         onNewSnippet={handleNewSnippet}
-        onSavePrompt={() => setSaveModalOpen(true)}
+        onSavePrompt={handleSavePrompt}
         onOpenHistory={() => setHistoryOpen(true)}
         onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
         onToggleSideBySide={() => setIsSideBySide((prev) => !prev)}
