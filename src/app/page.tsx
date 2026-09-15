@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Sidebar, SnippetSummary, WorkspaceItem } from '@/components/Sidebar';
 import { EditorHeader } from '@/components/EditorHeader';
 import { HistoryDrawer, VersionItem } from '@/components/HistoryDrawer';
-import { SaveModal } from '@/components/SaveModal';
+import { PostSaveToast } from '@/components/PostSaveToast';
 import { CommandPalette } from '@/components/CommandPalette';
 import { CodeCanvas, MonacoEditorInstance, MonacoDiffEditorInstance } from '@/components/CodeCanvas';
 import { UnsavedChangesModal } from '@/components/UnsavedChangesModal';
@@ -84,7 +84,13 @@ export default function WorkspacePage() {
 
   // History comparison pair
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [isJustSaved, setIsJustSaved] = useState(false);
+  const [postSaveToast, setPostSaveToast] = useState<{
+    versionId: string;
+    versionNo: number;
+    additions: number;
+    deletions: number;
+  } | null>(null);
   const [versionA, setVersionA] = useState<VersionItem | null>(null);
   const [versionB, setVersionB] = useState<VersionItem | null>(null);
 
@@ -423,9 +429,15 @@ export default function WorkspacePage() {
     handleAutoSaveMeta(title, filename, newLang);
   };
 
-  // 9. Save version snapshot
-  const handleSaveVersion = useCallback(async (commitMsg: string) => {
-    if (!activeId) return;
+  // 9. Instant Save: zero-interruption optimistic snapshot
+  const handleInstantSave = useCallback(async (customNote?: unknown) => {
+    if (!activeId || code === lastSavedCode) return;
+
+    const stats = calculateDiffStats(lastSavedCode, code);
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const autoNote = typeof customNote === 'string' && customNote.trim()
+      ? customNote.trim()
+      : `Snapshot at ${nowTime} (+${stats.added}/-${stats.removed})`;
 
     try {
       const res = await fetch(`/api/snippets/${activeId}`, {
@@ -437,7 +449,7 @@ export default function WorkspacePage() {
           language,
           currentCode: code,
           createVersion: true,
-          commitMsg,
+          commitMsg: autoNote,
         }),
       });
 
@@ -445,7 +457,8 @@ export default function WorkspacePage() {
         const updated = await res.json();
         setLastSavedCode(code);
         clearDraft(activeId);
-        setVersions(updated.versions || []);
+        const newVersions: VersionItem[] = updated.versions || [];
+        setVersions(newVersions);
         setSnippets((prev) =>
           prev.map((s) =>
             s.id === activeId
@@ -460,11 +473,67 @@ export default function WorkspacePage() {
               : s
           )
         );
+
+        // Flash 'Saved ✓' on header button
+        setIsJustSaved(true);
+        setTimeout(() => setIsJustSaved(false), 800);
+
+        // Pop up non-intrusive post-save toast
+        const latestVer = newVersions[0];
+        if (latestVer) {
+          setPostSaveToast({
+            versionId: latestVer.id,
+            versionNo: latestVer.versionNo,
+            additions: stats.added,
+            deletions: stats.removed,
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to save version', err);
     }
-  }, [activeId, title, filename, language, code]);
+  }, [activeId, code, lastSavedCode, title, filename, language]);
+
+  // Update a version's commit message retroactively
+  const handleUpdateVersionMsg = useCallback(async (versionId: string, newMsg: string) => {
+    if (!activeId) return;
+    try {
+      const res = await fetch(`/api/snippets/${activeId}/versions`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ versionId, commitMsg: newMsg }),
+      });
+      if (res.ok) {
+        setVersions((prev) =>
+          prev.map((v) => (v.id === versionId ? { ...v, commitMsg: newMsg } : v))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to update version note', err);
+    }
+  }, [activeId]);
+
+  // Revert / Undo a freshly created version
+  const handleRevertCreatedVersion = useCallback(async (versionId: string) => {
+    if (!activeId) return;
+    try {
+      const res = await fetch(`/api/snippets/${activeId}/versions?versionId=${versionId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        const versRes = await fetch(`/api/snippets/${activeId}/versions`);
+        if (versRes.ok) {
+          const freshVersions = await versRes.json();
+          setVersions(freshVersions);
+          if (freshVersions[0]) {
+            setLastSavedCode(freshVersions[0].code);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to revert version', err);
+    }
+  }, [activeId]);
 
   const handleDiscardAndProceed = useCallback(() => {
     if (!pendingNav) return;
@@ -484,7 +553,7 @@ export default function WorkspacePage() {
 
   const handleSaveAndProceed = useCallback(async () => {
     if (!pendingNav) return;
-    await handleSaveVersion('Auto-saved snapshot before switching');
+    await handleInstantSave('Auto-saved snapshot before switching');
     const nav = pendingNav;
     setPendingNav(null);
     if (nav.type === 'select_snippet') {
@@ -494,7 +563,7 @@ export default function WorkspacePage() {
     } else if (nav.type === 'select_workspace') {
       handleSelectWorkspace(nav.wsId);
     }
-  }, [pendingNav, handleSaveVersion, loadSnippet, handleNewSnippet, handleSelectWorkspace]);
+  }, [pendingNav, handleInstantSave, loadSnippet, handleNewSnippet, handleSelectWorkspace]);
 
   const hasUnsavedChanges = code !== lastSavedCode;
 
@@ -502,20 +571,14 @@ export default function WorkspacePage() {
   const canSavePromptRef = useRef(false);
   canSavePromptRef.current = Boolean(activeId && hasUnsavedChanges);
 
-  // Guarded Save Prompt: only open modal if there are unsaved modifications
-  const handleSavePrompt = useCallback(() => {
-    if (!activeId || code === lastSavedCode) return;
-    setSaveModalOpen(true);
-  }, [activeId, code, lastSavedCode]);
-
-  // 10. Global keyboard shortcuts (Ctrl+S for Save, Ctrl+Shift+P / Cmd+Shift+P for Command Palette)
+  // 10. Global keyboard shortcuts (Ctrl+S for Instant Save, Ctrl+Shift+P / Cmd+Shift+P for Command Palette)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Ctrl+S / Cmd+S => Save Version (only if there are modifications)
+      // 1. Ctrl+S / Cmd+S => Instant Save (only if there are modifications)
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (canSavePromptRef.current) {
-          setSaveModalOpen(true);
+          handleInstantSave();
         }
         return;
       }
@@ -713,6 +776,7 @@ export default function WorkspacePage() {
               onMarkdownViewModeChange={setMarkdownViewMode}
               diffStats={diffStats}
               hasUnsavedChanges={hasUnsavedChanges}
+              isJustSaved={isJustSaved}
               copiedCode={copiedCode}
               copiedDiff={copiedDiff}
               currentVersionNo={versions[0]?.versionNo ?? 1}
@@ -727,7 +791,7 @@ export default function WorkspacePage() {
               onToggleDiffMode={() => setIsDiffMode(!isDiffMode)}
               onToggleSideBySide={() => setIsSideBySide(!isSideBySide)}
               onOpenHistory={() => setHistoryOpen(true)}
-              onSavePrompt={handleSavePrompt}
+              onSavePrompt={handleInstantSave}
               onFormatDocument={handleFormatDocument}
               onCopyContent={handleCopyCode}
               onCopyDiff={handleCopyDiff}
@@ -801,15 +865,20 @@ export default function WorkspacePage() {
         onCompareTwoVersions={handleCompareTwoVersions}
         onClearCustomDiff={handleExitCustomDiff}
         onRevertToVersion={handleRevertToVersion}
+        onUpdateVersionMsg={handleUpdateVersionMsg}
       />
 
-      {/* Save Version Modal */}
-      <SaveModal
-        isOpen={saveModalOpen && hasUnsavedChanges}
-        onClose={() => setSaveModalOpen(false)}
-        onConfirm={handleSaveVersion}
-        currentVersionNo={versions[0]?.versionNo ?? 0}
-      />
+      {/* Optimistic Post-Save Floating Toast */}
+      {postSaveToast && (
+        <PostSaveToast
+          versionNo={postSaveToast.versionNo}
+          additions={postSaveToast.additions}
+          deletions={postSaveToast.deletions}
+          onAddNote={(note) => handleUpdateVersionMsg(postSaveToast.versionId, note)}
+          onRevert={() => handleRevertCreatedVersion(postSaveToast.versionId)}
+          onClose={() => setPostSaveToast(null)}
+        />
+      )}
 
       {/* VS Code-style Command Palette (Ctrl+Shift+P) */}
       <CommandPalette
@@ -820,7 +889,7 @@ export default function WorkspacePage() {
         markdownViewMode={markdownViewMode}
         onClose={() => setCommandPaletteOpen(false)}
         onNewSnippet={handleNewSnippet}
-        onSavePrompt={handleSavePrompt}
+        onSavePrompt={handleInstantSave}
         onOpenHistory={() => setHistoryOpen(true)}
         onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
         onToggleSideBySide={() => setIsSideBySide((prev) => !prev)}

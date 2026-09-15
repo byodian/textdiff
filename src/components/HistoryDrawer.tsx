@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   X, 
   GitCommit, 
@@ -11,7 +11,9 @@ import {
   Sparkles,
   Split,
   CheckSquare,
-  Square
+  Square,
+  Edit3,
+  Check
 } from 'lucide-react';
 
 export interface VersionItem {
@@ -33,6 +35,7 @@ interface HistoryDrawerProps {
   onCompareTwoVersions: (base: VersionItem, target: VersionItem) => void;
   onClearCustomDiff: () => void;
   onRevertToVersion: (v: VersionItem) => void;
+  onUpdateVersionMsg?: (versionId: string, newMsg: string) => Promise<void> | void;
 }
 
 export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
@@ -45,7 +48,11 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
   onCompareTwoVersions,
   onClearCustomDiff,
   onRevertToVersion,
+  onUpdateVersionMsg,
 }) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingMsg, setEditingMsg] = useState<string>('');
+
   if (!isOpen) return null;
 
   const isCustomDiffActive = !!selectedVersionA;
@@ -243,10 +250,74 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                     </span>
                   </div>
 
-                  {/* Version note */}
-                  <p className="text-slate-300 font-medium text-xs leading-relaxed pl-5">
-                    {ver.commitMsg || 'Snapshot'}
-                  </p>
+                  {/* Version note with inline edit */}
+                  {editingId === ver.id ? (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (onUpdateVersionMsg) {
+                          await onUpdateVersionMsg(ver.id, editingMsg.trim());
+                        }
+                        setEditingId(null);
+                      }}
+                      className="flex items-center gap-1.5 pl-5 pt-0.5"
+                    >
+                      <input
+                        type="text"
+                        value={editingMsg}
+                        onChange={(e) => setEditingMsg(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        autoFocus
+                        placeholder="Version note..."
+                        className="bg-neutral-900 border border-blue-500 rounded px-2 py-0.5 text-xs text-white placeholder-neutral-500 focus:outline-none flex-1 min-w-0"
+                      />
+                      <button
+                        type="submit"
+                        className="p-1 rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors shrink-0"
+                        title="Save note"
+                      >
+                        <Check className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="p-1 rounded hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors shrink-0"
+                        title="Cancel"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between group/note pl-5">
+                      <p 
+                        className="text-slate-300 font-medium text-xs leading-relaxed truncate"
+                        title={ver.commitMsg || 'Snapshot'}
+                        onDoubleClick={() => {
+                          if (onUpdateVersionMsg) {
+                            setEditingId(ver.id);
+                            setEditingMsg(ver.commitMsg || '');
+                          }
+                        }}
+                      >
+                        {ver.commitMsg || 'Snapshot'}
+                      </p>
+                      {onUpdateVersionMsg && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(ver.id);
+                            setEditingMsg(ver.commitMsg || '');
+                          }}
+                          className="opacity-0 group-hover/note:opacity-100 p-0.5 text-slate-400 hover:text-slate-100 rounded hover:bg-canvas-elevated transition-opacity shrink-0 ml-1"
+                          title="Edit note"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Action row */}
                   <div className="flex items-center justify-end gap-1.5 pt-1 pl-5">

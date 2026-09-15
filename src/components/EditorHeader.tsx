@@ -34,6 +34,7 @@ interface EditorHeaderProps {
   onMarkdownViewModeChange?: (mode: 'edit' | 'split' | 'preview') => void;
   diffStats: { added: number; removed: number; hasChanges: boolean };
   hasUnsavedChanges: boolean;
+  isJustSaved?: boolean;
   copiedCode: boolean;
   copiedDiff: boolean;
   currentVersionNo?: number;
@@ -69,6 +70,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onMarkdownViewModeChange,
   diffStats,
   hasUnsavedChanges,
+  isJustSaved = false,
   copiedCode,
   copiedDiff,
   currentVersionNo,
@@ -507,19 +509,36 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* Primary Action: Save Version Snapshot */}
         <button
           onClick={onSavePrompt}
-          className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded bg-brand-primary text-brand-text font-semibold text-xs shadow-md shadow-sky-500/20 transition-all shrink-0 ${
-            hasUnsavedChanges
-              ? 'hover:brightness-110 active:scale-95'
-              : 'opacity-70'
+          className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded font-semibold text-xs transition-all shrink-0 ${
+            isJustSaved
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+              : hasUnsavedChanges
+              ? 'bg-brand-primary text-brand-text shadow-md shadow-sky-500/20 hover:brightness-110 active:scale-95'
+              : 'bg-brand-primary text-brand-text opacity-70 shadow-md shadow-sky-500/20'
           }`}
-          title={hasUnsavedChanges ? "Save Version (Ctrl+S / Cmd+S)" : "Save Version (No modifications to save)"}
+          title={
+            isJustSaved
+              ? 'Version Saved!'
+              : hasUnsavedChanges
+              ? 'Save Version (Ctrl+S / Cmd+S)'
+              : 'Save Version (No modifications to save)'
+          }
         >
-          <Save className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden sm:inline">Save Version</span>
-          <span className="sm:hidden">Save</span>
-          <kbd className="hidden lg:inline-block text-[10px] opacity-80 font-mono px-1 py-0.2 rounded bg-black/20 text-brand-text">
-            Ctrl+S
-          </kbd>
+          {isJustSaved ? (
+            <>
+              <Check className="w-3.5 h-3.5 shrink-0 text-emerald-200" />
+              <span>Saved ✓</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Save Version</span>
+              <span className="sm:hidden">Save</span>
+              <kbd className="hidden lg:inline-block text-[10px] opacity-80 font-mono px-1 py-0.2 rounded bg-black/20 text-brand-text">
+                Ctrl+S
+              </kbd>
+            </>
+          )}
         </button>
       </div>
     </header>
