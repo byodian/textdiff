@@ -1,12 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Sidebar, SnippetSummary } from '@/components/Sidebar';
+import { Sidebar, SnippetSummary, WorkspaceItem } from '@/components/Sidebar';
 import { EditorHeader } from '@/components/EditorHeader';
 import { HistoryDrawer, VersionItem } from '@/components/HistoryDrawer';
 import { SaveModal } from '@/components/SaveModal';
 import { CommandPalette } from '@/components/CommandPalette';
 import { CodeCanvas, MonacoEditorInstance, MonacoDiffEditorInstance } from '@/components/CodeCanvas';
+import { UnsavedChangesModal } from '@/components/UnsavedChangesModal';
+import { UndoToast } from '@/components/UndoToast';
+import { DeleteDocumentModal } from '@/components/DeleteDocumentModal';
+import { DiffInspectorBar } from '@/components/DiffInspectorBar';
+import { WorkspaceEmptyState } from '@/components/WorkspaceEmptyState';
+import { StatusBar } from '@/components/StatusBar';
 import { detectLanguageFromFilename } from '@/lib/languages';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
 import { ALL_THEMES } from '@/lib/themes';
@@ -14,6 +20,8 @@ import { applyGlobalThemeColors } from '@/lib/theme-colors';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/draft-storage';
 
 export default function WorkspacePage() {
+  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   const [snippets, setSnippets] = useState<SnippetSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,7 +36,7 @@ export default function WorkspacePage() {
   }, [isSidebarCollapsed]);
 
   // Active Snippet State
-  const [title, setTitle] = useState('Untitled Snippet');
+  const [title, setTitle] = useState('Untitled Document');
   const [filename, setFilename] = useState('');
   const [language, setLanguage] = useState('plaintext');
   const [code, setCode] = useState('');
@@ -80,6 +88,16 @@ export default function WorkspacePage() {
   const [versionA, setVersionA] = useState<VersionItem | null>(null);
   const [versionB, setVersionB] = useState<VersionItem | null>(null);
 
+  // Navigation Guard, Undo Toast, and Delete Modal states
+  const [pendingNav, setPendingNav] = useState<
+    | { type: 'select_snippet'; id: string }
+    | { type: 'new_snippet' }
+    | { type: 'select_workspace'; wsId: string }
+    | null
+  >(null);
+  const [undoToast, setUndoToast] = useState<{ message: string; previousCode: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string; versionCount: number } | null>(null);
+
   // Copy feedback states
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedDiff, setCopiedDiff] = useState(false);
@@ -113,13 +131,33 @@ export default function WorkspacePage() {
     }
   }, []);
 
-  // 2. New snippet (VS Code style: blank buffer, no default code, plaintext language)
+  // 2. Fetch workspaces
+  const fetchWorkspaces = useCallback(async () => {
+    try {
+      const res = await fetch('/api/workspaces');
+      if (!res.ok) return;
+      const data = await res.json();
+      setWorkspaces(data);
+      if (data.length > 0 && !activeWorkspaceId) {
+        setActiveWorkspaceId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch workspaces', err);
+    }
+  }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    fetchWorkspaces();
+  }, [fetchWorkspaces]);
+
+  // 3. New snippet (VS Code style: blank buffer, no default code, plaintext language)
   const handleNewSnippet = useCallback(async () => {
     const defaultSnippet = {
-      title: 'Untitled Snippet',
+      title: 'Untitled Document',
       filename: '',
       language: 'plaintext',
       currentCode: '',
+      workspaceId: activeWorkspaceId || undefined,
     };
 
     try {
@@ -136,9 +174,9 @@ export default function WorkspacePage() {
     } catch (err) {
       console.error('Failed to create snippet', err);
     }
-  }, [loadSnippet]);
+  }, [loadSnippet, activeWorkspaceId]);
 
-  // 3. Duplicate snippet
+  // 4. Duplicate snippet
   const handleDuplicateSnippet = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const source = snippets.find((s) => s.id === id);
@@ -157,6 +195,7 @@ export default function WorkspacePage() {
           filename: detail.filename,
           language: detail.language,
           currentCode: detail.currentCode,
+          workspaceId: detail.workspaceId || activeWorkspaceId || undefined,
         }),
       });
 
@@ -168,17 +207,26 @@ export default function WorkspacePage() {
     } catch (err) {
       console.error('Failed to duplicate snippet', err);
     }
-  }, [snippets, loadSnippet]);
+  }, [snippets, loadSnippet, activeWorkspaceId]);
 
-  // 4. Fetch initial snippet list
-  const fetchSnippets = useCallback(async () => {
+  // 5. Fetch snippet list
+  const fetchSnippets = useCallback(async (wsId?: string | null) => {
     try {
-      const res = await fetch('/api/snippets');
+      const url = wsId ? `/api/snippets?workspaceId=${wsId}` : '/api/snippets';
+      const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
       setSnippets(data);
       if (data.length > 0) {
         loadSnippet(data[0].id);
+      } else {
+        setActiveId(null);
+        setTitle('Untitled Document');
+        setFilename('');
+        setLanguage('plaintext');
+        setCode('');
+        setLastSavedCode('');
+        setVersions([]);
       }
     } catch (err) {
       console.error('Failed to fetch snippets', err);
@@ -189,10 +237,45 @@ export default function WorkspacePage() {
     fetchSnippets();
   }, [fetchSnippets]);
 
-  // 5. Delete snippet
-  const handleDeleteSnippet = async (id: string, e: React.MouseEvent) => {
+  // Switch workspace
+  const handleSelectWorkspace = useCallback((wsId: string) => {
+    setActiveWorkspaceId(wsId);
+    fetchSnippets(wsId);
+  }, [fetchSnippets]);
+
+  // Create new workspace
+  const handleCreateWorkspace = useCallback(async (name: string) => {
+    try {
+      const res = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) return;
+      const created = await res.json();
+      setWorkspaces((prev) => [...prev, created]);
+      setActiveWorkspaceId(created.id);
+      fetchSnippets(created.id);
+    } catch (err) {
+      console.error('Failed to create workspace', err);
+    }
+  }, [fetchSnippets]);
+
+  // 5. In-App Delete confirmation
+  const requestDeleteSnippet = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this snippet?')) return;
+    const s = snippets.find((item) => item.id === id);
+    setDeleteTarget({
+      id,
+      title: s?.title || 'Untitled Document',
+      versionCount: s?.versions?.length ?? 1,
+    });
+  }, [snippets]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
     try {
       const res = await fetch(`/api/snippets/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -204,7 +287,7 @@ export default function WorkspacePage() {
             loadSnippet(updated[0].id);
           } else {
             setActiveId(null);
-            setTitle('');
+            setTitle('Untitled Document');
             setFilename('');
             setCode('');
             setLastSavedCode('');
@@ -213,9 +296,88 @@ export default function WorkspacePage() {
         }
       }
     } catch (err) {
-      console.error('Failed to delete snippet', err);
+      console.error('Failed to delete document', err);
     }
-  };
+  }, [deleteTarget, snippets, activeId, loadSnippet]);
+
+  // Navigation Guard handlers
+  const requestSelectSnippet = useCallback((id: string) => {
+    if (id === activeId) return;
+    if (code !== lastSavedCode) {
+      setPendingNav({ type: 'select_snippet', id });
+    } else {
+      loadSnippet(id);
+    }
+  }, [activeId, code, lastSavedCode, loadSnippet]);
+
+  const requestNewSnippet = useCallback(() => {
+    if (code !== lastSavedCode) {
+      setPendingNav({ type: 'new_snippet' });
+    } else {
+      handleNewSnippet();
+    }
+  }, [code, lastSavedCode, handleNewSnippet]);
+
+  const requestSelectWorkspace = useCallback((wsId: string) => {
+    if (wsId === activeWorkspaceId) return;
+    if (code !== lastSavedCode) {
+      setPendingNav({ type: 'select_workspace', wsId });
+    } else {
+      handleSelectWorkspace(wsId);
+    }
+  }, [activeWorkspaceId, code, lastSavedCode, handleSelectWorkspace]);
+
+  // Onboarding starter templates
+  const handleApplyTemplate = useCallback(async (tpl: { title: string; filename: string; language: string; code: string }) => {
+    try {
+      const res = await fetch('/api/snippets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: tpl.title,
+          filename: tpl.filename,
+          language: tpl.language,
+          currentCode: tpl.code,
+          workspaceId: activeWorkspaceId || undefined,
+        }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setSnippets((prev) => [created, ...prev]);
+        loadSnippet(created.id);
+      }
+    } catch (err) {
+      console.error('Failed to apply template', err);
+    }
+  }, [activeWorkspaceId, loadSnippet]);
+
+  const handlePasteFromClipboard = useCallback(async () => {
+    try {
+      let text = '';
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+        text = await navigator.clipboard.readText();
+      }
+      const res = await fetch('/api/snippets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Pasted Document',
+          filename: '',
+          language: 'plaintext',
+          currentCode: text || '',
+          workspaceId: activeWorkspaceId || undefined,
+        }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setSnippets((prev) => [created, ...prev]);
+        loadSnippet(created.id);
+      }
+    } catch (err) {
+      console.error('Failed to paste from clipboard', err);
+      handleNewSnippet();
+    }
+  }, [activeWorkspaceId, handleNewSnippet, loadSnippet]);
 
   // 6. Filename change auto-detects language
   const handleFilenameChange = (val: string) => {
@@ -233,7 +395,7 @@ export default function WorkspacePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: newTitle.trim() || 'Untitled Snippet',
+          title: newTitle.trim() || 'Untitled Document',
           filename: newFilename.trim() || null,
           language: newLanguage,
           currentCode: code,
@@ -245,7 +407,7 @@ export default function WorkspacePage() {
         setSnippets((prev) =>
           prev.map((s) =>
             s.id === activeId
-              ? { ...s, title: newTitle.trim() || 'Untitled Snippet', filename: newFilename.trim() || null, language: newLanguage, updatedAt: new Date().toISOString() }
+              ? { ...s, title: newTitle.trim() || 'Untitled Document', filename: newFilename.trim() || null, language: newLanguage, updatedAt: new Date().toISOString() }
               : s
           )
         );
@@ -262,7 +424,7 @@ export default function WorkspacePage() {
   };
 
   // 9. Save version snapshot
-  const handleSaveVersion = async (commitMsg: string) => {
+  const handleSaveVersion = useCallback(async (commitMsg: string) => {
     if (!activeId) return;
 
     try {
@@ -270,7 +432,7 @@ export default function WorkspacePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: title.trim() || 'Untitled Snippet',
+          title: title.trim() || 'Untitled Document',
           filename: filename.trim() || null,
           language,
           currentCode: code,
@@ -289,7 +451,7 @@ export default function WorkspacePage() {
             s.id === activeId
               ? { 
                   ...s, 
-                  title: title.trim() || 'Untitled Snippet', 
+                  title: title.trim() || 'Untitled Document', 
                   filename: filename.trim() || null, 
                   language, 
                   updatedAt: new Date().toISOString(),
@@ -302,7 +464,37 @@ export default function WorkspacePage() {
     } catch (err) {
       console.error('Failed to save version', err);
     }
-  };
+  }, [activeId, title, filename, language, code]);
+
+  const handleDiscardAndProceed = useCallback(() => {
+    if (!pendingNav) return;
+    if (activeId) {
+      clearDraft(activeId);
+    }
+    const nav = pendingNav;
+    setPendingNav(null);
+    if (nav.type === 'select_snippet') {
+      loadSnippet(nav.id);
+    } else if (nav.type === 'new_snippet') {
+      handleNewSnippet();
+    } else if (nav.type === 'select_workspace') {
+      handleSelectWorkspace(nav.wsId);
+    }
+  }, [pendingNav, activeId, loadSnippet, handleNewSnippet, handleSelectWorkspace]);
+
+  const handleSaveAndProceed = useCallback(async () => {
+    if (!pendingNav) return;
+    await handleSaveVersion('Auto-saved snapshot before switching');
+    const nav = pendingNav;
+    setPendingNav(null);
+    if (nav.type === 'select_snippet') {
+      loadSnippet(nav.id);
+    } else if (nav.type === 'new_snippet') {
+      handleNewSnippet();
+    } else if (nav.type === 'select_workspace') {
+      handleSelectWorkspace(nav.wsId);
+    }
+  }, [pendingNav, handleSaveVersion, loadSnippet, handleNewSnippet, handleSelectWorkspace]);
 
   const hasUnsavedChanges = code !== lastSavedCode;
 
@@ -334,13 +526,20 @@ export default function WorkspacePage() {
         setCommandPaletteOpen((prev) => !prev);
         return;
       }
+
+      // 3. Escape => Exit Diff Mode
+      if (e.key === 'Escape' && isDiffMode) {
+        setIsDiffMode(false);
+        setVersionA(null);
+        setVersionB(null);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [isDiffMode]);
 
   // 11. Format document via Monaco Action
   const handleFormatDocument = () => {
@@ -379,15 +578,29 @@ export default function WorkspacePage() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  // 14. Revert to a specific history version
+  // 14. Safe Rollback to a specific history version (loads into working buffer as draft with undo support)
   const handleRevertToVersion = (ver: VersionItem) => {
-    if (confirm(`Revert workspace code to v${ver.versionNo}?`)) {
-      setCode(ver.code);
-      setVersionA(null);
-      setVersionB(null);
-      setIsDiffMode(false);
-      setHistoryOpen(false);
+    setUndoToast({
+      message: `Restored v${ver.versionNo} to draft buffer.`,
+      previousCode: code,
+    });
+    setCode(ver.code);
+    if (activeId) {
+      saveDraft(activeId, ver.code);
     }
+    setVersionA(null);
+    setVersionB(null);
+    setIsDiffMode(false);
+    setHistoryOpen(false);
+  };
+
+  const handleUndoRestore = () => {
+    if (!undoToast) return;
+    setCode(undoToast.previousCode);
+    if (activeId) {
+      saveDraft(activeId, undoToast.previousCode);
+    }
+    setUndoToast(null);
   };
 
   // 15. History comparison triggers
@@ -470,12 +683,17 @@ export default function WorkspacePage() {
         activeId={activeId}
         searchQuery={searchQuery}
         isCollapsed={isSidebarCollapsed}
+        workspaces={workspaces}
+        activeWorkspaceId={activeWorkspaceId}
+        activeHasUnsavedChanges={hasUnsavedChanges}
+        onSelectWorkspace={requestSelectWorkspace}
+        onCreateWorkspace={handleCreateWorkspace}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         onSearchChange={setSearchQuery}
-        onSelectSnippet={loadSnippet}
-        onNewSnippet={handleNewSnippet}
+        onSelectSnippet={requestSelectSnippet}
+        onNewSnippet={requestNewSnippet}
         onDuplicateSnippet={handleDuplicateSnippet}
-        onDeleteSnippet={handleDeleteSnippet}
+        onDeleteSnippet={requestDeleteSnippet}
       />
 
       {/* Main Workspace */}
@@ -497,6 +715,8 @@ export default function WorkspacePage() {
               hasUnsavedChanges={hasUnsavedChanges}
               copiedCode={copiedCode}
               copiedDiff={copiedDiff}
+              currentVersionNo={versions[0]?.versionNo ?? 1}
+              versionCount={versions.length}
               customDiffLabel={customDiffLabel}
               onExitCustomDiff={handleExitCustomDiff}
               onTitleChange={setTitle}
@@ -515,33 +735,58 @@ export default function WorkspacePage() {
               onPrevDiffChunk={handlePrevDiffChunk}
             />
 
-            <div className="flex-1 relative overflow-hidden isolate">
-              <CodeCanvas
-                key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}-${language === 'markdown' ? markdownViewMode : 'code'}`}
+            <div className="flex-1 relative overflow-hidden isolate flex flex-col">
+              {/* Unified Diff Inspector Bar */}
+              {isDiffMode && (
+                <DiffInspectorBar
+                  versionA={versionA}
+                  versionB={versionB}
+                  currentVersionNo={versions[0]?.versionNo ?? 1}
+                  isSideBySide={isSideBySide}
+                  diffStats={diffStats}
+                  onToggleSideBySide={() => setIsSideBySide(!isSideBySide)}
+                  onNextDiffChunk={handleNextDiffChunk}
+                  onPrevDiffChunk={handlePrevDiffChunk}
+                  onRestoreVersion={versionA ? () => handleRevertToVersion(versionA) : undefined}
+                  onExitDiff={handleExitCustomDiff}
+                />
+              )}
+
+              <div className="flex-1 relative overflow-hidden isolate">
+                <CodeCanvas
+                  key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}-${language === 'markdown' ? markdownViewMode : 'code'}`}
+                  language={language}
+                  code={code}
+                  originalCode={originalDiffCode}
+                  targetCode={targetDiffCode}
+                  theme={editorTheme}
+                  isDiffMode={isDiffMode}
+                  isSideBySide={isSideBySide}
+                  markdownViewMode={markdownViewMode}
+                  onCodeChange={setCode}
+                  editorRef={editorRef}
+                  diffEditorRef={diffEditorRef}
+                />
+              </div>
+
+              {/* Developer Status Bar */}
+              <StatusBar
                 language={language}
                 code={code}
-                originalCode={originalDiffCode}
-                targetCode={targetDiffCode}
-                theme={editorTheme}
                 isDiffMode={isDiffMode}
-                isSideBySide={isSideBySide}
-                markdownViewMode={markdownViewMode}
-                onCodeChange={setCode}
-                editorRef={editorRef}
-                diffEditorRef={diffEditorRef}
+                diffStats={diffStats}
+                onFormatDocument={handleFormatDocument}
+                onNextDiffChunk={handleNextDiffChunk}
+                onPrevDiffChunk={handlePrevDiffChunk}
               />
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-            <p className="text-sm font-medium mb-3">No active snippet selected</p>
-            <button
-              onClick={handleNewSnippet}
-              className="px-4 py-2 rounded-lg bg-brand-primary text-brand-text text-xs font-semibold shadow-md shadow-sky-500/20 hover:brightness-110 transition-all"
-            >
-              Create New Snippet
-            </button>
-          </div>
+          <WorkspaceEmptyState
+            onNewDocument={requestNewSnippet}
+            onApplyTemplate={handleApplyTemplate}
+            onPasteFromClipboard={handlePasteFromClipboard}
+          />
         )}
       </main>
 
@@ -588,6 +833,35 @@ export default function WorkspacePage() {
         }}
         onPreviewTheme={handlePreviewTheme}
       />
+
+      {/* Navigation Guard Modal for Unsaved Changes */}
+      <UnsavedChangesModal
+        isOpen={pendingNav !== null}
+        documentTitle={title || 'Untitled Document'}
+        onClose={() => setPendingNav(null)}
+        onSaveAndProceed={handleSaveAndProceed}
+        onDiscardAndProceed={handleDiscardAndProceed}
+      />
+
+      {/* In-App Delete Confirmation Modal */}
+      {deleteTarget && (
+        <DeleteDocumentModal
+          isOpen={true}
+          documentTitle={deleteTarget.title}
+          versionCount={deleteTarget.versionCount}
+          onClose={() => setDeleteTarget(null)}
+          onConfirmDelete={handleConfirmDelete}
+        />
+      )}
+
+      {/* Undo Restore Floating Toast */}
+      {undoToast && (
+        <UndoToast
+          message={undoToast.message}
+          onUndo={handleUndoRestore}
+          onDismiss={() => setUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

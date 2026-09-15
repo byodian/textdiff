@@ -7,8 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Workspace {
+  id        String    @id @default(cuid())
+  name      String    @default("Default Workspace")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  snippets  Snippet[]
+}
+
 model Snippet {
   id          String           @id @default(cuid())
+  workspaceId String?
+  workspace   Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   title       String
   filename    String?
   language    String           @default("typescript")
@@ -16,6 +26,8 @@ model Snippet {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   versions    SnippetVersion[]
+
+  @@index([workspaceId])
 }
 
 model SnippetVersion {
@@ -30,3 +42,4 @@ model SnippetVersion {
 
   @@index([snippetId, versionNo])
 }
+

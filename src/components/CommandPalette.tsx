@@ -130,14 +130,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
       {
         id: 'snippet:new',
-        title: 'File: New Blank Snippet',
+        title: 'File: New Document',
         category: 'File',
         icon: <Plus className="w-4 h-4 text-teal-400" />,
         action: () => {
           onClose();
           onNewSnippet();
         },
-        keywords: 'new file snippet create blank empty buffer',
+        keywords: 'new file document create blank empty buffer',
       },
       {
         id: 'diff:toggle',
