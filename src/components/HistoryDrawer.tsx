@@ -53,10 +53,6 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingMsg, setEditingMsg] = useState<string>('');
 
-  if (!isOpen) return null;
-
-  const isCustomDiffActive = !!selectedVersionA;
-
   // Currently compared IDs
   const checkedIds = useMemo(() => {
     const ids: string[] = [];
@@ -64,6 +60,10 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     if (selectedVersionB) ids.push(selectedVersionB.id);
     return ids;
   }, [selectedVersionA, selectedVersionB]);
+
+  if (!isOpen) return null;
+
+  const isCustomDiffActive = !!selectedVersionA;
 
   const handleToggleCheckbox = (ver: VersionItem) => {
     if (checkedIds.includes(ver.id)) {

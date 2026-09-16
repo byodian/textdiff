@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Columns, 
-  Rows, 
   History, 
   Save, 
   Copy, 
@@ -11,8 +10,6 @@ import {
   Sparkles, 
   Code, 
   Split,
-  ChevronDown,
-  ChevronUp,
   FileDiff,
   X,
   Eye,
@@ -29,7 +26,7 @@ interface EditorHeaderProps {
   onThemeChange: (theme: string) => void;
   onOpenThemePalette?: () => void;
   isDiffMode: boolean;
-  isSideBySide: boolean;
+  isSideBySide?: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
   onMarkdownViewModeChange?: (mode: 'edit' | 'split' | 'preview') => void;
   diffStats: { added: number; removed: number; hasChanges: boolean };
@@ -47,14 +44,14 @@ interface EditorHeaderProps {
   onFilenameBlur: () => void;
   onLanguageChange: (lang: string) => void;
   onToggleDiffMode: () => void;
-  onToggleSideBySide: () => void;
+  onToggleSideBySide?: () => void;
   onOpenHistory: () => void;
   onSavePrompt: () => void;
   onFormatDocument: () => void;
   onCopyContent: () => void;
   onCopyDiff: () => void;
-  onNextDiffChunk: () => void;
-  onPrevDiffChunk: () => void;
+  onNextDiffChunk?: () => void;
+  onPrevDiffChunk?: () => void;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -65,7 +62,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onThemeChange,
   onOpenThemePalette,
   isDiffMode,
-  isSideBySide,
   markdownViewMode = 'edit',
   onMarkdownViewModeChange,
   diffStats,
@@ -83,14 +79,11 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onFilenameBlur,
   onLanguageChange,
   onToggleDiffMode,
-  onToggleSideBySide,
   onOpenHistory,
   onSavePrompt,
   onFormatDocument,
   onCopyContent,
   onCopyDiff,
-  onNextDiffChunk,
-  onPrevDiffChunk,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -248,26 +241,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Zone 3 (Right): Actions Toolbar */}
       <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-0 flex-1">
-        {/* Diff Navigation controls (Diff mode only) */}
-        {isDiffMode && (
-          <div className="flex items-center gap-0.5 bg-canvas-surface border border-canvas-border rounded p-0.5 shrink-0">
-            <button
-              onClick={onPrevDiffChunk}
-              className="p-1 text-slate-400 hover:text-slate-100 rounded hover:bg-canvas-elevated"
-              title="Previous Change Chunk"
-            >
-              <ChevronUp className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={onNextDiffChunk}
-              className="p-1 text-slate-400 hover:text-slate-100 rounded hover:bg-canvas-elevated"
-              title="Next Change Chunk"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
         {/* Markdown View Mode selector (When language === 'markdown' and not diff mode) */}
         {!isDiffMode && language === 'markdown' && onMarkdownViewModeChange && (
           <div 
@@ -314,28 +287,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           </div>
         )}
 
-        {/* Side-by-side vs Inline toggle (Diff mode only) */}
-        {isDiffMode && (
-          <button
-            onClick={onToggleSideBySide}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded bg-canvas-surface border border-canvas-border text-xs text-slate-300 hover:border-canvas-highlight hover:text-white transition-colors shrink-0"
-            title={isSideBySide ? 'Switch to Unified Inline View' : 'Switch to Split Side-by-Side View'}
-          >
-            {isSideBySide ? (
-              <>
-                <Columns className="w-3.5 h-3.5 text-brand-primary" />
-                <span className="hidden md:inline">Side-by-Side</span>
-              </>
-            ) : (
-              <>
-                <Rows className="w-3.5 h-3.5 text-brand-primary" />
-                <span className="hidden md:inline">Inline</span>
-              </>
-            )}
-          </button>
-        )}
-
-
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
@@ -370,24 +321,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
           {isMoreOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-60 rounded-lg bg-canvas-surface border border-canvas-border shadow-2xl py-1.5 z-50 text-xs text-slate-200 animate-in fade-in zoom-in-95 duration-100">
-              {/* Revisions & History */}
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenHistory();
-                  setIsMoreOpen(false);
-                }}
-                className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
-                title="View Revisions & History"
-              >
-                <div className="flex items-center gap-2">
-                  <History className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Revisions</span>
-                </div>
-              </button>
-
-              <div className="h-px bg-canvas-border my-1" />
-
               {/* Format Document (when not diff mode) */}
               {!isDiffMode && (
                 <button

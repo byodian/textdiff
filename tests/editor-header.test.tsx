@@ -87,7 +87,6 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     fireEvent.click(moreBtn);
 
     // Dropdown items should now be visible
-    expect(screen.getByText('Revisions')).toBeDefined();
     expect(screen.getByText('Format Document')).toBeDefined();
     expect(screen.getByText('Copy Code')).toBeDefined();
     expect(screen.getByText('Command Palette')).toBeDefined();
@@ -98,18 +97,14 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(screen.queryByText('Format Document')).toBeNull();
   });
 
-  it('triggers onOpenHistory when clicking Revisions inside More actions dropdown', () => {
+  it('triggers onOpenHistory when clicking History button', () => {
     const onOpenHistory = vi.fn();
     render(React.createElement(EditorHeader, { ...defaultProps, onOpenHistory }));
 
-    const moreBtn = screen.getByTitle(/More actions/i);
-    fireEvent.click(moreBtn);
-
-    const revisionsBtn = screen.getByText('Revisions');
-    fireEvent.click(revisionsBtn);
+    const historyBtn = screen.getByTitle(/Revision History/i);
+    fireEvent.click(historyBtn);
 
     expect(onOpenHistory).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('Revisions')).toBeNull();
   });
 
   it('closes dropdown menu when Escape is pressed', () => {
@@ -159,5 +154,21 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     const dropdownMenu = screen.getByText('Format Document').closest('.z-50');
     expect(dropdownMenu).toBeDefined();
     expect(dropdownMenu?.className).toContain('z-50');
+  });
+
+  it('does not render duplicate side-by-side or prev/next chunk buttons when isDiffMode is true', () => {
+    render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        isDiffMode: true,
+      })
+    );
+
+    expect(screen.queryByTitle(/Previous Change Chunk/i)).toBeNull();
+    expect(screen.queryByTitle(/Next Change Chunk/i)).toBeNull();
+    expect(screen.queryByTitle(/Switch to Unified Inline View/i)).toBeNull();
+    expect(screen.queryByTitle(/Switch to Split Side-by-Side View/i)).toBeNull();
+    expect(screen.queryByText('Side-by-Side')).toBeNull();
+    expect(screen.queryByText('Inline')).toBeNull();
   });
 });

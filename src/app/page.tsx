@@ -799,7 +799,7 @@ export default function WorkspacePage() {
               onPrevDiffChunk={handlePrevDiffChunk}
             />
 
-            <div className="flex-1 relative overflow-hidden isolate flex flex-col">
+            <div className="flex-1 relative overflow-hidden isolate flex flex-col w-full">
               {/* Unified Diff Inspector Bar */}
               {isDiffMode && (
                 <DiffInspectorBar
@@ -816,7 +816,7 @@ export default function WorkspacePage() {
                 />
               )}
 
-              <div className="flex-1 relative overflow-hidden isolate">
+              <div className="flex-1 relative overflow-hidden isolate w-full">
                 <CodeCanvas
                   key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}-${language === 'markdown' ? markdownViewMode : 'code'}`}
                   language={language}

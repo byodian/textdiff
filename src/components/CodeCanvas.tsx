@@ -168,6 +168,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
 
   const editorElement = (
     <Editor
+      width="100%"
       height="100%"
       language={language}
       value={code}
@@ -208,6 +209,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     >
       {isDiffMode ? (
         <DiffEditor
+          width="100%"
           height="100%"
           language={language}
           original={originalCode}
@@ -225,6 +227,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             diffWordWrap: 'off',
             renderIndicators: true,
+            renderOverviewRuler: false,
             scrollbar: {
               vertical: 'auto',
               horizontal: 'auto',
