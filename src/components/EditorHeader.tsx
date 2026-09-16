@@ -94,10 +94,22 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     };
   }, [isMoreOpen]);
 
+  // Calculate dynamic input width based on title character count (CJK counts as 1.8, ASCII as 1)
+  // Ensures 20~30 characters display completely without truncation while keeping unsaved badge adjacent
+  const inputWidthCh = React.useMemo(() => {
+    let width = 0;
+    const str = title || '';
+    if (!str) return 26;
+    for (let i = 0; i < str.length; i++) {
+      width += str.charCodeAt(i) > 127 ? 1.8 : 1;
+    }
+    return Math.min(Math.max(Math.ceil(width) + 2, 24), 64);
+  }, [title]);
+
   return (
     <header className="relative z-30 h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 select-none">
       {/* Zone 1 (Left): Document Identity (Title & Dirty indicator) */}
-      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 max-w-[48%]">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 max-w-[50%] lg:max-w-[58%]">
         <input
           type="text"
           value={title}
@@ -109,7 +121,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             }
           }}
           placeholder="Document Title (e.g. app.tsx, schema.sql)"
-          className="bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1.5 py-0.5 outline-none transition-colors min-w-[120px] max-w-xs sm:max-w-md truncate shrink"
+          style={{ width: `${inputWidthCh}ch` }}
+          className="bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1.5 py-0.5 outline-none transition-all min-w-[200px] max-w-full sm:max-w-md lg:max-w-xl xl:max-w-2xl truncate shrink"
           title="Click to edit document title (auto-saves on blur)"
         />
 
