@@ -772,8 +772,6 @@ export default function WorkspacePage() {
               onOpenThemePalette={() => setCommandPaletteOpen(true)}
               isDiffMode={isDiffMode}
               isSideBySide={isSideBySide}
-              markdownViewMode={markdownViewMode}
-              onMarkdownViewModeChange={setMarkdownViewMode}
               diffStats={diffStats}
               hasUnsavedChanges={hasUnsavedChanges}
               isJustSaved={isJustSaved}
@@ -827,6 +825,7 @@ export default function WorkspacePage() {
                   isDiffMode={isDiffMode}
                   isSideBySide={isSideBySide}
                   markdownViewMode={markdownViewMode}
+                  onMarkdownViewModeChange={setMarkdownViewMode}
                   onCodeChange={setCode}
                   editorRef={editorRef}
                   diffEditorRef={diffEditorRef}

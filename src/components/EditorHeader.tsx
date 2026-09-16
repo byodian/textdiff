@@ -12,7 +12,6 @@ import {
   Split,
   FileDiff,
   X,
-  Eye,
   Palette,
   MoreHorizontal
 } from 'lucide-react';
@@ -27,8 +26,6 @@ interface EditorHeaderProps {
   onOpenThemePalette?: () => void;
   isDiffMode: boolean;
   isSideBySide?: boolean;
-  markdownViewMode?: 'edit' | 'split' | 'preview';
-  onMarkdownViewModeChange?: (mode: 'edit' | 'split' | 'preview') => void;
   diffStats: { added: number; removed: number; hasChanges: boolean };
   hasUnsavedChanges: boolean;
   isJustSaved?: boolean;
@@ -62,8 +59,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onThemeChange,
   onOpenThemePalette,
   isDiffMode,
-  markdownViewMode = 'edit',
-  onMarkdownViewModeChange,
   diffStats,
   hasUnsavedChanges,
   isJustSaved = false,
@@ -241,52 +236,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Zone 3 (Right): Actions Toolbar */}
       <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-0 flex-1">
-        {/* Markdown View Mode selector (When language === 'markdown' and not diff mode) */}
-        {!isDiffMode && language === 'markdown' && onMarkdownViewModeChange && (
-          <div 
-            className="flex items-center bg-canvas-surface border border-canvas-border rounded p-0.5 text-xs shrink-0" 
-            role="group" 
-            aria-label="Markdown view mode"
-          >
-            <button
-              onClick={() => onMarkdownViewModeChange('edit')}
-              className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded transition-colors ${
-                markdownViewMode === 'edit'
-                  ? 'bg-canvas-elevated text-brand-primary font-medium shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Edit markdown source only"
-            >
-              <Code className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Edit</span>
-            </button>
-            <button
-              onClick={() => onMarkdownViewModeChange('split')}
-              className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded transition-colors ${
-                markdownViewMode === 'split'
-                  ? 'bg-canvas-elevated text-brand-primary font-medium shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Side-by-side edit and rendered preview"
-            >
-              <Columns className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Split</span>
-            </button>
-            <button
-              onClick={() => onMarkdownViewModeChange('preview')}
-              className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded transition-colors ${
-                markdownViewMode === 'preview'
-                  ? 'bg-canvas-elevated text-brand-primary font-medium shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Rendered preview only"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Preview</span>
-            </button>
-          </div>
-        )}
-
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}

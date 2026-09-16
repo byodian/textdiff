@@ -14,8 +14,6 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     onOpenThemePalette: vi.fn(),
     isDiffMode: false,
     isSideBySide: true,
-    markdownViewMode: 'split' as const,
-    onMarkdownViewModeChange: vi.fn(),
     diffStats: { added: 0, removed: 0, hasChanges: false },
     hasUnsavedChanges: false,
     copiedCode: false,
@@ -36,30 +34,20 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     onPrevDiffChunk: vi.fn(),
   };
 
-  it('renders markdown view modes and primary save button in markdown format', () => {
+  it('renders clean document header without format-specific view clutter', () => {
     render(React.createElement(EditorHeader, defaultProps));
 
-    // Markdown view modes
-    expect(screen.getByTitle(/Edit markdown source only/i)).toBeDefined();
-    expect(screen.getByTitle(/Side-by-side edit and rendered preview/i)).toBeDefined();
-    expect(screen.getByTitle(/Rendered preview only/i)).toBeDefined();
+    // Markdown view modes MUST NOT be in header (moved to edit area)
+    expect(screen.queryByTitle(/Edit markdown source only/i)).toBeNull();
+    expect(screen.queryByTitle(/Side-by-side edit and rendered preview/i)).toBeNull();
+    expect(screen.queryByTitle(/Rendered preview only/i)).toBeNull();
 
-    // Primary action
+    // Document identity and primary action
+    expect(screen.getAllByDisplayValue('README.md').length).toBeGreaterThanOrEqual(1);
     const saveBtn = screen.getByTitle(/Save Version/i);
     expect(saveBtn).toBeDefined();
     fireEvent.click(saveBtn);
     expect(defaultProps.onSavePrompt).toHaveBeenCalledTimes(1);
-  });
-
-  it('toggles markdown view mode when clicking split/edit/preview buttons', () => {
-    const onMarkdownViewModeChange = vi.fn();
-    render(React.createElement(EditorHeader, { ...defaultProps, onMarkdownViewModeChange }));
-
-    fireEvent.click(screen.getByTitle(/Rendered preview only/i));
-    expect(onMarkdownViewModeChange).toHaveBeenCalledWith('preview');
-
-    fireEvent.click(screen.getByTitle(/Edit markdown source only/i));
-    expect(onMarkdownViewModeChange).toHaveBeenCalledWith('edit');
   });
 
   it('opens More actions dropdown menu and contains secondary utilities', () => {

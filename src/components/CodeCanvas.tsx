@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Editor, { DiffEditor, loader, DiffOnMount, Monaco } from '@monaco-editor/react';
+import { Code, Columns, Eye } from 'lucide-react';
 import { MarkdownPreview } from './MarkdownPreview';
 import { applyMonacoTheme } from '@/lib/themes';
 
@@ -32,6 +33,7 @@ interface CodeCanvasProps {
   isDiffMode: boolean;
   isSideBySide: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
+  onMarkdownViewModeChange?: (mode: 'edit' | 'split' | 'preview') => void;
   onCodeChange: (val: string) => void;
   editorRef: React.MutableRefObject<MonacoEditorInstance | null>;
   diffEditorRef: React.MutableRefObject<MonacoDiffEditorInstance | null>;
@@ -46,6 +48,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   isDiffMode,
   isSideBySide,
   markdownViewMode = 'edit',
+  onMarkdownViewModeChange,
   onCodeChange,
   editorRef,
   diffEditorRef,
@@ -207,6 +210,55 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       className="flex-1 h-full w-full relative bg-canvas transition-colors duration-150"
       style={{ backgroundColor: 'var(--color-editor-bg, var(--color-canvas-default))' }}
     >
+      {/* Floating Markdown View Mode Controls in Edit Area */}
+      {!isDiffMode && language === 'markdown' && onMarkdownViewModeChange && (
+        <div 
+          className="absolute top-2.5 right-4 z-30 flex items-center bg-canvas-elevated/90 backdrop-blur-md border border-canvas-border shadow-lg rounded-md p-0.5 text-xs select-none transition-opacity opacity-75 hover:opacity-100" 
+          role="group" 
+          aria-label="Markdown view mode"
+        >
+          <button
+            type="button"
+            onClick={() => onMarkdownViewModeChange('edit')}
+            className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${
+              markdownViewMode === 'edit'
+                ? 'bg-canvas-surface text-brand-primary font-medium shadow-sm border border-canvas-border'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title="Edit markdown source only"
+          >
+            <Code className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Edit</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onMarkdownViewModeChange('split')}
+            className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${
+              markdownViewMode === 'split'
+                ? 'bg-canvas-surface text-brand-primary font-medium shadow-sm border border-canvas-border'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title="Side-by-side edit and rendered preview"
+          >
+            <Columns className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Split</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onMarkdownViewModeChange('preview')}
+            className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${
+              markdownViewMode === 'preview'
+                ? 'bg-canvas-surface text-brand-primary font-medium shadow-sm border border-canvas-border'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title="Rendered preview only"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Preview</span>
+          </button>
+        </div>
+      )}
+
       {isDiffMode ? (
         <DiffEditor
           width="100%"
