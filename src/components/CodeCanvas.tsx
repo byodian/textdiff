@@ -39,6 +39,8 @@ interface CodeCanvasProps {
   diffEditorRef: React.MutableRefObject<MonacoDiffEditorInstance | null>;
 }
 
+const DEFAULT_SPLIT_RATIO = 0.6;
+
 export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   language,
   code,
@@ -84,7 +86,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
         }
       } catch {}
     }
-    return 0.5;
+    return DEFAULT_SPLIT_RATIO;
   });
 
   const [isDraggingSplit, setIsDraggingSplit] = React.useState(false);
@@ -94,10 +96,10 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   const dragStartPosRef = React.useRef({ x: 0, y: 0 });
 
   const resetSplitRatio = React.useCallback(() => {
-    setSplitRatio(0.5);
+    setSplitRatio(DEFAULT_SPLIT_RATIO);
     lastClickTimeRef.current = 0;
     try {
-      localStorage.setItem('textdiff_markdown_split_ratio', '0.5');
+      localStorage.setItem('textdiff_markdown_split_ratio', DEFAULT_SPLIT_RATIO.toString());
     } catch {}
     editorRef.current?.layout?.();
   }, [editorRef]);
@@ -315,7 +317,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             className={`relative flex items-center justify-center w-2.5 cursor-col-resize select-none touch-none z-40 group transition-colors ${
               isDraggingSplit ? 'bg-brand-primary/50' : 'bg-canvas-border hover:bg-brand-primary/60'
             }`}
-            title="Drag to resize (Double-click to reset 50/50)"
+            title="Drag to resize (Double-click to reset)"
           >
             {/* Visual Center Grip Indicator */}
             <div

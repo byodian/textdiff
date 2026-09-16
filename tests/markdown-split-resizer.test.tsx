@@ -65,7 +65,7 @@ describe('Markdown Split Pane Draggable Resizer', () => {
     });
 
     const leftPane = parentContainer.children[0] as HTMLElement;
-    expect(leftPane.style.width).toBe('50%');
+    expect(leftPane.style.width).toBe('60%');
 
     // Start drag
     act(() => {
@@ -86,12 +86,12 @@ describe('Markdown Split Pane Draggable Resizer', () => {
 
     expect(leftPane.style.width).toBe('70%');
 
-    // Double click resets to 50%
+    // Double click resets to default 60%
     act(() => {
       fireEvent.doubleClick(divider);
     });
 
-    expect(leftPane.style.width).toBe('50%');
+    expect(leftPane.style.width).toBe('60%');
 
     // Drag to 300px (30%)
     act(() => {
@@ -108,6 +108,6 @@ describe('Markdown Split Pane Draggable Resizer', () => {
       fireEvent.pointerDown(divider, { clientX: 300 });
     });
 
-    expect(leftPane.style.width).toBe('50%');
+    expect(leftPane.style.width).toBe('60%');
   });
 });
