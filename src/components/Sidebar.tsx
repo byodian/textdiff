@@ -8,7 +8,6 @@ import {
   PanelLeftClose, 
   PanelLeft, 
   Copy,
-  Clock,
   FolderGit2,
   ChevronDown,
   FolderPlus,
@@ -48,6 +47,14 @@ interface SidebarProps {
   onNewSnippet: () => void;
   onDuplicateSnippet: (id: string, e: React.MouseEvent) => void;
   onDeleteSnippet: (id: string, e: React.MouseEvent) => void;
+}
+
+function formatDateTime(isoString: string): string {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -307,11 +314,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         />
                       )}
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-1">
-                      <Clock className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate">
-                        {new Date(s.updatedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                      </span>
+                    <div className="text-[10px] font-mono text-slate-500 mt-1 truncate">
+                      {formatDateTime(s.updatedAt)}
                     </div>
                   </div>
 
