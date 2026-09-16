@@ -268,7 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Search documents, files..."
+              placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-full bg-canvas-surface border border-canvas-border rounded-md pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-primary transition-colors"
@@ -285,7 +285,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             filtered.map((s) => {
               const isActive = s.id === activeId;
-              const latestVer = s.versions?.[0]?.versionNo ?? 1;
               return (
                 <div
                   key={s.id}
@@ -308,16 +307,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           />
                         )}
                       </span>
-                      <span className="text-[10px] font-mono px-1 rounded bg-canvas-highlight/50 text-slate-400">
-                        v{latestVer}
-                      </span>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-                      <span className="truncate font-mono text-[10px] text-slate-400">
-                        {s.language}
-                      </span>
-                      <span className="flex items-center gap-0.5 text-[10px]">
-                        <Clock className="w-2.5 h-2.5" />
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-1">
+                      <Clock className="w-2.5 h-2.5 shrink-0" />
+                      <span className="truncate">
                         {new Date(s.updatedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
