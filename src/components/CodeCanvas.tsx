@@ -213,7 +213,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       {/* Floating Markdown View Mode Controls in Edit Area */}
       {!isDiffMode && language === 'markdown' && onMarkdownViewModeChange && (
         <div 
-          className="absolute top-2.5 right-4 z-30 flex items-center bg-canvas-elevated border border-canvas-border shadow-lg shadow-black/40 rounded-md p-0.5 select-none gap-0.5" 
+          className="absolute top-2.5 right-4 z-30 flex items-center bg-canvas-elevated border border-canvas-border rounded-md p-0.5 select-none gap-0.5" 
           role="group" 
           aria-label="Markdown view mode"
         >
@@ -222,7 +222,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             onClick={() => onMarkdownViewModeChange('edit')}
             className={`p-1.5 rounded transition-colors flex items-center justify-center ${
               markdownViewMode === 'edit'
-                ? 'bg-canvas-surface text-brand-primary font-medium shadow-sm border border-canvas-border'
+                ? 'bg-canvas-surface text-brand-primary font-medium border border-canvas-border'
                 : 'text-slate-400 hover:text-slate-100 hover:bg-canvas-surface/80'
             }`}
             title="Edit markdown source only"
@@ -235,7 +235,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             onClick={() => onMarkdownViewModeChange('split')}
             className={`p-1.5 rounded transition-colors flex items-center justify-center ${
               markdownViewMode === 'split'
-                ? 'bg-canvas-surface text-brand-primary font-medium shadow-sm border border-canvas-border'
+                ? 'bg-canvas-surface text-brand-primary font-medium border border-canvas-border'
                 : 'text-slate-400 hover:text-slate-100 hover:bg-canvas-surface/80'
             }`}
             title="Side-by-side edit and rendered preview"
@@ -248,7 +248,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             onClick={() => onMarkdownViewModeChange('preview')}
             className={`p-1.5 rounded transition-colors flex items-center justify-center ${
               markdownViewMode === 'preview'
-                ? 'bg-canvas-surface text-brand-primary font-medium shadow-sm border border-canvas-border'
+                ? 'bg-canvas-surface text-brand-primary font-medium border border-canvas-border'
                 : 'text-slate-400 hover:text-slate-100 hover:bg-canvas-surface/80'
             }`}
             title="Rendered preview only"
