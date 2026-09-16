@@ -288,4 +288,86 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(themeTitle?.className).not.toContain('text-slate-950');
     expect(themeTitle?.className).toContain('font-semibold');
   });
+
+  it('supports Preferences: Change Language Mode... command and selects language', () => {
+    const handleSelectLanguage = vi.fn();
+    const handleClose = vi.fn();
+
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        currentLanguage: 'typescript',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: handleClose,
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+        onSelectLanguage: handleSelectLanguage,
+      })
+    );
+
+    // Command should be present in commands list
+    const langCmd = screen.getByText('Preferences: Change Language Mode...');
+    expect(langCmd).toBeDefined();
+
+    // Click command to switch to language-picker mode
+    fireEvent.click(langCmd);
+    expect(screen.getByPlaceholderText(/Select Language Mode/i)).toBeDefined();
+
+    // Search for python
+    const input = screen.getByPlaceholderText(/Select Language Mode/i);
+    fireEvent.change(input, { target: { value: 'python' } });
+
+    expect(screen.getByText('Python')).toBeDefined();
+
+    // Select Python with Enter
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(handleSelectLanguage).toHaveBeenCalledWith('python');
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens directly in language-picker mode when initialMode is language-picker', () => {
+    const handleSelectLanguage = vi.fn();
+    const handleClose = vi.fn();
+
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        initialMode: 'language-picker',
+        currentTheme: 'vs-dark',
+        currentLanguage: 'json',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: handleClose,
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+        onSelectLanguage: handleSelectLanguage,
+      })
+    );
+
+    expect(screen.getByPlaceholderText(/Select Language Mode/i)).toBeDefined();
+    expect(screen.getByText('JSON')).toBeDefined();
+
+    // Clicking SQL selects it and closes palette
+    fireEvent.click(screen.getByText('SQL'));
+    expect(handleSelectLanguage).toHaveBeenCalledWith('sql');
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });

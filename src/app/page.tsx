@@ -5,7 +5,7 @@ import { Sidebar, SnippetSummary, WorkspaceItem } from '@/components/Sidebar';
 import { EditorHeader } from '@/components/EditorHeader';
 import { HistoryDrawer, VersionItem } from '@/components/HistoryDrawer';
 import { PostSaveToast } from '@/components/PostSaveToast';
-import { CommandPalette } from '@/components/CommandPalette';
+import { CommandPalette, PaletteMode } from '@/components/CommandPalette';
 import { CodeCanvas, MonacoEditorInstance, MonacoDiffEditorInstance } from '@/components/CodeCanvas';
 import { UnsavedChangesModal } from '@/components/UnsavedChangesModal';
 import { UndoToast } from '@/components/UndoToast';
@@ -13,7 +13,7 @@ import { DeleteDocumentModal } from '@/components/DeleteDocumentModal';
 import { DiffInspectorBar } from '@/components/DiffInspectorBar';
 import { WorkspaceEmptyState } from '@/components/WorkspaceEmptyState';
 import { StatusBar } from '@/components/StatusBar';
-import { detectLanguageFromFilename } from '@/lib/languages';
+import { detectLanguageFromFilename, detectLanguageFromTitle } from '@/lib/languages';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
 import { ALL_THEMES } from '@/lib/themes';
 import { applyGlobalThemeColors } from '@/lib/theme-colors';
@@ -37,7 +37,6 @@ export default function WorkspacePage() {
 
   // Active Snippet State
   const [title, setTitle] = useState('Untitled Document');
-  const [filename, setFilename] = useState('');
   const [language, setLanguage] = useState('plaintext');
   const [code, setCode] = useState('');
   const [lastSavedCode, setLastSavedCode] = useState('');
@@ -49,6 +48,7 @@ export default function WorkspacePage() {
   const [markdownViewMode, setMarkdownViewMode] = useState<'edit' | 'split' | 'preview'>('split');
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandPaletteMode, setCommandPaletteMode] = useState<PaletteMode>('commands');
 
   // Load persisted theme on mount
   useEffect(() => {
@@ -120,8 +120,7 @@ export default function WorkspacePage() {
       const s = await res.json();
       setActiveId(s.id);
       setTitle(s.title);
-      setFilename(s.filename || '');
-      setLanguage(s.language || 'plaintext');
+      setLanguage(s.language || detectLanguageFromTitle(s.title) || 'plaintext');
 
       // Restore unsaved draft from localStorage if one exists
       const draft = loadDraft(s.id, s.currentCode);
@@ -160,7 +159,6 @@ export default function WorkspacePage() {
   const handleNewSnippet = useCallback(async () => {
     const defaultSnippet = {
       title: 'Untitled Document',
-      filename: '',
       language: 'plaintext',
       currentCode: '',
       workspaceId: activeWorkspaceId || undefined,
@@ -198,7 +196,6 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: `${detail.title} (Copy)`,
-          filename: detail.filename,
           language: detail.language,
           currentCode: detail.currentCode,
           workspaceId: detail.workspaceId || activeWorkspaceId || undefined,
@@ -334,14 +331,13 @@ export default function WorkspacePage() {
   }, [activeWorkspaceId, code, lastSavedCode, handleSelectWorkspace]);
 
   // Onboarding starter templates
-  const handleApplyTemplate = useCallback(async (tpl: { title: string; filename: string; language: string; code: string }) => {
+  const handleApplyTemplate = useCallback(async (tpl: { title: string; language: string; code: string }) => {
     try {
       const res = await fetch('/api/snippets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: tpl.title,
-          filename: tpl.filename,
           language: tpl.language,
           currentCode: tpl.code,
           workspaceId: activeWorkspaceId || undefined,
@@ -368,7 +364,6 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: 'Pasted Document',
-          filename: '',
           language: 'plaintext',
           currentCode: text || '',
           workspaceId: activeWorkspaceId || undefined,
@@ -385,15 +380,17 @@ export default function WorkspacePage() {
     }
   }, [activeWorkspaceId, handleNewSnippet, loadSnippet]);
 
-  // 6. Filename change auto-detects language
-  const handleFilenameChange = (val: string) => {
-    setFilename(val);
-    const detected = detectLanguageFromFilename(val);
-    setLanguage(detected);
+  // 6. Title change auto-detects language if title contains a recognizable extension
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    const detected = detectLanguageFromTitle(newTitle, '');
+    if (detected && detected !== language) {
+      setLanguage(detected);
+    }
   };
 
-  // 7. Auto-save metadata (title, filename, language) without creating a new version
-  const handleAutoSaveMeta = useCallback(async (newTitle = title, newFilename = filename, newLanguage = language) => {
+  // 7. Auto-save metadata (title, language) without creating a new version
+  const handleAutoSaveMeta = useCallback(async (newTitle = title, newLanguage = language) => {
     if (!activeId) return;
 
     try {
@@ -402,7 +399,6 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newTitle.trim() || 'Untitled Document',
-          filename: newFilename.trim() || null,
           language: newLanguage,
           currentCode: code,
           createVersion: false,
@@ -413,7 +409,7 @@ export default function WorkspacePage() {
         setSnippets((prev) =>
           prev.map((s) =>
             s.id === activeId
-              ? { ...s, title: newTitle.trim() || 'Untitled Document', filename: newFilename.trim() || null, language: newLanguage, updatedAt: new Date().toISOString() }
+              ? { ...s, title: newTitle.trim() || 'Untitled Document', language: newLanguage, updatedAt: new Date().toISOString() }
               : s
           )
         );
@@ -421,12 +417,12 @@ export default function WorkspacePage() {
     } catch (err) {
       console.error('Failed to auto-save metadata', err);
     }
-  }, [activeId, title, filename, language, code]);
+  }, [activeId, title, language, code]);
 
   // 8. Language change with auto-save
   const handleLanguageChange = (newLang: string) => {
     setLanguage(newLang);
-    handleAutoSaveMeta(title, filename, newLang);
+    handleAutoSaveMeta(title, newLang);
   };
 
   // 9. Instant Save: zero-interruption optimistic snapshot
@@ -445,7 +441,6 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim() || 'Untitled Document',
-          filename: filename.trim() || null,
           language,
           currentCode: code,
           createVersion: true,
@@ -465,7 +460,6 @@ export default function WorkspacePage() {
               ? { 
                   ...s, 
                   title: title.trim() || 'Untitled Document', 
-                  filename: filename.trim() || null, 
                   language, 
                   updatedAt: new Date().toISOString(),
                   versions: updated.versions || s.versions,
@@ -492,7 +486,7 @@ export default function WorkspacePage() {
     } catch (err) {
       console.error('Failed to save version', err);
     }
-  }, [activeId, code, lastSavedCode, title, filename, language]);
+  }, [activeId, code, lastSavedCode, title, language]);
 
   // Update a version's commit message retroactively
   const handleUpdateVersionMsg = useCallback(async (versionId: string, newMsg: string) => {
@@ -584,6 +578,7 @@ export default function WorkspacePage() {
       // 2. Ctrl+Shift+P / Cmd+Shift+P => Open Command Palette
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
+        setCommandPaletteMode('commands');
         setCommandPaletteOpen((prev) => !prev);
         return;
       }
@@ -717,7 +712,7 @@ export default function WorkspacePage() {
 
   // 17. Copy diff patch
   const handleCopyDiff = () => {
-    const patch = createUnifiedPatchText(filename || 'snippet', originalDiffCode, targetDiffCode);
+    const patch = createUnifiedPatchText(title || 'snippet', originalDiffCode, targetDiffCode);
     navigator.clipboard.writeText(patch);
     setCopiedDiff(true);
     setTimeout(() => setCopiedDiff(false), 2000);
@@ -763,11 +758,12 @@ export default function WorkspacePage() {
           <>
             <EditorHeader
               title={title}
-              filename={filename}
-              language={language}
               theme={editorTheme}
               onThemeChange={handleThemeChange}
-              onOpenThemePalette={() => setCommandPaletteOpen(true)}
+              onOpenThemePalette={() => {
+                setCommandPaletteMode('theme-picker');
+                setCommandPaletteOpen(true);
+              }}
               isDiffMode={isDiffMode}
               isSideBySide={isSideBySide}
               diffStats={diffStats}
@@ -775,15 +771,11 @@ export default function WorkspacePage() {
               isJustSaved={isJustSaved}
               copiedCode={copiedCode}
               copiedDiff={copiedDiff}
-              currentVersionNo={versions[0]?.versionNo ?? 1}
               versionCount={versions.length}
               customDiffLabel={customDiffLabel}
               onExitCustomDiff={handleExitCustomDiff}
-              onTitleChange={setTitle}
-              onTitleBlur={() => handleAutoSaveMeta(title, filename, language)}
-              onFilenameChange={handleFilenameChange}
-              onFilenameBlur={() => handleAutoSaveMeta(title, filename, language)}
-              onLanguageChange={handleLanguageChange}
+              onTitleChange={handleTitleChange}
+              onTitleBlur={() => handleAutoSaveMeta(title, language)}
               onToggleDiffMode={() => setIsDiffMode(!isDiffMode)}
               onToggleSideBySide={() => setIsSideBySide(!isSideBySide)}
               onOpenHistory={() => setHistoryOpen(true)}
@@ -840,6 +832,10 @@ export default function WorkspacePage() {
                 onFormatDocument={handleFormatDocument}
                 onNextDiffChunk={handleNextDiffChunk}
                 onPrevDiffChunk={handlePrevDiffChunk}
+                onOpenLanguagePicker={() => {
+                  setCommandPaletteMode('language-picker');
+                  setCommandPaletteOpen(true);
+                }}
               />
             </div>
           </>
@@ -881,11 +877,16 @@ export default function WorkspacePage() {
       {/* VS Code-style Command Palette (Ctrl+Shift+P) */}
       <CommandPalette
         isOpen={commandPaletteOpen}
+        initialMode={commandPaletteMode}
         currentTheme={editorTheme}
+        currentLanguage={language}
         isDiffMode={isDiffMode}
         isMarkdown={language === 'markdown'}
         markdownViewMode={markdownViewMode}
-        onClose={() => setCommandPaletteOpen(false)}
+        onClose={() => {
+          setCommandPaletteOpen(false);
+          setCommandPaletteMode('commands');
+        }}
         onNewSnippet={handleNewSnippet}
         onSavePrompt={handleInstantSave}
         onOpenHistory={() => setHistoryOpen(true)}
@@ -898,6 +899,7 @@ export default function WorkspacePage() {
         onSelectTheme={(th) => {
           handleThemeChange(th);
         }}
+        onSelectLanguage={handleLanguageChange}
         onPreviewTheme={handlePreviewTheme}
       />
 

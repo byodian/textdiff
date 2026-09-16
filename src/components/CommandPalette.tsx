@@ -17,9 +17,11 @@ import {
   ChevronRight,
   Columns,
   Moon,
-  Sun
+  Sun,
+  FileCode
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
+import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
 
 export interface CommandItem {
   id: string;
@@ -31,12 +33,16 @@ export interface CommandItem {
   keywords?: string;
 }
 
+export type PaletteMode = 'commands' | 'theme-picker' | 'language-picker';
+
 interface CommandPaletteProps {
   isOpen: boolean;
   currentTheme: string;
+  currentLanguage?: string;
   isDiffMode: boolean;
   isMarkdown: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
+  initialMode?: PaletteMode;
   onClose: () => void;
   onNewSnippet: () => void;
   onSavePrompt: () => void;
@@ -49,16 +55,17 @@ interface CommandPaletteProps {
   onSetMarkdownViewMode?: (mode: 'edit' | 'split' | 'preview') => void;
   onSelectTheme: (themeId: string) => void;
   onPreviewTheme: (themeId: string) => void;
+  onSelectLanguage?: (languageId: string) => void;
 }
-
-type PaletteMode = 'commands' | 'theme-picker';
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   currentTheme,
+  currentLanguage,
   isDiffMode,
   isMarkdown,
   markdownViewMode,
+  initialMode,
   onClose,
   onNewSnippet,
   onSavePrompt,
@@ -71,8 +78,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSetMarkdownViewMode,
   onSelectTheme,
   onPreviewTheme,
+  onSelectLanguage,
 }) => {
-  const [mode, setMode] = useState<PaletteMode>('commands');
+  const [mode, setMode] = useState<PaletteMode>(initialMode || 'commands');
   const [query, setQuery] = useState('');
   const [themeTypeFilter, setThemeTypeFilter] = useState<'all' | 'dark' | 'light'>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -80,6 +88,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const initialThemeRef = useRef(currentTheme);
   const currentThemeRef = useRef(currentTheme);
   currentThemeRef.current = currentTheme;
+  const currentLanguageRef = useRef(currentLanguage);
+  currentLanguageRef.current = currentLanguage;
   const prevOpenRef = useRef(isOpen);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -94,6 +104,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     setTimeout(() => inputRef.current?.focus(), 30);
   }, []);
 
+  const handleOpenLanguagePicker = React.useCallback(() => {
+    setMode('language-picker');
+    setQuery('');
+    const activeIdx = SUPPORTED_LANGUAGES.findIndex((l) => l.id === currentLanguageRef.current);
+    setSelectedIndex(activeIdx >= 0 ? activeIdx : 0);
+    setTimeout(() => inputRef.current?.focus(), 30);
+  }, []);
+
   // Available commands list
   const commands: CommandItem[] = React.useMemo(() => {
     const list: CommandItem[] = [
@@ -104,6 +122,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: <Palette className="w-4 h-4 text-brand-primary" />,
         action: handleOpenThemePicker,
         keywords: 'color theme scheme skin dark light dracula github monokai',
+      },
+      {
+        id: 'language:select',
+        title: 'Preferences: Change Language Mode...',
+        category: 'Preferences',
+        icon: <FileCode className="w-4 h-4 text-brand-primary" />,
+        action: handleOpenLanguagePicker,
+        keywords: 'language mode syntax highlight file type ts js py md sql json yaml',
       },
       {
         id: 'history:open',
@@ -260,7 +286,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onCopyContent, 
     onSetMarkdownViewMode,
     markdownViewMode,
-    handleOpenThemePicker
+    handleOpenThemePicker,
+    handleOpenLanguagePicker
   ]);
 
   // Filter themes if in theme-picker mode
@@ -279,6 +306,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     });
   }, [mode, query, themeTypeFilter]);
 
+  // Filter languages if in language-picker mode
+  const filteredLanguages: LanguageOption[] = React.useMemo(() => {
+    if (mode !== 'language-picker') return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return SUPPORTED_LANGUAGES;
+    return SUPPORTED_LANGUAGES.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        l.id.toLowerCase().includes(q) ||
+        l.extensions.some((ext) => ext.toLowerCase().includes(q))
+    );
+  }, [mode, query]);
+
   // Filter commands if in commands mode
   const filteredCommands: CommandItem[] = React.useMemo(() => {
     if (mode !== 'commands') return [];
@@ -292,15 +332,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     );
   }, [mode, query, commands]);
 
-  const activeCount = mode === 'commands' ? filteredCommands.length : filteredThemes.length;
+  const activeCount = 
+    mode === 'commands' 
+      ? filteredCommands.length 
+      : mode === 'theme-picker' 
+      ? filteredThemes.length 
+      : filteredLanguages.length;
 
   // On open or reset
   useEffect(() => {
     if (isOpen && !prevOpenRef.current) {
-      setMode('commands');
+      const targetMode = initialMode || 'commands';
+      setMode(targetMode);
       setQuery('');
       setThemeTypeFilter('all');
-      setSelectedIndex(0);
+      if (targetMode === 'language-picker') {
+        const activeIdx = SUPPORTED_LANGUAGES.findIndex((l) => l.id === currentLanguageRef.current);
+        setSelectedIndex(activeIdx >= 0 ? activeIdx : 0);
+      } else if (targetMode === 'theme-picker') {
+        const activeIdx = ALL_THEMES.findIndex((t) => t.id === currentThemeRef.current);
+        setSelectedIndex(activeIdx >= 0 ? activeIdx : 0);
+      } else {
+        setSelectedIndex(0);
+      }
       initialThemeRef.current = currentThemeRef.current;
       setTimeout(() => inputRef.current?.focus(), 40);
     } else if (!isOpen && prevOpenRef.current) {
@@ -312,7 +366,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       setThemeTypeFilter('all');
     }
     prevOpenRef.current = isOpen;
-  }, [isOpen, mode, onPreviewTheme]);
+  }, [isOpen, mode, initialMode, onPreviewTheme]);
 
   // Index clamp
   useEffect(() => {
@@ -348,6 +402,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onClose();
   }, [onSelectTheme, onClose]);
 
+  const handleSelectLanguage = React.useCallback((langId: string) => {
+    onSelectLanguage?.(langId);
+    onClose();
+  }, [onSelectLanguage, onClose]);
+
   const handleExitThemePicker = React.useCallback(() => {
     onPreviewTheme(initialThemeRef.current);
     setMode('commands');
@@ -356,6 +415,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     setSelectedIndex(0);
     setTimeout(() => inputRef.current?.focus(), 30);
   }, [onPreviewTheme]);
+
+  const handleExitLanguagePicker = React.useCallback(() => {
+    setMode('commands');
+    setQuery('');
+    setSelectedIndex(0);
+    setTimeout(() => inputRef.current?.focus(), 30);
+  }, []);
 
   const handleCancel = React.useCallback(() => {
     if (mode === 'theme-picker') {
@@ -374,6 +440,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         e.stopPropagation();
         if (mode === 'theme-picker') {
           handleExitThemePicker();
+        } else if (mode === 'language-picker') {
+          handleExitLanguagePicker();
         } else {
           onClose();
         }
@@ -400,19 +468,31 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         if (mode === 'commands') {
           const cmd = filteredCommands[selectedIndex];
           if (cmd) cmd.action();
-        } else {
+        } else if (mode === 'theme-picker') {
           const th = filteredThemes[selectedIndex];
           if (th) {
             handleSelectTheme(th.id);
+          }
+        } else if (mode === 'language-picker') {
+          const lang = filteredLanguages[selectedIndex];
+          if (lang) {
+            handleSelectLanguage(lang.id);
           }
         }
         return;
       }
 
-      if (e.key === 'Backspace' && query === '' && mode === 'theme-picker') {
-        e.preventDefault();
-        handleExitThemePicker();
-        return;
+      if (e.key === 'Backspace' && query === '') {
+        if (mode === 'theme-picker') {
+          e.preventDefault();
+          handleExitThemePicker();
+          return;
+        }
+        if (mode === 'language-picker') {
+          e.preventDefault();
+          handleExitLanguagePicker();
+          return;
+        }
       }
     };
 
@@ -428,8 +508,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     selectedIndex,
     filteredCommands,
     filteredThemes,
+    filteredLanguages,
     handleExitThemePicker,
+    handleExitLanguagePicker,
     handleSelectTheme,
+    handleSelectLanguage,
     onClose,
   ]);
 
@@ -454,6 +537,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             >
               <span>‹ Commands</span>
             </button>
+          ) : mode === 'language-picker' ? (
+            <button
+              onClick={handleExitLanguagePicker}
+              className="flex items-center gap-1 text-xs text-brand-primary hover:underline shrink-0"
+              title="Return to Command List"
+            >
+              <span>‹ Commands</span>
+            </button>
           ) : (
             <Terminal className="w-4 h-4 text-brand-primary shrink-0" />
           )}
@@ -468,8 +559,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             }}
             placeholder={
               mode === 'commands'
-                ? "Type a command or search (e.g. 'theme', 'revisions', 'save')..."
-                : "Select Color Theme (Up/Down to live preview, Enter to select)..."
+                ? "Type a command or search (e.g. 'language', 'theme', 'save')..."
+                : mode === 'theme-picker'
+                ? "Select Color Theme (Up/Down to live preview, Enter to select)..."
+                : "Select Language Mode (Up/Down to navigate, Enter to select)..."
             }
             className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none font-sans"
           />
@@ -545,6 +638,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           </div>
         )}
 
+        {/* Language Header Bar (Language Picker Mode only) */}
+        {mode === 'language-picker' && (
+          <div className="flex items-center justify-between px-3.5 py-1.5 border-b border-canvas-border bg-canvas-surface/40 text-xs text-slate-400">
+            <span className="font-medium text-slate-300">Select Language Mode</span>
+            <span className="text-[11px] text-slate-500 font-mono">
+              {filteredLanguages.length} {filteredLanguages.length === 1 ? 'language' : 'languages'}
+            </span>
+          </div>
+        )}
+
         {/* List items */}
         <div ref={listRef} className="flex-1 overflow-y-auto p-1.5 space-y-0.5 select-none">
           {mode === 'commands' ? (
@@ -589,7 +692,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 );
               })
             )
-          ) : (
+          ) : mode === 'theme-picker' ? (
             filteredThemes.length === 0 ? (
               <div className="py-8 text-center text-sm text-slate-500">
                 No themes matching &quot;{query}&quot;
@@ -648,6 +751,52 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 );
               })
             )
+          ) : (
+            filteredLanguages.length === 0 ? (
+              <div className="py-8 text-center text-sm text-slate-500">
+                No languages matching &quot;{query}&quot;
+              </div>
+            ) : (
+              filteredLanguages.map((lang, idx) => {
+                const isHighlighted = idx === selectedIndex;
+                const isCurrent = lang.id === currentLanguage;
+
+                return (
+                  <div
+                    key={lang.id}
+                    onClick={() => handleSelectLanguage(lang.id)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
+                      isHighlighted
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
+                        : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={`theme-item-title font-medium text-sm truncate ${
+                        isHighlighted
+                          ? 'text-white font-semibold'
+                          : 'text-slate-100'
+                      }`}>
+                        {lang.name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono text-slate-400 bg-canvas-surface border border-canvas-border shrink-0">
+                        {lang.extensions.slice(0, 3).join(' ')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isCurrent && (
+                        <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Active</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )
           )}
         </div>
 
@@ -665,12 +814,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </span>
             <span>
               <kbd className="px-1.5 py-0.5 rounded bg-canvas-surface border border-canvas-border text-[10px] text-slate-300 mr-1 font-mono">Esc</kbd>
-              {mode === 'theme-picker' ? 'Back' : 'Close'}
+              {mode === 'commands' ? 'Close' : 'Back'}
             </span>
           </div>
 
           <div className="text-[10px] text-slate-500 font-mono">
-            {mode === 'commands' ? `${filteredCommands.length} commands` : `${filteredThemes.length} themes`}
+            {mode === 'commands' 
+              ? `${filteredCommands.length} commands` 
+              : mode === 'theme-picker' 
+              ? `${filteredThemes.length} themes` 
+              : `${filteredLanguages.length} languages`}
           </div>
         </div>
       </div>

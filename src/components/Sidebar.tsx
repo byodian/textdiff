@@ -19,7 +19,7 @@ import {
 export interface SnippetSummary {
   id: string;
   title: string;
-  filename: string | null;
+  filename?: string | null;
   language: string;
   updatedAt: string;
   workspaceId?: string | null;
@@ -102,7 +102,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const q = searchQuery.toLowerCase();
     return (
       s.title.toLowerCase().includes(q) ||
-      (s.filename && s.filename.toLowerCase().includes(q)) ||
       s.language.toLowerCase().includes(q)
     );
   });
@@ -314,8 +313,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-                      <span className="truncate font-mono text-[10px]">
-                        {s.filename || s.language}
+                      <span className="truncate font-mono text-[10px] text-slate-400">
+                        {s.language}
                       </span>
                       <span className="flex items-center gap-0.5 text-[10px]">
                         <Clock className="w-2.5 h-2.5" />

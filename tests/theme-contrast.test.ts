@@ -47,8 +47,6 @@ describe('Theme Contrast & Button Text Colors', () => {
   it('EditorHeader Save button uses text-brand-text for adaptive contrast', () => {
     const defaultProps = {
       title: 'index.ts',
-      filename: 'index.ts',
-      language: 'typescript',
       theme: 'vs',
       onThemeChange: vi.fn(),
       isDiffMode: false,
@@ -59,9 +57,6 @@ describe('Theme Contrast & Button Text Colors', () => {
       copiedDiff: false,
       onTitleChange: vi.fn(),
       onTitleBlur: vi.fn(),
-      onFilenameChange: vi.fn(),
-      onFilenameBlur: vi.fn(),
-      onLanguageChange: vi.fn(),
       onToggleDiffMode: vi.fn(),
       onToggleSideBySide: vi.fn(),
       onOpenHistory: vi.fn(),

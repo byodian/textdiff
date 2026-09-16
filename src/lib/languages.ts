@@ -45,3 +45,7 @@ export function detectLanguageFromFilename(filename: string, fallback = 'plainte
 
   return fallback;
 }
+
+export function detectLanguageFromTitle(title: string, fallback = 'plaintext'): string {
+  return detectLanguageFromFilename(title, fallback);
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectLanguageFromFilename, SUPPORTED_LANGUAGES } from '../src/lib/languages';
+import { detectLanguageFromFilename, detectLanguageFromTitle, SUPPORTED_LANGUAGES } from '../src/lib/languages';
 
 describe('Language detection and configuration seam', () => {
   it('detects typescript and javascript correctly', () => {
@@ -27,6 +27,14 @@ describe('Language detection and configuration seam', () => {
     expect(detectLanguageFromFilename('README.md')).toBe('markdown');
     expect(detectLanguageFromFilename('run.sh')).toBe('shell');
     expect(detectLanguageFromFilename('patch.diff')).toBe('diff');
+  });
+
+  it('detects language from title with detectLanguageFromTitle', () => {
+    expect(detectLanguageFromTitle('app.tsx')).toBe('typescript');
+    expect(detectLanguageFromTitle('docker-compose.yml')).toBe('yaml');
+    expect(detectLanguageFromTitle('schema.sql')).toBe('sql');
+    expect(detectLanguageFromTitle('Notes')).toBe('plaintext');
+    expect(detectLanguageFromTitle('Notes', '')).toBe('');
   });
 
   it('falls back to default language for unknown extension or empty name', () => {

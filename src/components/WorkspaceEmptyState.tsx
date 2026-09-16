@@ -5,7 +5,6 @@ import { Plus, Clipboard, Database, FileCode, Server, Braces } from 'lucide-reac
 
 interface TemplateOption {
   title: string;
-  filename: string;
   language: string;
   icon: React.ReactNode;
   description: string;
@@ -15,7 +14,6 @@ interface TemplateOption {
 const STARTER_TEMPLATES: TemplateOption[] = [
   {
     title: 'Nacos Spring Cloud Config',
-    filename: 'application-prod.yml',
     language: 'yaml',
     icon: <Server className="w-5 h-5 text-emerald-400" />,
     description: 'Spring Cloud data source, redis cache & thread pool config',
@@ -38,7 +36,6 @@ logging:
   },
   {
     title: 'MySQL Schema Migration',
-    filename: 'V1__init_orders_schema.sql',
     language: 'sql',
     icon: <Database className="w-5 h-5 text-sky-400" />,
     description: 'Relational table DDL with indexes, foreign keys & audit columns',
@@ -57,7 +54,6 @@ logging:
   },
   {
     title: 'Docker Compose Stack',
-    filename: 'docker-compose.yml',
     language: 'yaml',
     icon: <FileCode className="w-5 h-5 text-purple-400" />,
     description: 'Multi-container orchestration setup with volume mounts & networks',
@@ -82,7 +78,6 @@ volumes:
   },
   {
     title: 'API Payload / JSON Schema',
-    filename: 'api-spec.json',
     language: 'json',
     icon: <Braces className="w-5 h-5 text-amber-400" />,
     description: 'Structured RESTful API JSON payload with types and validations',
@@ -104,7 +99,7 @@ volumes:
 
 interface WorkspaceEmptyStateProps {
   onNewDocument: () => void;
-  onApplyTemplate: (template: { title: string; filename: string; language: string; code: string }) => void;
+  onApplyTemplate: (template: { title: string; language: string; code: string }) => void;
   onPasteFromClipboard: () => void;
 }
 
@@ -180,10 +175,6 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
                 <p className="text-[11px] text-slate-400 leading-relaxed">
                   {tpl.description}
                 </p>
-              </div>
-
-              <div className="mt-2.5 pt-2 border-t border-canvas-border/50 text-[10px] font-mono text-slate-500 truncate">
-                {tpl.filename}
               </div>
             </div>
           ))}

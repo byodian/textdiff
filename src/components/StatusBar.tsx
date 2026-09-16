@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Sparkles, ChevronUp, ChevronDown, Check, FileText } from 'lucide-react';
+import { SUPPORTED_LANGUAGES } from '@/lib/languages';
 
 interface StatusBarProps {
   language: string;
@@ -11,6 +12,7 @@ interface StatusBarProps {
   onFormatDocument?: () => void;
   onNextDiffChunk?: () => void;
   onPrevDiffChunk?: () => void;
+  onOpenLanguagePicker?: () => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -21,7 +23,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onFormatDocument,
   onNextDiffChunk,
   onPrevDiffChunk,
+  onOpenLanguagePicker,
 }) => {
+  const currentLangName = React.useMemo(() => {
+    return SUPPORTED_LANGUAGES.find((l) => l.id === language)?.name || language.toUpperCase();
+  }, [language]);
+
   const lineCount = React.useMemo(() => {
     return code ? code.split('\n').length : 0;
   }, [code]);
@@ -32,12 +39,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
   return (
     <footer className="h-7 bg-canvas-elevated/90 border-t border-canvas-border px-3 flex items-center justify-between text-[11px] font-mono text-slate-400 select-none shrink-0 z-20">
-      {/* Left items: Language, Encoding, Spacing */}
+      {/* Left items: Language Mode Selector, Encoding, Spacing */}
       <div className="flex items-center gap-3">
-        <span className="flex items-center gap-1 font-sans font-medium text-slate-300">
+        <button
+          type="button"
+          onClick={onOpenLanguagePicker}
+          className="flex items-center gap-1 font-sans font-medium text-slate-300 hover:text-brand-primary hover:bg-canvas-surface px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+          title="Select Language Mode"
+        >
           <FileText className="w-3 h-3 text-brand-primary" />
-          <span className="uppercase text-[10px] tracking-wider">{language}</span>
-        </span>
+          <span className="text-[11px]">{currentLangName}</span>
+        </button>
         <span className="text-slate-600">|</span>
         <span>UTF-8</span>
         <span className="text-slate-600 hidden sm:inline">|</span>

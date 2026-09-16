@@ -137,6 +137,7 @@ describe('TextDiff UX Overhaul Component Seams', () => {
 
   it('renders StatusBar with language, line count, and format document action', () => {
     const onFormat = vi.fn();
+    const onOpenLanguagePicker = vi.fn();
 
     render(
       <StatusBar
@@ -144,6 +145,7 @@ describe('TextDiff UX Overhaul Component Seams', () => {
         code={"SELECT * FROM users;\nSELECT * FROM orders;"}
         isDiffMode={false}
         onFormatDocument={onFormat}
+        onOpenLanguagePicker={onOpenLanguagePicker}
       />
     );
 
@@ -154,5 +156,9 @@ describe('TextDiff UX Overhaul Component Seams', () => {
     const formatBtn = screen.getByTitle(/Format Document/i);
     fireEvent.click(formatBtn);
     expect(onFormat).toHaveBeenCalledTimes(1);
+
+    const langBtn = screen.getByTitle(/Select Language Mode/i);
+    fireEvent.click(langBtn);
+    expect(onOpenLanguagePicker).toHaveBeenCalledTimes(1);
   });
 });

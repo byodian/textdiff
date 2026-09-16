@@ -47,7 +47,7 @@ describe('TextDiff Redesigned UX & Information Architecture', () => {
     expect(onSelectWorkspace).toHaveBeenCalledWith('ws-2');
   });
 
-  it('renders Version Badge vX and History button in EditorHeader', () => {
+  it('renders clean document header with Unsaved Edits and History button, omitting version badge clutter', () => {
     const onOpenHistory = vi.fn();
     const onToggleDiffMode = vi.fn();
     const onSavePrompt = vi.fn();
@@ -55,13 +55,10 @@ describe('TextDiff Redesigned UX & Information Architecture', () => {
     render(
       <EditorHeader
         title="schema.sql"
-        filename="schema.sql"
-        language="sql"
         theme="vs-dark"
         onThemeChange={vi.fn()}
         isDiffMode={false}
         isSideBySide={true}
-        currentVersionNo={3}
         versionCount={5}
         hasUnsavedChanges={true}
         diffStats={{ added: 4, removed: 1, hasChanges: true }}
@@ -69,9 +66,6 @@ describe('TextDiff Redesigned UX & Information Architecture', () => {
         copiedDiff={false}
         onTitleChange={vi.fn()}
         onTitleBlur={vi.fn()}
-        onFilenameChange={vi.fn()}
-        onFilenameBlur={vi.fn()}
-        onLanguageChange={vi.fn()}
         onToggleDiffMode={onToggleDiffMode}
         onToggleSideBySide={vi.fn()}
         onOpenHistory={onOpenHistory}
@@ -84,11 +78,8 @@ describe('TextDiff Redesigned UX & Information Architecture', () => {
       />
     );
 
-    // Version badge v3 is rendered
-    const verBadge = screen.getByTitle(/Current snapshot version v3/i);
-    expect(verBadge).toBeDefined();
-    fireEvent.click(verBadge);
-    expect(onOpenHistory).toHaveBeenCalledTimes(1);
+    // Version badge is removed from header to reduce clutter
+    expect(screen.queryByTitle(/Current snapshot version/i)).toBeNull();
 
     // Unsaved edits indicator is rendered and clicking toggles diff mode
     const unsavedBtn = screen.getByTitle(/Unsaved edits/i);
@@ -100,6 +91,6 @@ describe('TextDiff Redesigned UX & Information Architecture', () => {
     const historyBtn = screen.getByTitle('Revision History');
     expect(historyBtn).toBeDefined();
     fireEvent.click(historyBtn);
-    expect(onOpenHistory).toHaveBeenCalledTimes(2);
+    expect(onOpenHistory).toHaveBeenCalledTimes(1);
   });
 });

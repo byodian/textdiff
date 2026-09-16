@@ -7,8 +7,6 @@ import { EditorHeader } from '../src/components/EditorHeader';
 describe('EditorHeader Responsive & Prioritized Actions', () => {
   const defaultProps = {
     title: 'README.md',
-    filename: 'README.md',
-    language: 'markdown',
     theme: 'vs-dark',
     onThemeChange: vi.fn(),
     onOpenThemePalette: vi.fn(),
@@ -20,9 +18,6 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     copiedDiff: false,
     onTitleChange: vi.fn(),
     onTitleBlur: vi.fn(),
-    onFilenameChange: vi.fn(),
-    onFilenameBlur: vi.fn(),
-    onLanguageChange: vi.fn(),
     onToggleDiffMode: vi.fn(),
     onToggleSideBySide: vi.fn(),
     onOpenHistory: vi.fn(),
@@ -34,7 +29,7 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     onPrevDiffChunk: vi.fn(),
   };
 
-  it('renders clean document header without format-specific view clutter', () => {
+  it('renders clean document header without format-specific view clutter or filename redundancy', () => {
     render(React.createElement(EditorHeader, defaultProps));
 
     // Markdown view modes MUST NOT be in header (moved to edit area)
@@ -42,8 +37,12 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(screen.queryByTitle(/Side-by-side edit and rendered preview/i)).toBeNull();
     expect(screen.queryByTitle(/Rendered preview only/i)).toBeNull();
 
-    // Document identity and primary action
-    expect(screen.getAllByDisplayValue('README.md').length).toBeGreaterThanOrEqual(1);
+    // Filename input and version badge MUST NOT be in header
+    expect(screen.queryByPlaceholderText(/filename/i)).toBeNull();
+    expect(screen.queryByText(/v1/)).toBeNull();
+
+    // Document identity (title) and primary action
+    expect(screen.getByDisplayValue('README.md')).toBeDefined();
     const saveBtn = screen.getByTitle(/Save Version/i);
     expect(saveBtn).toBeDefined();
     fireEvent.click(saveBtn);

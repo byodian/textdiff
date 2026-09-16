@@ -15,12 +15,9 @@ import {
   Palette,
   MoreHorizontal
 } from 'lucide-react';
-import { SUPPORTED_LANGUAGES } from '@/lib/languages';
 
 interface EditorHeaderProps {
   title: string;
-  filename: string;
-  language: string;
   theme: string;
   onThemeChange: (theme: string) => void;
   onOpenThemePalette?: () => void;
@@ -31,15 +28,11 @@ interface EditorHeaderProps {
   isJustSaved?: boolean;
   copiedCode: boolean;
   copiedDiff: boolean;
-  currentVersionNo?: number;
   versionCount?: number;
   customDiffLabel?: string | null;
   onExitCustomDiff?: () => void;
   onTitleChange: (val: string) => void;
   onTitleBlur: () => void;
-  onFilenameChange: (val: string) => void;
-  onFilenameBlur: () => void;
-  onLanguageChange: (lang: string) => void;
   onToggleDiffMode: () => void;
   onToggleSideBySide?: () => void;
   onOpenHistory: () => void;
@@ -53,8 +46,6 @@ interface EditorHeaderProps {
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
   title,
-  filename,
-  language,
   theme,
   onThemeChange,
   onOpenThemePalette,
@@ -64,15 +55,11 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   isJustSaved = false,
   copiedCode,
   copiedDiff,
-  currentVersionNo,
   versionCount,
   customDiffLabel,
   onExitCustomDiff,
   onTitleChange,
   onTitleBlur,
-  onFilenameChange,
-  onFilenameBlur,
-  onLanguageChange,
   onToggleDiffMode,
   onOpenHistory,
   onSavePrompt,
@@ -109,7 +96,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
   return (
     <header className="relative z-30 h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 select-none">
-      {/* Zone 1 (Left): Document Identity (Title, Filename, Language, Version & Dirty indicator) */}
+      {/* Zone 1 (Left): Document Identity (Title & Dirty indicator) */}
       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 max-w-[48%]">
         <input
           type="text"
@@ -121,53 +108,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               (e.target as HTMLInputElement).blur();
             }
           }}
-          placeholder="Document Title"
-          className="bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1 py-0.5 outline-none transition-colors min-w-[100px] max-w-xs sm:max-w-sm truncate shrink"
+          placeholder="Document Title (e.g. app.tsx, schema.sql)"
+          className="bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1.5 py-0.5 outline-none transition-colors min-w-[120px] max-w-xs sm:max-w-md truncate shrink"
           title="Click to edit document title (auto-saves on blur)"
         />
-
-        <span className="text-slate-600 hidden xs:inline shrink-0">/</span>
-
-        <input
-          type="text"
-          value={filename}
-          onChange={(e) => onFilenameChange(e.target.value)}
-          onBlur={onFilenameBlur}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
-          placeholder="e.g. note.md"
-          className="bg-canvas-surface border border-canvas-border rounded px-2 py-1 text-xs font-mono text-slate-300 placeholder-slate-600 focus:outline-none focus:border-brand-primary w-24 sm:w-32 shrink-0 transition-colors truncate"
-          title="Click to edit filename (auto-saves on blur)"
-        />
-
-        {/* Language select */}
-        <select
-          value={language}
-          onChange={(e) => onLanguageChange(e.target.value)}
-          className="bg-canvas-surface border border-canvas-border text-slate-300 text-xs rounded px-2 py-1 focus:outline-none focus:border-brand-primary cursor-pointer hover:border-canvas-highlight transition-colors shrink-0 max-w-[90px] sm:max-w-none"
-          title="Select Language"
-        >
-          {SUPPORTED_LANGUAGES.map((lang) => (
-            <option key={lang.id} value={lang.id} className="bg-canvas-surface text-slate-200">
-              {lang.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Version Badge */}
-        {currentVersionNo !== undefined && (
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-slate-400 hover:text-slate-200 transition-colors shrink-0"
-            title={`Current snapshot version v${currentVersionNo}. Click to open Revision History.`}
-          >
-            v{currentVersionNo}
-          </button>
-        )}
 
         {/* Unsaved changes indicator */}
         {hasUnsavedChanges && (
