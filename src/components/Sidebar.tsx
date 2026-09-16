@@ -2,16 +2,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  FileCode2, 
   Plus, 
-  Search, 
   Trash2, 
-  Copy, 
-  Clock, 
+  Search, 
+  PanelLeftClose, 
+  PanelLeft, 
+  Copy,
+  Clock,
   FolderGit2,
-  PanelLeftClose,
-  PanelLeft,
   ChevronDown,
+  FolderPlus,
   Folder,
   Check
 } from 'lucide-react';
@@ -289,24 +289,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div
                   key={s.id}
                   onClick={() => onSelectSnippet(s.id)}
-                  className={`group relative flex items-start gap-2.5 p-2.5 rounded-md cursor-pointer transition-all ${
+                  className={`group relative flex items-start justify-between gap-2 p-2.5 rounded-md cursor-pointer transition-all ${
                     isActive
                       ? 'bg-canvas-surface border border-canvas-highlight text-slate-100 shadow-sm'
                       : 'text-slate-400 hover:bg-canvas-surface/60 hover:text-slate-200 border border-transparent'
                   }`}
                 >
-                  <FileCode2 className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-brand-primary' : 'text-slate-500'}`} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-medium text-xs truncate flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-xs truncate">
                         {s.title || 'Untitled Document'}
-                        {isActive && activeHasUnsavedChanges && (
-                          <span 
-                            className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" 
-                            title="Unsaved modifications in draft"
-                          />
-                        )}
                       </span>
+                      {isActive && activeHasUnsavedChanges && (
+                        <span 
+                          className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" 
+                          title="Unsaved modifications in draft"
+                        />
+                      )}
                     </div>
                     <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-1">
                       <Clock className="w-2.5 h-2.5 shrink-0" />
@@ -316,7 +315,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   </div>
 
-                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
+                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
                     <button
                       onClick={(e) => onDuplicateSnippet(s.id, e)}
                       className="p-1 hover:text-brand-primary transition-colors rounded"
