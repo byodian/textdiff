@@ -133,6 +133,50 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
     expect(screen.getByText('Add Note')).toBeDefined();
   });
 
+  it('instant-saves via Ctrl+S keyboard shortcut when modifications exist', async () => {
+    window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 2;');
+
+    await act(async () => {
+      render(React.createElement(WorkspacePage));
+    });
+
+    expect(screen.getByText(/Unsaved edits/i)).toBeDefined();
+
+    // Trigger Ctrl+S
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/snippets/snip-1',
+      expect.objectContaining({
+        method: 'PUT',
+        body: expect.stringContaining('"createVersion":true'),
+      })
+    );
+  });
+
+  it('instant-saves via Cmd+S keyboard shortcut on macOS', async () => {
+    window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 3;');
+
+    await act(async () => {
+      render(React.createElement(WorkspacePage));
+    });
+
+    // Trigger Cmd+S with metaKey and code 'KeyS'
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 's', code: 'KeyS', metaKey: true });
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/snippets/snip-1',
+      expect.objectContaining({
+        method: 'PUT',
+        body: expect.stringContaining('"createVersion":true'),
+      })
+    );
+  });
+
   it('renders PostSaveToast component with diff badges and expandable note form', async () => {
     const onAddNote = vi.fn();
     const onRevert = vi.fn();

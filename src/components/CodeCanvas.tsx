@@ -37,9 +37,10 @@ interface CodeCanvasProps {
   onCodeChange: (val: string) => void;
   editorRef: React.MutableRefObject<MonacoEditorInstance | null>;
   diffEditorRef: React.MutableRefObject<MonacoDiffEditorInstance | null>;
+  onInstantSave?: () => void;
 }
 
-const DEFAULT_SPLIT_RATIO = 0.6;
+const DEFAULT_SPLIT_RATIO = 0.7;
 
 export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   language,
@@ -54,19 +55,35 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   onCodeChange,
   editorRef,
   diffEditorRef,
+  onInstantSave,
 }) => {
   const monacoRef = React.useRef<Monaco | null>(null);
+  const onInstantSaveRef = React.useRef(onInstantSave);
+  onInstantSaveRef.current = onInstantSave;
 
   const handleEditorDidMount = (editor: MonacoEditorInstance, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
     applyMonacoTheme(monaco, theme);
+
+    if (editor && typeof (editor as any).addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
+      (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        onInstantSaveRef.current?.();
+      });
+    }
   };
 
   const handleDiffEditorDidMount: DiffOnMount = (editor, monaco) => {
     diffEditorRef.current = editor as unknown as MonacoDiffEditorInstance;
     monacoRef.current = monaco;
     applyMonacoTheme(monaco, theme);
+
+    const modified = (editor as any).getModifiedEditor?.();
+    if (modified && typeof modified.addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
+      modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        onInstantSaveRef.current?.();
+      });
+    }
   };
 
   // Re-apply theme dynamically when theme changes

@@ -567,19 +567,17 @@ export default function WorkspacePage() {
 
   const hasUnsavedChanges = code !== lastSavedCode;
 
-  // Keep ref to avoid stale closures in window event listener
-  const canSavePromptRef = useRef(false);
-  canSavePromptRef.current = Boolean(activeId && hasUnsavedChanges);
+  // Keep ref to latest handleInstantSave to avoid stale closures in event listeners
+  const handleInstantSaveRef = useRef(handleInstantSave);
+  handleInstantSaveRef.current = handleInstantSave;
 
   // 10. Global keyboard shortcuts (Ctrl+S for Instant Save, Ctrl+Shift+P / Cmd+Shift+P for Command Palette)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 1. Ctrl+S / Cmd+S => Instant Save (only if there are modifications)
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key?.toLowerCase() === 's' || e.code === 'KeyS')) {
         e.preventDefault();
-        if (canSavePromptRef.current) {
-          handleInstantSave();
-        }
+        handleInstantSaveRef.current();
         return;
       }
 
@@ -829,6 +827,7 @@ export default function WorkspacePage() {
                   onCodeChange={setCode}
                   editorRef={editorRef}
                   diffEditorRef={diffEditorRef}
+                  onInstantSave={handleInstantSave}
                 />
               </div>
 

@@ -65,33 +65,33 @@ describe('Markdown Split Pane Draggable Resizer', () => {
     });
 
     const leftPane = parentContainer.children[0] as HTMLElement;
-    expect(leftPane.style.width).toBe('60%');
+    expect(leftPane.style.width).toBe('70%');
 
     // Start drag
     act(() => {
       fireEvent.pointerDown(divider, { clientX: 500 });
     });
 
-    // Move to 700px (70%)
+    // Move to 750px (75%)
     act(() => {
-      fireEvent.pointerMove(window, { clientX: 700 });
+      fireEvent.pointerMove(window, { clientX: 750 });
     });
 
-    expect(leftPane.style.width).toBe('70%');
+    expect(leftPane.style.width).toBe('75%');
 
     // Release drag
     act(() => {
-      fireEvent.pointerUp(window, { clientX: 700 });
+      fireEvent.pointerUp(window, { clientX: 750 });
     });
 
-    expect(leftPane.style.width).toBe('70%');
+    expect(leftPane.style.width).toBe('75%');
 
-    // Double click resets to default 60%
+    // Double click resets to default 70% (30% preview)
     act(() => {
       fireEvent.doubleClick(divider);
     });
 
-    expect(leftPane.style.width).toBe('60%');
+    expect(leftPane.style.width).toBe('70%');
 
     // Drag to 300px (30%)
     act(() => {
@@ -108,6 +108,6 @@ describe('Markdown Split Pane Draggable Resizer', () => {
       fireEvent.pointerDown(divider, { clientX: 300 });
     });
 
-    expect(leftPane.style.width).toBe('60%');
+    expect(leftPane.style.width).toBe('70%');
   });
 });
