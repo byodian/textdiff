@@ -25,6 +25,11 @@ describe('Markdown Floating View Controls in Edit Area', () => {
     expect(screen.getByTitle(/Edit markdown source only/i)).toBeDefined();
     expect(screen.getByTitle(/Side-by-side edit and rendered preview/i)).toBeDefined();
     expect(screen.getByTitle(/Rendered preview only/i)).toBeDefined();
+
+    // Verify icon-only presentation (no visible text labels to minimize distraction)
+    expect(screen.queryByText('Edit')).toBeNull();
+    expect(screen.queryByText('Split')).toBeNull();
+    expect(screen.queryByText('Preview')).toBeNull();
   });
 
   it('triggers view mode change when clicking floating Edit/Split/Preview buttons', () => {
