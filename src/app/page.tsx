@@ -27,6 +27,26 @@ export default function WorkspacePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // Responsive auto-collapse on screens < 1024px to preserve editor canvas & header space
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let prevWidth = window.innerWidth;
+    if (prevWidth < 1024) {
+      setIsSidebarCollapsed(true);
+    }
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      if (prevWidth >= 1024 && currentWidth < 1024) {
+        setIsSidebarCollapsed(true);
+      } else if (prevWidth < 1024 && currentWidth >= 1024) {
+        setIsSidebarCollapsed(false);
+      }
+      prevWidth = currentWidth;
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Notify components and editor to recalculate layout after sidebar collapse transition
   useEffect(() => {
     const timer = setTimeout(() => {

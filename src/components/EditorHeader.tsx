@@ -134,9 +134,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             className="flex items-center gap-1 text-[11px] text-amber-400 font-medium px-2 py-0.5 rounded bg-amber-950/40 border border-amber-900/50 hover:bg-amber-950/70 animate-pulse shrink-0 transition-colors"
             title="Unsaved edits. Click to inspect diff against latest version."
           >
-            <span>● Unsaved edits</span>
+            <span>●<span className="hidden md:inline"> Unsaved edits</span></span>
             {diffStats.hasChanges && (
-              <span className="font-mono text-[10px] opacity-90 hidden sm:inline">
+              <span className="font-mono text-[10px] opacity-90 hidden lg:inline">
                 (+{diffStats.added}/-{diffStats.removed})
               </span>
             )}
@@ -152,7 +152,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             onClick={() => {
               if (isDiffMode) onToggleDiffMode();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all ${
               !isDiffMode
                 ? 'bg-canvas-elevated text-brand-primary shadow-sm font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
@@ -160,14 +160,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             title="Return to code editor"
           >
             <Code className="w-3.5 h-3.5" />
-            <span>Editor</span>
+            <span className="hidden sm:inline">Editor</span>
           </button>
           <button
             type="button"
             onClick={() => {
               if (!isDiffMode) onToggleDiffMode();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all ${
               isDiffMode
                 ? 'bg-sky-500/15 text-brand-primary border border-sky-500/40 shadow-sm font-semibold'
                 : diffStats.hasChanges
@@ -181,9 +181,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             }
           >
             <Split className="w-3.5 h-3.5" />
-            <span>Diff</span>
+            <span className="hidden sm:inline">Diff</span>
             {diffStats.hasChanges && (
-              <span className="font-mono text-[10px] px-1 rounded bg-amber-950/60 border border-amber-800/40 text-amber-300">
+              <span className="font-mono text-[10px] px-1 rounded bg-amber-950/60 border border-amber-800/40 text-amber-300 hidden md:inline">
                 +{diffStats.added}/-{diffStats.removed}
               </span>
             )}
@@ -192,17 +192,17 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       </div>
 
       {/* Zone 3 (Right): Actions Toolbar */}
-      <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-0 flex-1">
+      <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-xs text-slate-300 hover:text-white transition-colors shrink-0"
+          className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-xs text-slate-300 hover:text-white transition-colors shrink-0"
           title="Revision History"
         >
           <History className="w-3.5 h-3.5 text-sky-400" />
-          <span className="hidden sm:inline">History</span>
+          <span className="hidden xl:inline">History</span>
           {versionCount !== undefined && (
-            <span className="text-[10px] font-mono px-1 rounded bg-canvas-elevated text-slate-400">
+            <span className="text-[10px] font-mono px-1 rounded bg-canvas-elevated text-slate-400 hidden lg:inline">
               {versionCount}
             </span>
           )}
