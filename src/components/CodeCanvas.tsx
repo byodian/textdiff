@@ -15,13 +15,14 @@ loader.config({
 export type MonacoEditorInstance = {
   getAction: (id: string) => { run: () => void } | null;
   layout?: () => void;
+  focus?: () => void;
 };
 
 export type MonacoDiffEditorInstance = {
   goToDiff?: (target: 'next' | 'previous') => void;
   getLineChanges?: () => unknown[] | null;
-  getModifiedEditor?: () => { getAction: (id: string) => { run: () => void } | null } | null;
-  getOriginalEditor?: () => { getAction: (id: string) => { run: () => void } | null } | null;
+  getModifiedEditor?: () => { getAction: (id: string) => { run: () => void } | null; focus?: () => void } | null;
+  getOriginalEditor?: () => { getAction: (id: string) => { run: () => void } | null; focus?: () => void } | null;
 };
 
 interface CodeCanvasProps {

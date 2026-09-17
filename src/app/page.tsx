@@ -624,6 +624,22 @@ export default function WorkspacePage() {
     }
   };
 
+  // 11b. Open Monaco Editor built-in Command Palette (F1)
+  const handleOpenEditorCommandPalette = () => {
+    setTimeout(() => {
+      if (isDiffMode) {
+        const modifiedEditor = diffEditorRef.current?.getModifiedEditor?.();
+        if (modifiedEditor) {
+          modifiedEditor.focus?.();
+          modifiedEditor.getAction?.('editor.action.quickCommand')?.run();
+        }
+      } else if (editorRef.current) {
+        editorRef.current.focus?.();
+        editorRef.current.getAction?.('editor.action.quickCommand')?.run();
+      }
+    }, 50);
+  };
+
   // 12. Diff navigation
   const handleNextDiffChunk = () => {
     if (diffEditorRef.current) {
@@ -919,6 +935,7 @@ export default function WorkspacePage() {
         }}
         onSelectLanguage={handleLanguageChange}
         onPreviewTheme={handlePreviewTheme}
+        onOpenEditorCommandPalette={handleOpenEditorCommandPalette}
       />
 
       {/* Navigation Guard Modal for Unsaved Changes */}

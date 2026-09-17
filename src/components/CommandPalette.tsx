@@ -56,6 +56,7 @@ interface CommandPaletteProps {
   onSelectTheme: (themeId: string) => void;
   onPreviewTheme: (themeId: string) => void;
   onSelectLanguage?: (languageId: string) => void;
+  onOpenEditorCommandPalette?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -79,6 +80,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectTheme,
   onPreviewTheme,
   onSelectLanguage,
+  onOpenEditorCommandPalette,
 }) => {
   const [mode, setMode] = useState<PaletteMode>(initialMode || 'commands');
   const [query, setQuery] = useState('');
@@ -130,6 +132,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: <FileCode className="w-4 h-4 text-brand-primary" />,
         action: handleOpenLanguagePicker,
         keywords: 'language mode syntax highlight file type ts js py md sql json yaml',
+      },
+      {
+        id: 'editor:command-palette',
+        title: 'Editor: Open Editor Command Palette',
+        category: 'Editor',
+        shortcut: 'F1',
+        icon: <Terminal className="w-4 h-4 text-sky-400" />,
+        action: () => {
+          onClose();
+          onOpenEditorCommandPalette?.();
+        },
+        keywords: 'f1 editor monaco command palette action quick command 命令行 编辑器',
       },
       {
         id: 'history:open',

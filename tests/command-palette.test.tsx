@@ -370,4 +370,41 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(handleSelectLanguage).toHaveBeenCalledWith('sql');
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('supports Editor: Open Editor Command Palette command with shortcut F1 and executes callback', () => {
+    const handleOpenEditorCommandPalette = vi.fn();
+    const handleClose = vi.fn();
+
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: handleClose,
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+        onOpenEditorCommandPalette: handleOpenEditorCommandPalette,
+      })
+    );
+
+    // Command should be present with title and shortcut F1
+    const editorPaletteCmd = screen.getByText('Editor: Open Editor Command Palette');
+    expect(editorPaletteCmd).toBeDefined();
+    expect(screen.getByText('F1')).toBeDefined();
+
+    // Clicking it triggers onClose and onOpenEditorCommandPalette
+    fireEvent.click(editorPaletteCmd);
+    expect(handleClose).toHaveBeenCalledTimes(1);
+    expect(handleOpenEditorCommandPalette).toHaveBeenCalledTimes(1);
+  });
 });
+
