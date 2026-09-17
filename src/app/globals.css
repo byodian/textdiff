@@ -219,7 +219,6 @@ body {
 .light-theme .theme-item-highlight .theme-item-title,
 .light-theme .theme-item-highlight span.theme-item-title {
   color: #020617 !important; /* Deepest jet black slate for crystal clear contrast */
-  font-weight: 600 !important;
 }
 
 .light-theme .theme-item-highlight kbd {
@@ -261,7 +260,12 @@ body {
 .dark-theme .theme-item-highlight .theme-item-title,
 :root:not(.light-theme) .theme-item-highlight .theme-item-title {
   color: #ffffff !important;
-  font-weight: 600 !important;
+}
+
+/* Maintain strictly consistent font weight across default, hover and highlighted states */
+.theme-item-title,
+.theme-item-highlight .theme-item-title {
+  font-weight: 500 !important;
 }
 
 /* ==========================================================================

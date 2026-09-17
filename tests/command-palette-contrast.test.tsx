@@ -97,4 +97,15 @@ describe('CommandPalette Dark Theme Contrast', () => {
     const highlightedTitle = highlighted?.querySelector('.theme-item-title');
     expect(highlightedTitle?.className).toContain('text-white');
   });
+
+  it('does not define bold or increased font-weight for highlighted items in global CSS', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const cssContent = fs.readFileSync(path.resolve(__dirname, '../src/app/globals.css'), 'utf-8');
+
+    // Ensure .theme-item-highlight does NOT set font-weight: 600 or bold
+    expect(cssContent).not.toMatch(/\.theme-item-highlight[^{]*\{[^}]*font-weight:\s*(?:600|bold|700)/);
+    expect(cssContent).toMatch(/\.theme-item-highlight \.theme-item-title[^{]*\{[^}]*font-weight:\s*500/);
+  });
 });
+
