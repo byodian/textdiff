@@ -264,7 +264,8 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(titleSpan?.className).toContain('text-white');
     expect(titleSpan?.className).not.toContain('text-slate-950');
     expect(titleSpan?.className).not.toContain('text-slate-800');
-    expect(titleSpan?.className).toContain('font-semibold');
+    expect(titleSpan?.className).toContain('font-medium');
+    expect(titleSpan?.className).not.toContain('font-semibold');
 
     // Hover over second command
     const commandItems = document.querySelectorAll('.cursor-pointer');
@@ -275,6 +276,8 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
       const newTitle = newHighlighted?.querySelector('.theme-item-title');
       expect(newTitle?.className).toContain('text-white');
       expect(newTitle?.className).not.toContain('text-slate-950');
+      expect(newTitle?.className).toContain('font-medium');
+      expect(newTitle?.className).not.toContain('font-semibold');
     }
 
     // Switch to theme-picker mode
@@ -286,7 +289,8 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(themeTitle).toBeTruthy();
     expect(themeTitle?.className).toContain('text-white');
     expect(themeTitle?.className).not.toContain('text-slate-950');
-    expect(themeTitle?.className).toContain('font-semibold');
+    expect(themeTitle?.className).toContain('font-medium');
+    expect(themeTitle?.className).not.toContain('font-semibold');
   });
 
   it('supports Preferences: Change Language Mode... command and selects language', () => {

@@ -679,7 +679,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40'
                         : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >
@@ -687,8 +687,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       <div className="shrink-0">{cmd.icon}</div>
                       <span className={`theme-item-title font-medium text-sm truncate ${
                         isHighlighted
-                          ? 'text-white font-semibold'
-                          : 'text-slate-100'
+                          ? 'text-white'
+                          : 'text-slate-200'
                       }`}>
                         {cmd.title}
                       </span>
@@ -723,15 +723,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40'
                         : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className={`theme-item-title font-medium text-sm truncate ${
                         isHighlighted
-                          ? 'text-white font-semibold'
-                          : 'text-slate-100'
+                          ? 'text-white'
+                          : 'text-slate-200'
                       }`}>
                         {t.name}
                       </span>
@@ -782,15 +782,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40 font-medium'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40'
                         : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className={`theme-item-title font-medium text-sm truncate ${
                         isHighlighted
-                          ? 'text-white font-semibold'
-                          : 'text-slate-100'
+                          ? 'text-white'
+                          : 'text-slate-200'
                       }`}>
                         {lang.name}
                       </span>
