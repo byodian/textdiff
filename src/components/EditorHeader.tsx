@@ -211,7 +211,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* Primary Action: Save Version Snapshot */}
         <button
           onClick={onSavePrompt}
-          className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded font-semibold text-xs transition-all shrink-0 ${
+          className={`flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded font-semibold text-xs transition-all shrink-0 ${
             isJustSaved
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
               : hasUnsavedChanges
@@ -222,23 +222,19 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             isJustSaved
               ? 'Version Saved!'
               : hasUnsavedChanges
-              ? 'Save Version (Ctrl+S / Cmd+S)'
-              : 'Save Version (No modifications to save)'
+              ? 'Save Version (Ctrl+S / ⌘S)'
+              : 'Save Version (No modifications to save, Ctrl+S / ⌘S)'
           }
         >
           {isJustSaved ? (
             <>
               <Check className="w-3.5 h-3.5 shrink-0 text-emerald-200" />
-              <span>Saved ✓</span>
+              <span className="hidden sm:inline">Saved</span>
             </>
           ) : (
             <>
               <Save className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Save Version</span>
-              <span className="sm:hidden">Save</span>
-              <kbd className="hidden lg:inline-block text-[10px] opacity-80 font-mono px-1 py-0.2 rounded bg-black/20 text-brand-text">
-                Ctrl+S
-              </kbd>
+              <span className="hidden sm:inline">Save</span>
             </>
           )}
         </button>
