@@ -778,8 +778,6 @@ export default function WorkspacePage() {
           <>
             <EditorHeader
               title={title}
-              theme={editorTheme}
-              onThemeChange={handleThemeChange}
               onOpenThemePalette={() => {
                 setCommandPaletteMode('theme-picker');
                 setCommandPaletteOpen(true);

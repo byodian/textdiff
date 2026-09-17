@@ -18,8 +18,6 @@ import {
 
 interface EditorHeaderProps {
   title: string;
-  theme: string;
-  onThemeChange: (theme: string) => void;
   onOpenThemePalette?: () => void;
   isDiffMode: boolean;
   isSideBySide?: boolean;
@@ -46,8 +44,6 @@ interface EditorHeaderProps {
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
   title,
-  theme,
-  onThemeChange,
   onOpenThemePalette,
   isDiffMode,
   diffStats,
@@ -327,51 +323,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   <kbd className="text-[10px] text-slate-500 font-mono">Ctrl+Shift+P</kbd>
                 </button>
               )}
-
-              {/* Theme selector inside menu */}
-              <div className="px-3 py-2 flex items-center justify-between gap-2 border-t border-canvas-border mt-1 pt-1.5">
-                <span className="text-slate-400 text-[11px] flex items-center gap-1.5 shrink-0">
-                  <Palette className="w-3 h-3 text-slate-400" />
-                  Theme
-                </span>
-                <select
-                  value={theme}
-                  onChange={(e) => onThemeChange(e.target.value)}
-                  className="bg-canvas-elevated border border-canvas-border text-slate-200 text-[11px] rounded px-2 py-0.5 focus:outline-none focus:border-brand-primary cursor-pointer max-w-[130px]"
-                >
-                  <optgroup label="Standard Themes" className="bg-canvas-surface text-slate-200">
-                    <option value="vs-dark">VS Dark</option>
-                    <option value="vs">VS Light</option>
-                    <option value="hc-black">High Contrast</option>
-                  </optgroup>
-                  <optgroup label="Popular Dark Themes" className="bg-canvas-surface text-slate-200">
-                    <option value="github-dark">GitHub Dark</option>
-                    <option value="dracula">Dracula</option>
-                    <option value="monokai">Monokai</option>
-                    <option value="monokai-bright">Monokai Bright</option>
-                    <option value="nord">Nord</option>
-                    <option value="night-owl">Night Owl</option>
-                    <option value="cobalt2">Cobalt2</option>
-                    <option value="oceanic-next">Oceanic Next</option>
-                    <option value="solarized-dark">Solarized Dark</option>
-                    <option value="tomorrow-night">Tomorrow Night</option>
-                    <option value="tomorrow-night-blue">Tomorrow Night Blue</option>
-                    <option value="twilight">Twilight</option>
-                    <option value="blackboard">Blackboard</option>
-                    <option value="clouds-midnight">Clouds Midnight</option>
-                    <option value="zenburnesque">Zenburn</option>
-                  </optgroup>
-                  <optgroup label="Popular Light Themes" className="bg-canvas-surface text-slate-200">
-                    <option value="github-light">GitHub Light</option>
-                    <option value="solarized-light">Solarized Light</option>
-                    <option value="chrome-devtools">Chrome DevTools</option>
-                    <option value="xcode-default">Xcode Default</option>
-                    <option value="tomorrow">Tomorrow (Light)</option>
-                    <option value="clouds">Clouds (Light)</option>
-                    <option value="active4d">Active4D (Light)</option>
-                  </optgroup>
-                </select>
-              </div>
             </div>
           )}
         </div>

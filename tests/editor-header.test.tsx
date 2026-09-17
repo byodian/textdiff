@@ -7,8 +7,6 @@ import { EditorHeader } from '../src/components/EditorHeader';
 describe('EditorHeader Responsive & Prioritized Actions', () => {
   const defaultProps = {
     title: 'README.md',
-    theme: 'vs-dark',
-    onThemeChange: vi.fn(),
     onOpenThemePalette: vi.fn(),
     isDiffMode: false,
     isSideBySide: true,
@@ -106,22 +104,20 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(screen.queryByText('Format Document')).toBeNull();
   });
 
-  it('changes theme from inside the More actions dropdown', () => {
-    const onThemeChange = vi.fn();
-    render(React.createElement(EditorHeader, { ...defaultProps, onThemeChange }));
+  it('does not render redundant theme select in More actions dropdown and delegates to Command Palette', () => {
+    const onOpenThemePalette = vi.fn();
+    render(React.createElement(EditorHeader, { ...defaultProps, onOpenThemePalette }));
 
     fireEvent.click(screen.getByTitle(/More actions/i));
 
-    // The theme dropdown inside More menu
-    const themeSelects = screen.getAllByRole('combobox');
-    // Find the one containing vs-dark
-    const themeSelect = themeSelects.find((s) => (s as HTMLSelectElement).value === 'vs-dark');
-    expect(themeSelect).toBeDefined();
+    // The theme dropdown select MUST NOT be present
+    expect(screen.queryByRole('combobox')).toBeNull();
 
-    if (themeSelect) {
-      fireEvent.change(themeSelect, { target: { value: 'dracula' } });
-      expect(onThemeChange).toHaveBeenCalledWith('dracula');
-    }
+    // Command Palette action is available instead
+    const paletteBtn = screen.getByText('Command Palette');
+    expect(paletteBtn).toBeDefined();
+    fireEvent.click(paletteBtn);
+    expect(onOpenThemePalette).toHaveBeenCalledTimes(1);
   });
 
   it('ensures header and dropdown have proper stacking context z-index classes', () => {

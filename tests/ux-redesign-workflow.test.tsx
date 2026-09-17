@@ -55,8 +55,6 @@ describe('TextDiff Redesigned UX & Information Architecture', () => {
     render(
       <EditorHeader
         title="schema.sql"
-        theme="vs-dark"
-        onThemeChange={vi.fn()}
         isDiffMode={false}
         isSideBySide={true}
         versionCount={5}
