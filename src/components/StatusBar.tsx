@@ -59,15 +59,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       {/* Center item: Diff chunks or stats */}
       {isDiffMode && diffStats && (
         <div className="flex items-center gap-2 text-[10px]">
-          <span className="text-slate-400">Changes:</span>
-          <span className="text-emerald-400 font-semibold">+{diffStats.added}</span>
-          <span className="text-rose-400 font-semibold">-{diffStats.removed}</span>
+          <span className="text-slate-600 dark:text-slate-400">Changes:</span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-semibold">+{diffStats.added}</span>
+          <span className="text-rose-700 dark:text-rose-400 font-semibold">-{diffStats.removed}</span>
           {onPrevDiffChunk && onNextDiffChunk && (
             <div className="flex items-center gap-0.5 ml-1">
               <button
                 type="button"
                 onClick={onPrevDiffChunk}
-                className="p-0.5 rounded hover:bg-canvas-surface text-slate-300 hover:text-white"
+                className="p-0.5 rounded hover:bg-canvas-surface text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                 title="Previous Change"
               >
                 <ChevronUp className="w-3 h-3" />
@@ -75,7 +75,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               <button
                 type="button"
                 onClick={onNextDiffChunk}
-                className="p-0.5 rounded hover:bg-canvas-surface text-slate-300 hover:text-white"
+                className="p-0.5 rounded hover:bg-canvas-surface text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                 title="Next Change"
               >
                 <ChevronDown className="w-3 h-3" />

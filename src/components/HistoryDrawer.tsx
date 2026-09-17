@@ -108,14 +108,14 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
       <div className="h-14 px-4 border-b border-canvas-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-brand-primary" />
-          <h2 className="font-semibold text-sm text-slate-100">Revision History</h2>
+          <h2 className="font-semibold text-sm text-slate-900 dark:text-slate-100">Revision History</h2>
           <span className="text-xs text-slate-500 font-mono">({versions.length})</span>
         </div>
         <div className="flex items-center gap-1.5">
           {isCustomDiffActive && (
             <button
               onClick={onClearCustomDiff}
-              className="text-[11px] text-slate-400 hover:text-slate-200 px-2 py-1 rounded hover:bg-canvas-surface transition-colors"
+              className="text-[11px] text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 px-2 py-1 rounded hover:bg-canvas-surface transition-colors"
               title="Exit comparison"
             >
               Reset Diff
@@ -123,7 +123,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
           )}
           <button
             onClick={onClose}
-            className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-canvas-surface transition-colors"
+            className="p-1.5 rounded text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-canvas-surface transition-colors"
             title="Close Drawer (Esc)"
           >
             <X className="w-4 h-4" />
@@ -133,24 +133,24 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
 
       {/* Comparison Guidance Bar */}
       {isCustomDiffActive ? (
-        <div className="px-4 py-2 bg-sky-950/50 border-b border-sky-800/40 text-xs flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-sky-300 font-mono text-[11px] truncate">
-            <span className="font-semibold text-slate-100">v{selectedVersionA?.versionNo}</span>
-            <ArrowRight className="w-3 h-3 text-sky-400 shrink-0" />
-            <span className="font-semibold text-sky-300">
+        <div className="px-4 py-2 bg-sky-50 border-b border-sky-200 dark:bg-sky-950/50 dark:border-sky-800/40 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-sky-800 dark:text-sky-300 font-mono text-[11px] truncate">
+            <span className="font-semibold text-slate-900 dark:text-slate-100">v{selectedVersionA?.versionNo}</span>
+            <ArrowRight className="w-3 h-3 text-sky-600 dark:text-sky-400 shrink-0" />
+            <span className="font-semibold text-sky-800 dark:text-sky-300">
               {selectedVersionB ? `v${selectedVersionB.versionNo}` : 'Current Draft'}
             </span>
           </div>
           <button
             onClick={onClearCustomDiff}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-canvas-surface text-slate-300 border border-canvas-border hover:border-canvas-highlight hover:text-white transition-all shadow-sm shrink-0"
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-canvas-surface text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-canvas-border hover:border-canvas-highlight transition-all shadow-sm shrink-0"
           >
-            <RotateCcw className="w-3 h-3 text-slate-400" />
+            <RotateCcw className="w-3 h-3 text-slate-500 dark:text-slate-400" />
             <span>Reset</span>
           </button>
         </div>
       ) : (
-        <div className="px-4 py-1.5 bg-canvas-surface/60 border-b border-canvas-border text-[11px] text-slate-400 flex items-center justify-between">
+        <div className="px-4 py-1.5 bg-canvas-surface/60 border-b border-canvas-border text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
           <span>Select 2 versions to compare or click card to diff with draft</span>
         </div>
       )}
@@ -199,7 +199,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                 <div 
                   className={`group rounded-lg p-3 text-xs space-y-2 border transition-all select-none ${
                     isChecked
-                      ? 'bg-sky-950/40 border-sky-500 shadow-md ring-1 ring-sky-500/40'
+                      ? 'bg-sky-50/90 border-sky-300 text-slate-800 shadow-sm dark:bg-sky-950/40 dark:border-sky-500 dark:shadow-md dark:ring-1 dark:ring-sky-500/40 dark:text-slate-100'
                       : 'bg-canvas-surface/80 border-canvas-border hover:border-canvas-highlight hover:bg-canvas-surface'
                   }`}
                 >
@@ -220,7 +220,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                         )}
                       </button>
 
-                      <span className="font-mono font-semibold text-slate-200 text-xs flex items-center gap-1.5">
+                      <span className="font-mono font-semibold text-slate-900 dark:text-slate-200 text-xs flex items-center gap-1.5">
                         v{ver.versionNo}
 
                         {isComparingWithDraft && (
@@ -230,21 +230,21 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                         )}
 
                         {isComparedInPair && (
-                          <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-sky-950 border border-sky-500/40 text-sky-300 font-bold">
+                          <span className="text-[9px] font-sans px-1.5 py-0.2 rounded bg-sky-100 border border-sky-300 text-sky-800 dark:bg-sky-950 dark:border-sky-500/40 dark:text-sky-300 font-bold">
                             Comparing
                           </span>
                         )}
                       </span>
 
                       {isLatest && (
-                        <span className="text-[9px] font-sans px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+                        <span className="text-[9px] font-sans px-1.5 py-0.5 rounded bg-emerald-100 border border-emerald-300 text-emerald-800 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-400 flex items-center gap-1">
                           <Sparkles className="w-2.5 h-2.5" />
                           Latest
                         </span>
                       )}
                     </div>
 
-                    <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-mono">
                       <Clock className="w-2.5 h-2.5" />
                       {new Date(ver.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -292,7 +292,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                   ) : (
                     <div className="flex items-center justify-between group/note pl-5">
                       <p 
-                        className="text-slate-300 font-medium text-xs leading-relaxed truncate"
+                        className="text-slate-700 dark:text-slate-300 font-medium text-xs leading-relaxed truncate"
                         title={ver.commitMsg || 'Snapshot'}
                         onDoubleClick={() => {
                           if (onUpdateVersionMsg) {
@@ -310,7 +310,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                             setEditingId(ver.id);
                             setEditingMsg(ver.commitMsg || '');
                           }}
-                          className="opacity-0 group-hover/note:opacity-100 p-0.5 text-slate-400 hover:text-slate-100 rounded hover:bg-canvas-elevated transition-opacity shrink-0 ml-1"
+                          className="opacity-0 group-hover/note:opacity-100 p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-100 rounded hover:bg-canvas-elevated transition-opacity shrink-0 ml-1"
                           title="Edit note"
                         >
                           <Edit3 className="w-3 h-3" />
@@ -324,16 +324,16 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => onCompareWithCurrent(ver)}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-canvas-elevated hover:bg-canvas-highlight text-slate-300 hover:text-white border border-canvas-border transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-canvas-elevated hover:bg-canvas-surface text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-canvas-border transition-colors"
                       title="Compare this snapshot with current working draft"
                     >
-                      <Split className="w-3 h-3 text-sky-400" />
+                      <Split className="w-3 h-3 text-sky-600 dark:text-sky-400" />
                       <span>Diff Draft</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => onRevertToVersion(ver)}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 transition-colors"
                       title={`Restore v${ver.versionNo} into working draft`}
                     >
                       <RotateCcw className="w-3 h-3" />
@@ -350,9 +350,9 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
       {/* Footer */}
       {versions.length > 0 && (
         <div className="p-3 bg-canvas-surface border-t border-canvas-border flex items-center justify-between gap-3">
-          <div className="text-[11px] text-slate-400 min-w-0 truncate">
+          <div className="text-[11px] text-slate-600 dark:text-slate-400 min-w-0 truncate">
             {activeSelectedVersion ? (
-              <span>Target: <strong className="text-slate-200 font-mono">v{activeSelectedVersion.versionNo}</strong></span>
+              <span>Target: <strong className="text-slate-900 dark:text-slate-200 font-mono">v{activeSelectedVersion.versionNo}</strong></span>
             ) : (
               <span>No snapshot selected</span>
             )}
@@ -364,7 +364,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                 onRevertToVersion(activeSelectedVersion);
               }
             }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-500/60 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-sm border border-transparent dark:bg-amber-500/15 dark:hover:bg-amber-500/25 dark:border-amber-500/40 dark:text-amber-300 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
             title={`Restore v${activeSelectedVersion?.versionNo ?? ''} into draft buffer`}
           >
             <RotateCcw className="w-3.5 h-3.5" />

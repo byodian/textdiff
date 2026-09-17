@@ -73,4 +73,70 @@ describe('Theme Contrast & Button Text Colors', () => {
     expect(saveBtn.className).toContain('bg-brand-primary');
     expect(saveBtn.className).not.toContain('text-slate-950');
   });
+
+  it('DiffInspectorBar badges use high-contrast text classes for light mode', async () => {
+    const { DiffInspectorBar } = await import('../src/components/DiffInspectorBar');
+    render(
+      React.createElement(DiffInspectorBar, {
+        versionA: { id: 'v1', versionNo: 1, title: 't', code: 'a', commitMsg: null, createdAt: '' },
+        versionB: null,
+        currentVersionNo: 2,
+        isSideBySide: true,
+        diffStats: { added: 5, removed: 2, hasChanges: true },
+        onToggleSideBySide: vi.fn(),
+        onNextDiffChunk: vi.fn(),
+        onPrevDiffChunk: vi.fn(),
+        onExitDiff: vi.fn(),
+        onRestoreVersion: vi.fn(),
+      })
+    );
+
+    const addedBadge = screen.getByText('+5');
+    const removedBadge = screen.getByText('-2');
+    const restoreBtn = screen.getByTitle(/Restore v1 into draft buffer/i);
+
+    expect(addedBadge.className).toContain('text-emerald-700');
+    expect(removedBadge.className).toContain('text-rose-700');
+    expect(restoreBtn.className).toContain('text-amber-800');
+  });
+
+  it('Sidebar active snippet and extension badges do not have border overload in dark mode', async () => {
+    const { Sidebar } = await import('../src/components/Sidebar');
+    render(
+      React.createElement(Sidebar, {
+        snippets: [
+          {
+            id: 's-1',
+            title: 'My Document',
+            language: 'typescript',
+            filename: 'My Document.ts',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        activeId: 's-1',
+        isDiffMode: false,
+        onSelectSnippet: vi.fn(),
+        onNewSnippet: vi.fn(),
+        onDeleteSnippet: vi.fn(),
+        onDuplicateSnippet: vi.fn(),
+        searchQuery: '',
+        onSearchChange: vi.fn(),
+      })
+    );
+
+    const activeItem = screen.getByText('My Document').closest('.group');
+    expect(activeItem).toBeTruthy();
+    // Must NOT contain 4-sided box borders like border-t or border-r
+    expect(activeItem?.className).not.toContain('border-t');
+    expect(activeItem?.className).not.toContain('border-r');
+    expect(activeItem?.className).not.toContain('border-b');
+    // Must have the clean single indicator border-l-2
+    expect(activeItem?.className).toContain('border-l-2');
+
+    // Extension badge must not have a box border
+    const extBadge = screen.getByText('.ts');
+    expect(extBadge.className).not.toContain('border');
+  });
 });
+

@@ -180,7 +180,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
         <button
           onClick={onNewSnippet}
-          className="mt-3 p-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-brand-primary hover:bg-sky-500/20 transition-colors"
+          className="mt-3 p-2 rounded-lg bg-sky-500/10 text-brand-primary hover:bg-sky-500/20 transition-colors"
           title="New Document"
         >
           <Plus className="w-4 h-4" />
@@ -198,7 +198,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand Header */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-canvas-border shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-brand-primary">
+            <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center text-brand-primary">
               <FolderGit2 className="w-4 h-4" />
             </div>
             <h1 className="font-semibold text-sm tracking-wide text-slate-100">
@@ -208,14 +208,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={onNewSnippet}
-              className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors border border-transparent hover:border-canvas-border"
+              className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
               title="New Document"
             >
               <Plus className="w-4 h-4" />
             </button>
             <button
               onClick={onToggleCollapse}
-              className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors border border-transparent hover:border-canvas-border"
+              className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
               title="Collapse Sidebar"
             >
               <PanelLeftClose className="w-4 h-4" />
@@ -327,7 +327,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-canvas-surface/50 hover:bg-canvas-surface/80 focus:bg-canvas-surface border border-canvas-border/70 focus:border-brand-primary/80 rounded-md pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
+              className="w-full bg-canvas-surface/60 hover:bg-canvas-surface focus:bg-canvas-surface border border-canvas-border/40 focus:border-brand-primary/60 rounded-md pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
             />
             {searchQuery && (
               <button
@@ -364,8 +364,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onSelectSnippet(s.id)}
                   className={`group relative flex items-start justify-between gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all ${
                     isActive
-                      ? 'bg-canvas-surface text-slate-100 shadow-sm border-l-2 border-l-brand-primary border-t border-r border-b border-canvas-border/60'
-                      : 'text-slate-400 hover:bg-canvas-surface/50 hover:text-slate-200 border-l-2 border-l-transparent border-t border-r border-b border-transparent'
+                      ? 'bg-canvas-surface text-slate-100 shadow-sm border-l-2 border-l-brand-primary'
+                      : 'text-slate-400 hover:bg-canvas-surface/50 hover:text-slate-200 border-l-2 border-l-transparent'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -374,7 +374,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         {baseTitle}
                       </span>
                       {extension && (
-                        <span className="shrink-0 text-[10px] font-mono px-1 py-0.2 rounded bg-canvas-elevated/70 text-slate-400 border border-canvas-border/50">
+                        <span className="shrink-0 text-[10px] font-mono px-1 py-0.2 rounded bg-canvas-surface/70 text-slate-400">
                           {extension}
                         </span>
                       )}
