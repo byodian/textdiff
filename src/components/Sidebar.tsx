@@ -50,12 +50,53 @@ interface SidebarProps {
   onDeleteSnippet: (id: string, e: React.MouseEvent) => void;
 }
 
-function formatDateTime(isoString: string): string {
+function formatExactDateTime(isoString: string): string {
   if (!isoString) return '';
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return isoString;
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function formatRelativeTime(isoString: string): string {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+  const isSameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+
+  if (isSameDay) {
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    return `Today ${timeStr}`;
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate();
+
+  if (isYesterday) {
+    return `Yesterday ${timeStr}`;
+  }
+
+  if (d.getFullYear() === now.getFullYear()) {
+    return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${timeStr}`;
+  }
+
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -184,18 +225,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Workspace Selector Dropdown (When workspaces are available) */}
         {wsList.length > 0 && (
-          <div className="px-3 pt-2.5 pb-1 shrink-0 relative z-30" ref={wsMenuRef}>
+          <div className="px-3 pt-2 pb-1 shrink-0 relative z-30" ref={wsMenuRef}>
             <button
               type="button"
               onClick={() => setIsWsMenuOpen((prev) => !prev)}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-xs text-slate-200 transition-colors"
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-canvas-surface/80 text-xs text-slate-200 transition-colors group"
               title="Switch Workspace"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Folder className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                <span className="truncate font-medium">{activeWsName}</span>
+                <span className="truncate font-semibold tracking-tight text-slate-200 group-hover:text-white">
+                  {activeWsName}
+                </span>
+                <span className="text-[10px] font-mono text-slate-500 bg-canvas-surface/80 px-1 py-0.2 rounded shrink-0">
+                  {snippets.length}
+                </span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0" />
             </button>
 
             {isWsMenuOpen && (
@@ -273,21 +319,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Search Bar */}
-        <div className="p-3 border-b border-canvas-border shrink-0">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <div className="px-3 py-1.5 shrink-0">
+          <div className="relative flex items-center">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-canvas-surface border border-canvas-border rounded-md pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-primary transition-colors"
+              className="w-full bg-canvas-surface/50 hover:bg-canvas-surface/80 focus:bg-canvas-surface border border-canvas-border/70 focus:border-brand-primary/80 rounded-md pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="absolute right-2 text-slate-500 hover:text-slate-300 p-0.5 rounded text-xs font-bold leading-none"
+                title="Clear search"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
 
         {/* Snippets List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
+        <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 min-h-0">
           {filtered.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-500">
               {searchQuery ? 'No documents match your search' : 'No documents yet. Create one!'}
@@ -306,43 +362,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div
                   key={s.id}
                   onClick={() => onSelectSnippet(s.id)}
-                  className={`group relative flex items-start justify-between gap-2 p-2.5 rounded-md cursor-pointer transition-all ${
+                  className={`group relative flex items-start justify-between gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-all ${
                     isActive
-                      ? 'bg-canvas-surface border border-canvas-highlight text-slate-100 shadow-sm'
-                      : 'text-slate-400 hover:bg-canvas-surface/60 hover:text-slate-200 border border-transparent'
+                      ? 'bg-canvas-surface text-slate-100 shadow-sm border-l-2 border-l-brand-primary border-t border-r border-b border-canvas-border/60'
+                      : 'text-slate-400 hover:bg-canvas-surface/50 hover:text-slate-200 border-l-2 border-l-transparent border-t border-r border-b border-transparent'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-xs truncate" title={fullTitle}>
+                    <div className="flex items-center gap-1.5 min-w-0" title={fullTitle}>
+                      <span className="font-medium text-xs truncate text-slate-200 group-hover:text-white">
                         {baseTitle}
-                        {extension && (
-                          <span className="opacity-75 font-normal">{extension}</span>
-                        )}
                       </span>
+                      {extension && (
+                        <span className="shrink-0 text-[10px] font-mono px-1 py-0.2 rounded bg-canvas-elevated/70 text-slate-400 border border-canvas-border/50">
+                          {extension}
+                        </span>
+                      )}
                       {isActive && activeHasUnsavedChanges && (
                         <span 
-                          className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" 
+                          className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0 ml-0.5" 
                           title="Unsaved modifications in draft"
                         />
                       )}
                     </div>
-                    <div className="text-[10px] font-mono text-slate-500 mt-1 truncate">
-                      {formatDateTime(s.updatedAt)}
+                    <div 
+                      className="text-[10px] font-mono text-slate-500 mt-1 truncate"
+                      title={`Last modified: ${formatExactDateTime(s.updatedAt)}`}
+                    >
+                      {formatRelativeTime(s.updatedAt)}
                     </div>
                   </div>
 
                   <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
                     <button
                       onClick={(e) => onDuplicateSnippet(s.id, e)}
-                      className="p-1 hover:text-brand-primary transition-colors rounded"
+                      className="p-1 hover:text-brand-primary transition-colors rounded hover:bg-canvas-elevated"
                       title="Duplicate document"
                     >
                       <Copy className="w-3 h-3" />
                     </button>
                     <button
                       onClick={(e) => onDeleteSnippet(s.id, e)}
-                      className="p-1 hover:text-diff-removed transition-colors rounded"
+                      className="p-1 hover:text-diff-removed transition-colors rounded hover:bg-canvas-elevated"
                       title="Delete document"
                     >
                       <Trash2 className="w-3 h-3" />
