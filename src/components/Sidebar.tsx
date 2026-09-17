@@ -14,6 +14,7 @@ import {
   Folder,
   Check
 } from 'lucide-react';
+import { splitTitleAndExtension, formatTitleWithExtension } from '@/lib/languages';
 
 export interface SnippetSummary {
   id: string;
@@ -107,7 +108,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const filtered = snippets.filter((s) => {
     const q = searchQuery.toLowerCase();
+    const fullTitle = formatTitleWithExtension(s.title, s.language, s.filename).toLowerCase();
     return (
+      fullTitle.includes(q) ||
       s.title.toLowerCase().includes(q) ||
       s.language.toLowerCase().includes(q)
     );
@@ -292,6 +295,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             filtered.map((s) => {
               const isActive = s.id === activeId;
+              const { baseTitle, extension } = splitTitleAndExtension(
+                s.title,
+                s.language,
+                s.filename
+              );
+              const fullTitle = `${baseTitle}${extension}`;
+
               return (
                 <div
                   key={s.id}
@@ -304,8 +314,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-xs truncate">
-                        {s.title || 'Untitled Document'}
+                      <span className="font-medium text-xs truncate" title={fullTitle}>
+                        {baseTitle}
+                        {extension && (
+                          <span className="opacity-75 font-normal">{extension}</span>
+                        )}
                       </span>
                       {isActive && activeHasUnsavedChanges && (
                         <span 

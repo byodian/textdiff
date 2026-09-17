@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { detectLanguageFromFilename, detectLanguageFromTitle, SUPPORTED_LANGUAGES } from '../src/lib/languages';
+import { 
+  detectLanguageFromFilename, 
+  detectLanguageFromTitle, 
+  getDefaultExtensionForLanguage,
+  splitTitleAndExtension,
+  formatTitleWithExtension,
+  SUPPORTED_LANGUAGES 
+} from '../src/lib/languages';
 
 describe('Language detection and configuration seam', () => {
   it('detects typescript and javascript correctly', () => {
@@ -49,4 +56,45 @@ describe('Language detection and configuration seam', () => {
     expect(SUPPORTED_LANGUAGES.some(l => l.id === 'yaml')).toBe(true);
     expect(SUPPORTED_LANGUAGES.some(l => l.id === 'diff')).toBe(true);
   });
+
+  it('returns default extension for languages correctly', () => {
+    expect(getDefaultExtensionForLanguage('typescript')).toBe('.ts');
+    expect(getDefaultExtensionForLanguage('javascript')).toBe('.js');
+    expect(getDefaultExtensionForLanguage('python')).toBe('.py');
+    expect(getDefaultExtensionForLanguage('markdown')).toBe('.md');
+    expect(getDefaultExtensionForLanguage('sql')).toBe('.sql');
+    expect(getDefaultExtensionForLanguage('plaintext')).toBe('.txt');
+    expect(getDefaultExtensionForLanguage(null)).toBe('.txt');
+  });
+
+  it('splits and formats title with extension properly', () => {
+    // Title with existing known extension
+    expect(splitTitleAndExtension('README.md', 'markdown')).toEqual({
+      baseTitle: 'README',
+      extension: '.md',
+    });
+    expect(formatTitleWithExtension('app.tsx', 'typescript')).toBe('app.tsx');
+
+    // Title without extension appends language extension
+    expect(splitTitleAndExtension('Untitled Document', 'plaintext')).toEqual({
+      baseTitle: 'Untitled Document',
+      extension: '.txt',
+    });
+    expect(formatTitleWithExtension('Untitled Document', 'typescript')).toBe('Untitled Document.ts');
+    expect(formatTitleWithExtension('OrderService', 'sql')).toBe('OrderService.sql');
+    expect(formatTitleWithExtension('main', 'python')).toBe('main.py');
+
+    // Dockerfile special handling
+    expect(splitTitleAndExtension('Dockerfile', 'dockerfile')).toEqual({
+      baseTitle: 'Dockerfile',
+      extension: '',
+    });
+
+    // Filename extension fallback
+    expect(splitTitleAndExtension('Component', 'typescript', 'Component.tsx')).toEqual({
+      baseTitle: 'Component',
+      extension: '.tsx',
+    });
+  });
 });
+

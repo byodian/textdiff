@@ -73,4 +73,44 @@ describe('Sidebar smooth collapse and expand transition', () => {
     fireEvent.click(expandBtn);
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
+
+  it('displays document title directly followed by format extension', () => {
+    const testSnippets = [
+      {
+        id: 's-1',
+        title: 'UserAuth',
+        language: 'typescript',
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 's-2',
+        title: 'README.md',
+        language: 'markdown',
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    render(
+      <Sidebar
+        snippets={testSnippets}
+        activeId="s-1"
+        searchQuery=""
+        isCollapsed={false}
+        onToggleCollapse={() => {}}
+        onSearchChange={() => {}}
+        onSelectSnippet={() => {}}
+        onNewSnippet={() => {}}
+        onDuplicateSnippet={() => {}}
+        onDeleteSnippet={() => {}}
+      />
+    );
+
+    // Document with no extension in title gets .ts appended
+    expect(screen.getByText('UserAuth')).toBeDefined();
+    expect(screen.getByText('.ts')).toBeDefined();
+
+    // Document with existing .md in title displays .md
+    expect(screen.getByText('README')).toBeDefined();
+    expect(screen.getByText('.md')).toBeDefined();
+  });
 });

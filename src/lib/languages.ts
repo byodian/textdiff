@@ -49,3 +49,71 @@ export function detectLanguageFromFilename(filename: string, fallback = 'plainte
 export function detectLanguageFromTitle(title: string, fallback = 'plaintext'): string {
   return detectLanguageFromFilename(title, fallback);
 }
+
+export function getDefaultExtensionForLanguage(language?: string | null): string {
+  if (!language) return '.txt';
+  const lower = language.toLowerCase();
+  const lang = SUPPORTED_LANGUAGES.find((l) => l.id === lower);
+  if (!lang || !lang.extensions.length) return '.txt';
+  const dotExt = lang.extensions.find((e) => e.startsWith('.'));
+  return dotExt || (lang.extensions[0].startsWith('.') ? lang.extensions[0] : '.' + lang.extensions[0].toLowerCase());
+}
+
+export function splitTitleAndExtension(
+  title?: string | null,
+  language?: string | null,
+  filename?: string | null
+): { baseTitle: string; extension: string } {
+  const rawTitle = (title || '').trim();
+  const effectiveTitle = rawTitle || 'Untitled Document';
+
+  if (effectiveTitle.toLowerCase() === 'dockerfile') {
+    return { baseTitle: effectiveTitle, extension: '' };
+  }
+
+  // 1. Check if title ends with any supported language extension
+  for (const lang of SUPPORTED_LANGUAGES) {
+    for (const ext of lang.extensions) {
+      if (ext.startsWith('.') && effectiveTitle.toLowerCase().endsWith(ext.toLowerCase())) {
+        const base = effectiveTitle.slice(0, effectiveTitle.length - ext.length);
+        if (base.length > 0) {
+          return { baseTitle: base, extension: ext };
+        }
+      }
+    }
+  }
+
+  // 2. Check if title already ends with any standard extension (e.g. .csv, .vue, .proto)
+  const extMatch = effectiveTitle.match(/^(.+?)(\.[a-zA-Z][a-zA-Z0-9_-]{0,7})$/);
+  if (extMatch) {
+    return { baseTitle: extMatch[1], extension: extMatch[2] };
+  }
+
+  // 3. Fallback to filename extension if present
+  if (filename) {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      for (const ext of lang.extensions) {
+        if (ext.startsWith('.') && filename.toLowerCase().endsWith(ext.toLowerCase())) {
+          return { baseTitle: effectiveTitle, extension: ext };
+        }
+      }
+    }
+    const fnMatch = filename.match(/\.[a-zA-Z][a-zA-Z0-9_-]{0,7}$/);
+    if (fnMatch) {
+      return { baseTitle: effectiveTitle, extension: fnMatch[0] };
+    }
+  }
+
+  // 4. Default to language extension
+  const defaultExt = getDefaultExtensionForLanguage(language);
+  return { baseTitle: effectiveTitle, extension: defaultExt };
+}
+
+export function formatTitleWithExtension(
+  title?: string | null,
+  language?: string | null,
+  filename?: string | null
+): string {
+  const { baseTitle, extension } = splitTitleAndExtension(title, language, filename);
+  return `${baseTitle}${extension}`;
+}
