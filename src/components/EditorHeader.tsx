@@ -109,7 +109,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   return (
     <header className="relative z-30 h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 select-none">
       {/* Zone 1 (Left): Document Identity (Title & Dirty indicator) */}
-      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 max-w-[50%] lg:max-w-[58%]">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 max-w-[50%] lg:max-w-[58%]">
         <input
           type="text"
           value={title}
