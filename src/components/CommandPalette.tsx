@@ -679,7 +679,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary'
                         : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >
@@ -723,7 +723,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary'
                         : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >
@@ -782,7 +782,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
                       isHighlighted
-                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary/40'
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary'
                         : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
                     }`}
                   >

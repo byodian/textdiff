@@ -213,7 +213,7 @@ body {
 /* List item highlight in Command Palette & Color Theme Palette */
 .light-theme .theme-item-highlight {
   background-color: rgba(2, 132, 199, 0.12) !important;
-  box-shadow: inset 0 0 0 1px rgba(2, 132, 199, 0.35) !important;
+  box-shadow: none !important;
 }
 
 .light-theme .theme-item-highlight .theme-item-title,
@@ -222,8 +222,8 @@ body {
 }
 
 .light-theme .theme-item-highlight kbd {
-  background-color: #e0f2fe !important;
-  border-color: #7dd3fc !important;
+  background-color: rgba(2, 132, 199, 0.12) !important;
+  border-color: transparent !important;
   color: #0369a1 !important;
 }
 
