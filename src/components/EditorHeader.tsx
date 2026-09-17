@@ -152,7 +152,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             onClick={() => {
               if (isDiffMode) onToggleDiffMode();
             }}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2 sm:px-2.5 xl:px-3 py-1 rounded-md text-xs font-medium transition-all ${
               !isDiffMode
                 ? 'bg-canvas-elevated text-brand-primary shadow-sm font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
@@ -160,14 +160,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             title="Return to code editor"
           >
             <Code className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Editor</span>
+            <span className="hidden xl:inline">Editor</span>
           </button>
           <button
             type="button"
             onClick={() => {
               if (!isDiffMode) onToggleDiffMode();
             }}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2 sm:px-2.5 xl:px-3 py-1 rounded-md text-xs font-medium transition-all ${
               isDiffMode
                 ? 'bg-sky-500/15 text-brand-primary border border-sky-500/40 shadow-sm font-semibold'
                 : diffStats.hasChanges
@@ -181,7 +181,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             }
           >
             <Split className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Diff</span>
+            <span className="hidden xl:inline">Diff</span>
             {diffStats.hasChanges && (
               <span className="font-mono text-[10px] px-1 rounded bg-amber-950/60 border border-amber-800/40 text-amber-300 hidden md:inline">
                 +{diffStats.added}/-{diffStats.removed}
