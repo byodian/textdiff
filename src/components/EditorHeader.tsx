@@ -207,12 +207,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* Primary Action: Save Version Snapshot */}
         <button
           onClick={onSavePrompt}
-          className={`flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded font-semibold text-xs transition-all shrink-0 ${
+          className={`flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded font-semibold text-xs transition-colors shrink-0 ${
             isJustSaved
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-              : hasUnsavedChanges
-              ? 'bg-brand-primary text-brand-text shadow-md shadow-sky-500/20 hover:brightness-110 active:scale-95'
-              : 'bg-brand-primary/85 hover:bg-brand-primary text-brand-text shadow-md shadow-sky-500/15 transition-all'
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              : 'bg-brand-primary hover:brightness-110 active:scale-95 text-brand-text'
           }`}
           title={
             isJustSaved

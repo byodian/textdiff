@@ -72,6 +72,7 @@ describe('Theme Contrast & Button Text Colors', () => {
     expect(saveBtn.className).toContain('text-brand-text');
     expect(saveBtn.className).toContain('bg-brand-primary');
     expect(saveBtn.className).not.toContain('text-slate-950');
+    expect(saveBtn.className).not.toContain('shadow');
 
     const historyBtn = screen.getByTitle(/Revision History/i);
     expect(historyBtn).toBeDefined();

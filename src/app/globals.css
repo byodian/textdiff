@@ -43,6 +43,15 @@ body {
   color-scheme: light;
 }
 
+/* Ensure inputs never produce default browser outline flashes on focus/active */
+input,
+input:focus,
+input:focus-visible,
+input:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Dynamic contrast mapping for light themes so elements remain crisp and readable */
 .light-theme .text-slate-100 {
   color: #0f172a !important; /* Very dark navy slate */
@@ -79,17 +88,8 @@ body {
   border-color: var(--color-canvas-border, #e2e8f0);
 }
 
-/* Ensure buttons and badges with solid dark or saturated backgrounds always have light/white text across all themes.
+/* Ensure buttons and badges with solid dark or saturated backgrounds always have light/white text in light themes.
    Exclude any low-opacity tint classes containing a slash '/' like bg-brand-primary/15. */
-.bg-brand-primary:not([class*="/"]),
-button.bg-brand-primary:not([class*="/"]),
-button.bg-sky-500:not([class*="/"]),
-button.bg-sky-600:not([class*="/"]),
-button.bg-slate-800:not([class*="/"]),
-button.bg-slate-900:not([class*="/"]),
-button.bg-slate-950:not([class*="/"]),
-.bg-sky-500:not([class*="/"]),
-.bg-sky-600:not([class*="/"]),
 .light-theme .bg-brand-primary:not([class*="/"]),
 .light-theme button.bg-brand-primary:not([class*="/"]),
 .light-theme button.bg-sky-500:not([class*="/"]),
@@ -102,13 +102,6 @@ button.bg-slate-950:not([class*="/"]),
   color: #ffffff !important;
 }
 
-.bg-brand-primary:not([class*="/"]) *,
-button.bg-brand-primary:not([class*="/"]) *,
-button.bg-sky-500:not([class*="/"]) *,
-button.bg-sky-600:not([class*="/"]) *,
-button.bg-slate-800:not([class*="/"]) *,
-button.bg-slate-900:not([class*="/"]) *,
-button.bg-slate-950:not([class*="/"]) *,
 .light-theme .bg-brand-primary:not([class*="/"]) *,
 .light-theme button.bg-brand-primary:not([class*="/"]) *,
 .light-theme button.bg-sky-500:not([class*="/"]) *,

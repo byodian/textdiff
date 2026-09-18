@@ -327,7 +327,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-canvas-surface/60 hover:bg-canvas-surface focus:bg-canvas-surface border border-transparent hover:border-canvas-border/40 focus:border-brand-primary/60 rounded-md pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
+              className="w-full bg-canvas-surface hover:bg-canvas-surface focus:bg-canvas-surface border border-transparent hover:border-canvas-border focus:border-brand-primary rounded-md pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 transition-colors"
             />
             {searchQuery && (
               <button

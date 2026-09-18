@@ -3,7 +3,8 @@ import type { Config } from "tailwindcss";
 function withOpacity(variableName: string, fallback: string) {
   return ({ opacityValue }: { opacityValue?: string }) => {
     if (opacityValue !== undefined) {
-      return `color-mix(in srgb, var(${variableName}, ${fallback}) calc(${opacityValue} * 100%), transparent)`;
+      const percentage = Math.round(Number(opacityValue) * 100);
+      return `color-mix(in srgb, var(${variableName}, ${fallback}) ${percentage}%, transparent)`;
     }
     return `var(${variableName}, ${fallback})`;
   };
