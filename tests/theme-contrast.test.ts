@@ -17,13 +17,13 @@ describe('Theme Contrast & Button Text Colors', () => {
     }
   });
 
-  it('returns dark brandText for dark themes', () => {
+  it('returns high-contrast white brandText for dark themes', () => {
     const darkThemes = ['vs-dark', 'dracula', 'monokai', 'solarized-dark', 'one-dark-pro', 'nord'];
 
     for (const themeId of darkThemes) {
       const colors = getUiThemeColors(themeId, false);
       expect(colors.isLight).toBe(false);
-      expect(colors.brandText).toBe('#020617');
+      expect(colors.brandText).toBe('#ffffff');
       expect(colors.brandPrimary).toBeTruthy();
     }
   });
@@ -38,7 +38,7 @@ describe('Theme Contrast & Button Text Colors', () => {
 
     // Apply dark theme
     applyGlobalThemeColors('vs-dark', false);
-    expect(document.documentElement.style.getPropertyValue('--color-brand-text')).toBe('#020617');
+    expect(document.documentElement.style.getPropertyValue('--color-brand-text')).toBe('#ffffff');
     expect(document.documentElement.classList.contains('dark-theme')).toBe(true);
     expect(document.documentElement.classList.contains('dark')).toBe(true);
     expect(document.documentElement.classList.contains('light-theme')).toBe(false);
@@ -66,12 +66,22 @@ describe('Theme Contrast & Button Text Colors', () => {
       onPrevDiffChunk: vi.fn(),
     };
 
-    render(React.createElement(EditorHeader, defaultProps));
+    render(React.createElement(EditorHeader, { ...defaultProps, versionCount: 2 }));
     const saveBtn = screen.getByTitle(/Save Version/i);
     expect(saveBtn).toBeDefined();
     expect(saveBtn.className).toContain('text-brand-text');
     expect(saveBtn.className).toContain('bg-brand-primary');
     expect(saveBtn.className).not.toContain('text-slate-950');
+
+    const historyBtn = screen.getByTitle(/Revision History/i);
+    expect(historyBtn).toBeDefined();
+    expect(historyBtn.className).toContain('text-slate-100');
+    expect(historyBtn.className).not.toContain('text-slate-300');
+
+    const versionBadge = screen.getByText('2');
+    expect(versionBadge).toBeDefined();
+    expect(versionBadge.className).toContain('text-slate-200');
+    expect(versionBadge.className).not.toContain('text-slate-400');
   });
 
   it('DiffInspectorBar badges use high-contrast text classes for light mode', async () => {
@@ -137,6 +147,10 @@ describe('Theme Contrast & Button Text Colors', () => {
     // Extension badge must not have a box border
     const extBadge = screen.getByText('.ts');
     expect(extBadge.className).not.toContain('border');
+
+    // Search input must use border-transparent by default to avoid eye-catching wireframe box
+    const searchInput = screen.getByPlaceholderText(/Search documents/i);
+    expect(searchInput.className).toContain('border-transparent');
   });
 });
 

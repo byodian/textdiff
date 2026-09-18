@@ -192,13 +192,13 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
-          className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-xs text-slate-300 hover:text-white transition-colors shrink-0"
+          className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-xs text-slate-100 hover:text-white font-medium transition-colors shrink-0"
           title="Revision History"
         >
           <History className="w-3.5 h-3.5 text-sky-400" />
           <span className="hidden xl:inline">History</span>
           {versionCount !== undefined && (
-            <span className="text-[10px] font-mono px-1 rounded bg-canvas-elevated text-slate-400 hidden lg:inline">
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-canvas-highlight text-slate-200 dark:text-slate-100 border border-canvas-border/60 font-semibold hidden lg:inline">
               {versionCount}
             </span>
           )}
@@ -212,7 +212,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
               : hasUnsavedChanges
               ? 'bg-brand-primary text-brand-text shadow-md shadow-sky-500/20 hover:brightness-110 active:scale-95'
-              : 'bg-brand-primary text-brand-text opacity-70 shadow-md shadow-sky-500/20'
+              : 'bg-brand-primary/85 hover:bg-brand-primary text-brand-text shadow-md shadow-sky-500/15 transition-all'
           }`}
           title={
             isJustSaved

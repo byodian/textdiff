@@ -409,7 +409,7 @@ export function getUiThemeColors(themeId: string, isLight: boolean): UiThemeColo
       textSecondary: preset.textSecondary || (isLight ? '#334155' : '#cbd5e1'),
       textMuted: preset.textMuted || '#64748b',
       brandPrimary: preset.brandPrimary || (isLight ? '#0284c7' : '#38bdf8'),
-      brandText: preset.brandText || (isLight ? '#ffffff' : '#020617'),
+      brandText: preset.brandText || '#ffffff',
       isLight,
     };
   }
@@ -445,7 +445,7 @@ export function getUiThemeColors(themeId: string, isLight: boolean): UiThemeColo
     textSecondary: '#cbd5e1',
     textMuted: '#64748b',
     brandPrimary: '#38bdf8',
-    brandText: '#020617',
+    brandText: '#ffffff',
     isLight: false,
   };
 }

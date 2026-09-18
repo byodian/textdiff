@@ -79,8 +79,17 @@ body {
   border-color: var(--color-canvas-border, #e2e8f0);
 }
 
-/* Ensure buttons and badges with solid dark or saturated backgrounds always have light/white text in light themes.
+/* Ensure buttons and badges with solid dark or saturated backgrounds always have light/white text across all themes.
    Exclude any low-opacity tint classes containing a slash '/' like bg-brand-primary/15. */
+.bg-brand-primary:not([class*="/"]),
+button.bg-brand-primary:not([class*="/"]),
+button.bg-sky-500:not([class*="/"]),
+button.bg-sky-600:not([class*="/"]),
+button.bg-slate-800:not([class*="/"]),
+button.bg-slate-900:not([class*="/"]),
+button.bg-slate-950:not([class*="/"]),
+.bg-sky-500:not([class*="/"]),
+.bg-sky-600:not([class*="/"]),
 .light-theme .bg-brand-primary:not([class*="/"]),
 .light-theme button.bg-brand-primary:not([class*="/"]),
 .light-theme button.bg-sky-500:not([class*="/"]),
@@ -93,6 +102,13 @@ body {
   color: #ffffff !important;
 }
 
+.bg-brand-primary:not([class*="/"]) *,
+button.bg-brand-primary:not([class*="/"]) *,
+button.bg-sky-500:not([class*="/"]) *,
+button.bg-sky-600:not([class*="/"]) *,
+button.bg-slate-800:not([class*="/"]) *,
+button.bg-slate-900:not([class*="/"]) *,
+button.bg-slate-950:not([class*="/"]) *,
 .light-theme .bg-brand-primary:not([class*="/"]) *,
 .light-theme button.bg-brand-primary:not([class*="/"]) *,
 .light-theme button.bg-sky-500:not([class*="/"]) *,
@@ -211,6 +227,12 @@ body {
 }
 
 /* List item highlight in Command Palette & Color Theme Palette */
+.theme-item-highlight {
+  background-color: rgba(56, 189, 248, 0.16) !important;
+  background-color: color-mix(in srgb, var(--color-brand-primary, #38bdf8) 18%, transparent) !important;
+  box-shadow: none !important;
+}
+
 .light-theme .theme-item-highlight {
   background-color: rgba(2, 132, 199, 0.12) !important;
   box-shadow: none !important;
@@ -252,6 +274,12 @@ body {
 }
 
 /* Dark theme list item contrast in Command Palette & Color Theme Palette */
+.dark-theme .theme-item-highlight,
+:root:not(.light-theme) .theme-item-highlight {
+  background-color: rgba(56, 189, 248, 0.18) !important;
+  background-color: color-mix(in srgb, var(--color-brand-primary, #38bdf8) 20%, transparent) !important;
+}
+
 .dark-theme .theme-item-title,
 :root:not(.light-theme) .theme-item-title {
   color: #f8fafc;
@@ -259,6 +287,18 @@ body {
 
 .dark-theme .theme-item-highlight .theme-item-title,
 :root:not(.light-theme) .theme-item-highlight .theme-item-title {
+  color: #ffffff !important;
+}
+
+.dark-theme .theme-item-highlight svg,
+:root:not(.light-theme) .theme-item-highlight svg {
+  color: var(--color-brand-primary, #38bdf8) !important;
+}
+
+.dark-theme .theme-item-highlight kbd,
+:root:not(.light-theme) .theme-item-highlight kbd {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
   color: #ffffff !important;
 }
 
