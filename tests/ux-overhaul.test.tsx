@@ -58,7 +58,25 @@ describe('TextDiff UX Overhaul Component Seams', () => {
 
     expect(screen.getByText(/Delete Document/i)).toBeDefined();
     expect(screen.getByText('orders.sql')).toBeDefined();
-    expect(screen.getByText(/4 historical version snapshots/i)).toBeDefined();
+    
+    // Warning callout and text contrast verification for dark/light themes
+    const alertTitle = screen.getByText('Irreversible Action');
+    expect(alertTitle.className).toContain('text-rose-900');
+    expect(alertTitle.className).toContain('dark:text-rose-200');
+
+    const alertDesc = screen.getByText(/4 historical version snapshots/i);
+    expect(alertDesc).toBeDefined();
+    expect(alertDesc.className).toContain('text-rose-700');
+    expect(alertDesc.className).toContain('dark:text-rose-300/90');
+
+    const warningBox = alertTitle.closest('.rounded-lg');
+    expect(warningBox?.className).toContain('bg-rose-50');
+    expect(warningBox?.className).toContain('border-rose-200');
+    expect(warningBox?.className).toContain('dark:bg-rose-950/40');
+
+    const cancelBtn = screen.getByText('Cancel');
+    expect(cancelBtn.className).toContain('text-slate-700');
+    expect(cancelBtn.className).toContain('dark:text-slate-300');
 
     fireEvent.click(screen.getByText('Delete Permanently'));
     expect(onConfirmDelete).toHaveBeenCalledTimes(1);
