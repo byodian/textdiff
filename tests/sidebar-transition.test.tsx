@@ -3,6 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Sidebar } from '../src/components/Sidebar';
+import { getShortcutLabel } from '../src/lib/platform';
 
 describe('Sidebar smooth collapse and expand transition', () => {
   const dummySnippets = [
@@ -131,9 +132,9 @@ describe('Sidebar smooth collapse and expand transition', () => {
       />
     );
 
-    const newBtn = screen.getByTitle('New Document (Ctrl+Alt+N / ⌥⌘N)');
-    expect(newBtn).toBeDefined();
-    fireEvent.click(newBtn);
+    const newBtns = screen.getAllByTitle(`New Document (${getShortcutLabel('new')})`);
+    expect(newBtns.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(newBtns[0]);
     expect(onNewSnippet).toHaveBeenCalledTimes(1);
   });
 });

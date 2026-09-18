@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
+import { getShortcutLabel } from '@/lib/platform';
 
 export interface CommandItem {
   id: string;
@@ -137,7 +138,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         id: 'editor:command-palette',
         title: 'Editor: Open Editor Command Palette',
         category: 'Editor',
-        shortcut: 'F1',
+        shortcut: getShortcutLabel('editorPalette'),
         icon: <Terminal className="w-4 h-4 text-sky-400" />,
         action: () => {
           onClose();
@@ -160,7 +161,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         id: 'snippet:save',
         title: 'File: Save Version Snapshot',
         category: 'File',
-        shortcut: 'Ctrl+S',
+        shortcut: getShortcutLabel('save'),
         icon: <Save className="w-4 h-4 text-sky-400" />,
         action: () => {
           onClose();
@@ -172,7 +173,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         id: 'snippet:new',
         title: 'File: New Document',
         category: 'File',
-        shortcut: 'Ctrl+Alt+N',
+        shortcut: getShortcutLabel('new'),
         icon: <Plus className="w-4 h-4 text-teal-400" />,
         action: () => {
           onClose();
@@ -226,7 +227,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           id: 'editor:format',
           title: 'Format: Format Document',
           category: 'Edit',
-          shortcut: 'Shift+Alt+F',
+          shortcut: getShortcutLabel('format'),
           icon: <Sparkles className="w-4 h-4 text-amber-400" />,
           action: () => {
             onClose();

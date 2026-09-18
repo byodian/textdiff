@@ -3,6 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CommandPalette } from '../src/components/CommandPalette';
+import { getShortcutLabel } from '../src/lib/platform';
 
 describe('CommandPalette Keyboard and Theme Navigation', () => {
   it('opens in commands mode and exits on Escape', () => {
@@ -433,7 +434,7 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     );
 
     expect(screen.getByText('File: New Document')).toBeDefined();
-    expect(screen.getByText('Ctrl+Alt+N')).toBeDefined();
+    expect(screen.getByText(getShortcutLabel('new'))).toBeDefined();
   });
 });
 

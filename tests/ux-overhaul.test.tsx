@@ -8,6 +8,7 @@ import { UndoToast } from '../src/components/UndoToast';
 import { DiffInspectorBar } from '../src/components/DiffInspectorBar';
 import { WorkspaceEmptyState } from '../src/components/WorkspaceEmptyState';
 import { StatusBar } from '../src/components/StatusBar';
+import { getShortcutLabel } from '../src/lib/platform';
 
 describe('TextDiff UX Overhaul Component Seams', () => {
   it('renders UnsavedChangesModal and triggers save/discard/cancel options', () => {
@@ -131,7 +132,7 @@ describe('TextDiff UX Overhaul Component Seams', () => {
     expect(screen.getByText('Nacos Spring Cloud Config')).toBeDefined();
     expect(screen.getByText('MySQL Schema Migration')).toBeDefined();
 
-    const newDocBtn = screen.getByTitle('New Document (Ctrl+Alt+N / ⌥⌘N)');
+    const newDocBtn = screen.getByTitle(`New Document (${getShortcutLabel('new')})`);
     expect(newDocBtn).toBeDefined();
     fireEvent.click(newDocBtn);
     expect(onNew).toHaveBeenCalledTimes(1);

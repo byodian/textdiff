@@ -3,6 +3,7 @@
 import React from 'react';
 import { Columns, Rows, ChevronUp, ChevronDown, RotateCcw, X } from 'lucide-react';
 import { VersionItem } from './HistoryDrawer';
+import { getShortcutLabel } from '@/lib/platform';
 
 interface DiffInspectorBarProps {
   versionA: VersionItem | null;
@@ -67,7 +68,7 @@ export const DiffInspectorBar: React.FC<DiffInspectorBarProps> = ({
             type="button"
             onClick={onPrevDiffChunk}
             className="p-1 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 rounded hover:bg-canvas-elevated transition-colors"
-            title="Previous Diff Change (Shift+F7)"
+            title={`Previous Diff Change (${getShortcutLabel('diffPrev')})`}
           >
             <ChevronUp className="w-3.5 h-3.5" />
           </button>
@@ -75,7 +76,7 @@ export const DiffInspectorBar: React.FC<DiffInspectorBarProps> = ({
             type="button"
             onClick={onNextDiffChunk}
             className="p-1 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 rounded hover:bg-canvas-elevated transition-colors"
-            title="Next Diff Change (F7)"
+            title={`Next Diff Change (${getShortcutLabel('diffNext')})`}
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
@@ -120,11 +121,11 @@ export const DiffInspectorBar: React.FC<DiffInspectorBarProps> = ({
           type="button"
           onClick={onExitDiff}
           className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all active:scale-95"
-          title="Exit Diff Mode (Esc)"
+          title={`Exit Diff Mode (${getShortcutLabel('esc')})`}
         >
           <X className="w-3 h-3" />
           <span>Exit Diff</span>
-          <kbd className="hidden lg:inline text-[9px] text-slate-500 dark:text-slate-400 font-mono px-1 rounded bg-slate-200 dark:bg-black/20">Esc</kbd>
+          <kbd className="hidden lg:inline text-[9px] text-slate-500 dark:text-slate-400 font-mono px-1 rounded bg-slate-200 dark:bg-black/20">{getShortcutLabel('esc')}</kbd>
         </button>
       </div>
     </div>

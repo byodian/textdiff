@@ -3,6 +3,7 @@
 import React from 'react';
 import { Sparkles, ChevronUp, ChevronDown, Check, FileText } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/languages';
+import { getShortcutLabel } from '@/lib/platform';
 
 interface StatusBarProps {
   language: string;
@@ -92,11 +93,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             type="button"
             onClick={onFormatDocument}
             className="flex items-center gap-1 text-[10px] text-slate-300 hover:text-brand-primary px-1.5 py-0.5 rounded hover:bg-canvas-surface transition-colors"
-            title="Format Document (Shift+Alt+F)"
+            title={`Format Document (${getShortcutLabel('format')})`}
           >
             <Sparkles className="w-3 h-3 text-brand-primary" />
             <span>Format</span>
-            <kbd className="hidden md:inline text-[9px] text-slate-500 font-mono">Shift+Alt+F</kbd>
+            <kbd className="hidden md:inline text-[9px] text-slate-500 font-mono">{getShortcutLabel('format')}</kbd>
           </button>
         )}
         <span className="text-slate-600 hidden sm:inline">|</span>

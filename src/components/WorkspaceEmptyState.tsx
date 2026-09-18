@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Plus, Clipboard, Database, FileCode, Server, Braces } from 'lucide-react';
+import { getShortcutLabel } from '@/lib/platform';
 
 interface TemplateOption {
   title: string;
@@ -130,7 +131,7 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
             type="button"
             onClick={onNewDocument}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary text-brand-text text-xs font-semibold hover:brightness-110 transition-all active:scale-95"
-            title="New Document (Ctrl+Alt+N / ⌥⌘N)"
+            title={`New Document (${getShortcutLabel('new')})`}
           >
             <Plus className="w-4 h-4" />
             <span>New Document</span>

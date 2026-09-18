@@ -15,6 +15,7 @@ import {
   Palette,
   MoreHorizontal
 } from 'lucide-react';
+import { getShortcutLabel } from '@/lib/platform';
 
 interface EditorHeaderProps {
   title: string;
@@ -216,8 +217,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             isJustSaved
               ? 'Version Saved!'
               : hasUnsavedChanges
-              ? 'Save Version (Ctrl+S / ⌘S)'
-              : 'Save Version (No modifications to save, Ctrl+S / ⌘S)'
+              ? `Save Version (${getShortcutLabel('save')})`
+              : `Save Version (No modifications to save, ${getShortcutLabel('save')})`
           }
         >
           {isJustSaved ? (
@@ -266,7 +267,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                     <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
                     <span>Format Document</span>
                   </div>
-                  <kbd className="text-[10px] text-slate-500 font-mono">Shift+Alt+F</kbd>
+                  <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('format')}</kbd>
                 </button>
               )}
 
@@ -318,7 +319,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                     <Palette className="w-3.5 h-3.5 text-purple-400" />
                     <span>Command Palette</span>
                   </div>
-                  <kbd className="text-[10px] text-slate-500 font-mono">Ctrl+Shift+P</kbd>
+                  <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('commandPalette')}</kbd>
                 </button>
               )}
             </div>

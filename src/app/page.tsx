@@ -619,6 +619,16 @@ export default function WorkspacePage() {
         setIsDiffMode(false);
         setVersionA(null);
         setVersionB(null);
+        return;
+      }
+
+      // 5. Format Document (Shift+Alt+F on Windows/macOS, Ctrl+Shift+I on Linux)
+      const isKeyF = e.key?.toLowerCase() === 'f' || e.code === 'KeyF';
+      const isKeyI = e.key?.toLowerCase() === 'i' || e.code === 'KeyI';
+      if ((e.shiftKey && e.altKey && isKeyF) || ((e.ctrlKey || e.metaKey) && e.shiftKey && isKeyI)) {
+        e.preventDefault();
+        handleFormatDocument();
+        return;
       }
     };
 

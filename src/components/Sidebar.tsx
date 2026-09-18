@@ -15,6 +15,7 @@ import {
   Check
 } from 'lucide-react';
 import { splitTitleAndExtension, formatTitleWithExtension } from '@/lib/languages';
+import { getShortcutLabel } from '@/lib/platform';
 
 export interface SnippetSummary {
   id: string;
@@ -181,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={onNewSnippet}
           className="mt-3 p-2 rounded-lg bg-sky-500/10 text-brand-primary hover:bg-sky-500/20 transition-colors"
-          title="New Document"
+          title={`New Document (${getShortcutLabel('new')})`}
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -209,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onNewSnippet}
               className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
-              title="New Document (Ctrl+Alt+N / ⌥⌘N)"
+              title={`New Document (${getShortcutLabel('new')})`}
             >
               <Plus className="w-4 h-4" />
             </button>

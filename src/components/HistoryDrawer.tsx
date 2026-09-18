@@ -15,6 +15,7 @@ import {
   Edit3,
   Check
 } from 'lucide-react';
+import { getShortcutLabel } from '@/lib/platform';
 
 export interface VersionItem {
   id: string;
@@ -165,7 +166,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
             <div className="space-y-1">
               <div className="text-xs font-semibold text-slate-300">No snapshots saved yet</div>
               <p className="text-[11px] text-slate-500 leading-relaxed max-w-xs mx-auto">
-                Press <kbd className="px-1 py-0.5 rounded bg-canvas-surface border border-canvas-border text-[10px] text-slate-400 font-mono">Cmd+S</kbd> to save your first snapshot baseline.
+                Press <kbd className="px-1 py-0.5 rounded bg-canvas-surface border border-canvas-border text-[10px] text-slate-400 font-mono">{getShortcutLabel('save')}</kbd> to save your first snapshot baseline.
               </p>
             </div>
           </div>
