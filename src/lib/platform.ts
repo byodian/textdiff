@@ -10,6 +10,7 @@ export type ShortcutAction =
   | 'editorPalette'
   | 'diffPrev'
   | 'diffNext'
+  | 'search'
   | 'esc';
 
 let platformOverride: Platform | null = null;
@@ -66,6 +67,7 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     editorPalette: 'F1',
     diffPrev: '⇧F7',
     diffNext: 'F7',
+    search: '⌘K',
     esc: 'Esc',
   },
   windows: {
@@ -76,6 +78,7 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     editorPalette: 'F1',
     diffPrev: 'Shift+F7',
     diffNext: 'F7',
+    search: 'Ctrl+K',
     esc: 'Esc',
   },
   linux: {
@@ -86,6 +89,7 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     editorPalette: 'F1',
     diffPrev: 'Shift+F7',
     diffNext: 'F7',
+    search: 'Ctrl+K',
     esc: 'Esc',
   },
 };

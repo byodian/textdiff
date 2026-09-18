@@ -13,6 +13,7 @@ import { DeleteDocumentModal } from '@/components/DeleteDocumentModal';
 import { DiffInspectorBar } from '@/components/DiffInspectorBar';
 import { WorkspaceEmptyState } from '@/components/WorkspaceEmptyState';
 import { StatusBar } from '@/components/StatusBar';
+import { SearchModal } from '@/components/SearchModal';
 import { detectLanguageFromFilename, detectLanguageFromTitle } from '@/lib/languages';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
 import { ALL_THEMES } from '@/lib/themes';
@@ -26,6 +27,7 @@ export default function WorkspacePage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Responsive auto-collapse on screens < 1024px to preserve editor canvas & header space
   useEffect(() => {
@@ -630,6 +632,14 @@ export default function WorkspacePage() {
         handleFormatDocument();
         return;
       }
+
+      // 6. Ctrl+K / Cmd+K => Open Search Modal
+      const isKeyK = e.key?.toLowerCase() === 'k' || e.code === 'KeyK';
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && isKeyK) {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -802,6 +812,7 @@ export default function WorkspacePage() {
         onSelectWorkspace={requestSelectWorkspace}
         onCreateWorkspace={handleCreateWorkspace}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onOpenSearch={() => setIsSearchOpen(true)}
         onSearchChange={setSearchQuery}
         onSelectSnippet={requestSelectSnippet}
         onNewSnippet={requestNewSnippet}
@@ -957,6 +968,7 @@ export default function WorkspacePage() {
         onSelectLanguage={handleLanguageChange}
         onPreviewTheme={handlePreviewTheme}
         onOpenEditorCommandPalette={handleOpenEditorCommandPalette}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       {/* Navigation Guard Modal for Unsaved Changes */}
@@ -987,6 +999,17 @@ export default function WorkspacePage() {
           onDismiss={() => setUndoToast(null)}
         />
       )}
+
+      {/* Notion-style Document Search Modal (Ctrl+K / Cmd+K) */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        snippets={snippets}
+        activeSnippetId={activeId}
+        workspaces={workspaces}
+        activeWorkspaceId={activeWorkspaceId}
+        onSelectSnippet={requestSelectSnippet}
+      />
     </div>
   );
 }

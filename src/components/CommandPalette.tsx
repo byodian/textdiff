@@ -18,7 +18,8 @@ import {
   Columns,
   Moon,
   Sun,
-  FileCode
+  FileCode,
+  Search
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
@@ -58,6 +59,7 @@ interface CommandPaletteProps {
   onPreviewTheme: (themeId: string) => void;
   onSelectLanguage?: (languageId: string) => void;
   onOpenEditorCommandPalette?: () => void;
+  onOpenSearch?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -82,6 +84,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onPreviewTheme,
   onSelectLanguage,
   onOpenEditorCommandPalette,
+  onOpenSearch,
 }) => {
   const [mode, setMode] = useState<PaletteMode>(initialMode || 'commands');
   const [query, setQuery] = useState('');
@@ -180,6 +183,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           onNewSnippet();
         },
         keywords: 'new file document create blank empty buffer',
+      },
+      {
+        id: 'snippet:search',
+        title: 'File: Search Documents...',
+        category: 'File',
+        shortcut: getShortcutLabel('search'),
+        icon: <Search className="w-4 h-4 text-sky-400" />,
+        action: () => {
+          onClose();
+          onOpenSearch?.();
+        },
+        keywords: 'search find document files code notion ctrl+k cmd+k',
       },
       {
         id: 'diff:toggle',

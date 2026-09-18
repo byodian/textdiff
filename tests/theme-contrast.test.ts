@@ -149,9 +149,9 @@ describe('Theme Contrast & Button Text Colors', () => {
     const extBadge = screen.getByText('.ts');
     expect(extBadge.className).not.toContain('border');
 
-    // Search input must use border-transparent by default to avoid eye-catching wireframe box
-    const searchInput = screen.getByPlaceholderText(/Search documents/i);
-    expect(searchInput.className).toContain('border-transparent');
+    // Search button in sidebar header and collapsed rail must be present with platform-aware tooltip
+    const searchBtns = screen.getAllByTitle(/Search documents/i);
+    expect(searchBtns.length).toBeGreaterThan(0);
   });
 });
 

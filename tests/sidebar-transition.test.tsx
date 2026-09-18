@@ -137,4 +137,27 @@ describe('Sidebar smooth collapse and expand transition', () => {
     fireEvent.click(newBtns[0]);
     expect(onNewSnippet).toHaveBeenCalledTimes(1);
   });
+
+  it('renders Search button with Ctrl+K shortcut tooltip and handles click', () => {
+    const onOpenSearch = vi.fn();
+    render(
+      <Sidebar
+        snippets={dummySnippets}
+        activeId="1"
+        searchQuery=""
+        isCollapsed={false}
+        onToggleCollapse={() => {}}
+        onOpenSearch={onOpenSearch}
+        onSelectSnippet={() => {}}
+        onNewSnippet={() => {}}
+        onDuplicateSnippet={() => {}}
+        onDeleteSnippet={() => {}}
+      />
+    );
+
+    const searchBtns = screen.getAllByTitle(`Search documents (${getShortcutLabel('search')})`);
+    expect(searchBtns.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(searchBtns[0]);
+    expect(onOpenSearch).toHaveBeenCalledTimes(1);
+  });
 });

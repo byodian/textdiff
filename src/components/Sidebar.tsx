@@ -36,14 +36,15 @@ export interface WorkspaceItem {
 interface SidebarProps {
   snippets: SnippetSummary[];
   activeId: string | null;
-  searchQuery: string;
+  searchQuery?: string;
   isCollapsed: boolean;
   workspaces?: WorkspaceItem[];
   activeWorkspaceId?: string | null;
   onSelectWorkspace?: (id: string) => void;
   onCreateWorkspace?: (name: string) => void;
   onToggleCollapse: () => void;
-  onSearchChange: (q: string) => void;
+  onOpenSearch?: () => void;
+  onSearchChange?: (q: string) => void;
   activeHasUnsavedChanges?: boolean;
   onSelectSnippet: (id: string) => void;
   onNewSnippet: () => void;
@@ -103,7 +104,7 @@ function formatRelativeTime(isoString: string): string {
 export const Sidebar: React.FC<SidebarProps> = ({
   snippets,
   activeId,
-  searchQuery,
+  searchQuery = '',
   isCollapsed,
   workspaces,
   activeWorkspaceId,
@@ -111,6 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectWorkspace,
   onCreateWorkspace,
   onToggleCollapse,
+  onOpenSearch,
   onSearchChange,
   onSelectSnippet,
   onNewSnippet,
@@ -180,8 +182,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <PanelLeft className="w-4 h-4" />
         </button>
         <button
+          onClick={onOpenSearch}
+          className="mt-2.5 p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-canvas-surface transition-colors"
+          title={`Search documents (${getShortcutLabel('search')})`}
+        >
+          <Search className="w-4 h-4" />
+        </button>
+        <button
           onClick={onNewSnippet}
-          className="mt-3 p-2 rounded-lg bg-sky-500/10 text-brand-primary hover:bg-sky-500/20 transition-colors"
+          className="mt-2 p-2 rounded-lg bg-sky-500/10 text-brand-primary hover:bg-sky-500/20 transition-colors"
           title={`New Document (${getShortcutLabel('new')})`}
         >
           <Plus className="w-4 h-4" />
@@ -207,6 +216,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </h1>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              onClick={onOpenSearch}
+              className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
+              title={`Search documents (${getShortcutLabel('search')})`}
+            >
+              <Search className="w-4 h-4" />
+            </button>
             <button
               onClick={onNewSnippet}
               className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
@@ -318,30 +334,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         )}
-
-        {/* Search Bar */}
-        <div className="px-3 py-1.5 shrink-0">
-          <div className="relative flex items-center">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-500 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search documents..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-canvas-surface hover:bg-canvas-surface focus:bg-canvas-surface border border-transparent hover:border-canvas-border focus:border-brand-primary rounded-md pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 transition-colors"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => onSearchChange('')}
-                className="absolute right-2 text-slate-500 hover:text-slate-300 p-0.5 rounded text-xs font-bold leading-none"
-                title="Clear search"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Snippets List */}
         <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 min-h-0">
