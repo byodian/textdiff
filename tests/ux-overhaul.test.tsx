@@ -131,6 +131,11 @@ describe('TextDiff UX Overhaul Component Seams', () => {
     expect(screen.getByText('Nacos Spring Cloud Config')).toBeDefined();
     expect(screen.getByText('MySQL Schema Migration')).toBeDefined();
 
+    const newDocBtn = screen.getByTitle('New Document (Ctrl+Alt+N / ⌥⌘N)');
+    expect(newDocBtn).toBeDefined();
+    fireEvent.click(newDocBtn);
+    expect(onNew).toHaveBeenCalledTimes(1);
+
     fireEvent.click(screen.getByText('MySQL Schema Migration'));
     expect(onApply).toHaveBeenCalledTimes(1);
   });

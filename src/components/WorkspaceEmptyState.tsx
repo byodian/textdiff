@@ -129,7 +129,8 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
           <button
             type="button"
             onClick={onNewDocument}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary text-brand-text text-xs font-semibold shadow-md shadow-sky-500/20 hover:brightness-110 transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary text-brand-text text-xs font-semibold hover:brightness-110 transition-all active:scale-95"
+            title="New Document (Ctrl+Alt+N / ⌥⌘N)"
           >
             <Plus className="w-4 h-4" />
             <span>New Document</span>

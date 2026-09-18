@@ -172,6 +172,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         id: 'snippet:new',
         title: 'File: New Document',
         category: 'File',
+        shortcut: 'Ctrl+Alt+N',
         icon: <Plus className="w-4 h-4 text-teal-400" />,
         action: () => {
           onClose();

@@ -410,5 +410,30 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
     expect(handleOpenEditorCommandPalette).toHaveBeenCalledTimes(1);
   });
+
+  it('displays Ctrl+Alt+N shortcut for File: New Document command', () => {
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: vi.fn(),
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+      })
+    );
+
+    expect(screen.getByText('File: New Document')).toBeDefined();
+    expect(screen.getByText('Ctrl+Alt+N')).toBeDefined();
+  });
 });
 

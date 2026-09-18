@@ -209,7 +209,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onNewSnippet}
               className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
-              title="New Document"
+              title="New Document (Ctrl+Alt+N / ⌥⌘N)"
             >
               <Plus className="w-4 h-4" />
             </button>

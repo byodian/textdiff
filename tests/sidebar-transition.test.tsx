@@ -113,4 +113,27 @@ describe('Sidebar smooth collapse and expand transition', () => {
     expect(screen.getByText('README')).toBeDefined();
     expect(screen.getByText('.md')).toBeDefined();
   });
+
+  it('renders New Document button with Ctrl+Alt+N shortcut tooltip and handles click', () => {
+    const onNewSnippet = vi.fn();
+    render(
+      <Sidebar
+        snippets={dummySnippets}
+        activeId="1"
+        searchQuery=""
+        isCollapsed={false}
+        onToggleCollapse={() => {}}
+        onSearchChange={() => {}}
+        onSelectSnippet={() => {}}
+        onNewSnippet={onNewSnippet}
+        onDuplicateSnippet={() => {}}
+        onDeleteSnippet={() => {}}
+      />
+    );
+
+    const newBtn = screen.getByTitle('New Document (Ctrl+Alt+N / ⌥⌘N)');
+    expect(newBtn).toBeDefined();
+    fireEvent.click(newBtn);
+    expect(onNewSnippet).toHaveBeenCalledTimes(1);
+  });
 });

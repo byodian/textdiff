@@ -581,11 +581,14 @@ export default function WorkspacePage() {
 
   const hasUnsavedChanges = code !== lastSavedCode;
 
-  // Keep ref to latest handleInstantSave to avoid stale closures in event listeners
+  // Keep ref to latest callbacks to avoid stale closures in event listeners
   const handleInstantSaveRef = useRef(handleInstantSave);
   handleInstantSaveRef.current = handleInstantSave;
 
-  // 10. Global keyboard shortcuts (Ctrl+S for Instant Save, Ctrl+Shift+P / Cmd+Shift+P for Command Palette)
+  const handleNewSnippetRef = useRef(handleNewSnippet);
+  handleNewSnippetRef.current = handleNewSnippet;
+
+  // 10. Global keyboard shortcuts (Ctrl+S for Instant Save, Ctrl+Shift+P for Command Palette, Ctrl+Alt+N / Ctrl+N for New Document)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 1. Ctrl+S / Cmd+S => Instant Save (only if there are modifications)
@@ -603,7 +606,15 @@ export default function WorkspacePage() {
         return;
       }
 
-      // 3. Escape => Exit Diff Mode
+      // 3. Ctrl+Alt+N / Cmd+Option+N (and attempt on Ctrl+N / Cmd+N if permitted) => New Document
+      const isKeyN = e.key?.toLowerCase() === 'n' || e.code === 'KeyN';
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && isKeyN) {
+        e.preventDefault();
+        handleNewSnippetRef.current();
+        return;
+      }
+
+      // 4. Escape => Exit Diff Mode
       if (e.key === 'Escape' && isDiffMode) {
         setIsDiffMode(false);
         setVersionA(null);
