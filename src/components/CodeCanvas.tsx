@@ -53,6 +53,10 @@ interface CodeCanvasProps {
   onOpenSearch?: () => void;
   onDiagnosticsChange?: (diags: SyntaxDiagnostic[]) => void;
   onUndoRedoChange?: (canUndo: boolean, canRedo: boolean) => void;
+  isDiagnosticsExpanded?: boolean;
+  onDiagnosticsExpandedChange?: (expanded: boolean) => void;
+  isDiagnosticsDismissed?: boolean;
+  onDiagnosticsDismissedChange?: (dismissed: boolean) => void;
 }
 
 const DEFAULT_SPLIT_RATIO = 0.7;
@@ -74,6 +78,10 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   onOpenSearch,
   onDiagnosticsChange,
   onUndoRedoChange,
+  isDiagnosticsExpanded,
+  onDiagnosticsExpandedChange,
+  isDiagnosticsDismissed,
+  onDiagnosticsDismissedChange,
 }) => {
   const monacoRef = React.useRef<Monaco | null>(null);
   const onInstantSaveRef = React.useRef(onInstantSave);
@@ -504,6 +512,10 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
           diagnostics={diagnostics}
           onNavigateToError={handleNavigateToError}
           onApplyQuickFix={handleApplyQuickFix}
+          isExpanded={isDiagnosticsExpanded}
+          onExpandedChange={onDiagnosticsExpandedChange}
+          isDismissed={isDiagnosticsDismissed}
+          onDismissedChange={onDiagnosticsDismissedChange}
         />
       )}
     </div>

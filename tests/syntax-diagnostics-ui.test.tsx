@@ -135,6 +135,34 @@ describe('StatusBar with Syntax Health & Auto-detect', () => {
     expect(onAutoDetectLanguage).toHaveBeenCalledTimes(1);
   });
 
+  it('triggers onToggleDiagnostics when clicking error button in status bar', () => {
+    const onToggleDiagnostics = vi.fn();
+    const diagnostics: SyntaxDiagnostic[] = [
+      {
+        id: '1',
+        line: 2,
+        column: 4,
+        severity: 'error',
+        message: 'Trailing comma',
+      },
+    ];
+
+    render(
+      React.createElement(StatusBar, {
+        language: 'json',
+        code: '{\n "test": 1,\n}',
+        isDiffMode: false,
+        diagnostics,
+        onToggleDiagnostics,
+      })
+    );
+
+    const errorBtn = screen.getByRole('button', { name: /1 个语法错误/i });
+    expect(errorBtn).toBeDefined();
+    fireEvent.click(errorBtn);
+    expect(onToggleDiagnostics).toHaveBeenCalledTimes(1);
+  });
+
   it('renders syntax valid when no errors in structured format', () => {
     render(
       React.createElement(StatusBar, {
@@ -146,5 +174,80 @@ describe('StatusBar with Syntax Health & Auto-detect', () => {
     );
 
     expect(screen.getByText(/语法有效/)).toBeDefined();
+  });
+});
+
+describe('Syntax Diagnostics High Contrast & Dismissal Re-open Integration', () => {
+  const diagnostics: SyntaxDiagnostic[] = [
+    {
+      id: 'err-1',
+      line: 10,
+      column: 5,
+      severity: 'error',
+      message: 'Unexpected token',
+      suggestion: 'Remove redundant token',
+    },
+  ];
+
+  it('uses high-contrast text color classes for 查看建议 and suggestion box', () => {
+    render(
+      React.createElement(SyntaxDiagnosticsBar, {
+        language: 'json',
+        diagnostics,
+        isExpanded: false,
+      })
+    );
+
+    const suggestLink = screen.getByText('查看建议');
+    // Ensure high-contrast text-rose-100 on dark red badge (NOT text-slate-400)
+    expect(suggestLink.className).toContain('text-rose-100');
+    expect(suggestLink.className).not.toContain('text-slate-400');
+  });
+
+  it('allows re-opening dismissed diagnostics via controlled props', () => {
+    const onDismissedChange = vi.fn();
+    const onExpandedChange = vi.fn();
+
+    const { rerender } = render(
+      React.createElement(SyntaxDiagnosticsBar, {
+        language: 'json',
+        diagnostics,
+        isExpanded: true,
+        isDismissed: false,
+        onDismissedChange,
+        onExpandedChange,
+      })
+    );
+
+    expect(screen.getByText('语法诊断 (JSON)')).toBeDefined();
+
+    // User closes panel via X
+    const closeBtn = screen.getByTitle('关闭提示');
+    fireEvent.click(closeBtn);
+    expect(onDismissedChange).toHaveBeenCalledWith(true);
+
+    // Re-render in dismissed state -> panel is hidden
+    rerender(
+      React.createElement(SyntaxDiagnosticsBar, {
+        language: 'json',
+        diagnostics,
+        isExpanded: false,
+        isDismissed: true,
+      })
+    );
+    expect(screen.queryByText('语法诊断 (JSON)')).toBeNull();
+    expect(screen.queryByText('查看建议')).toBeNull();
+
+    // User clicks the error badge in StatusBar -> restores and expands panel
+    rerender(
+      React.createElement(SyntaxDiagnosticsBar, {
+        language: 'json',
+        diagnostics,
+        isExpanded: true,
+        isDismissed: false,
+      })
+    );
+    expect(screen.getByText('语法诊断 (JSON)')).toBeDefined();
+    expect(screen.getByText('Unexpected token')).toBeDefined();
   });
 });

@@ -17,6 +17,7 @@ interface StatusBarProps {
   onPrevDiffChunk?: () => void;
   onOpenLanguagePicker?: () => void;
   onAutoDetectLanguage?: () => void;
+  onToggleDiagnostics?: () => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -30,6 +31,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onPrevDiffChunk,
   onOpenLanguagePicker,
   onAutoDetectLanguage,
+  onToggleDiagnostics,
 }) => {
   const currentLangName = React.useMemo(() => {
     return SUPPORTED_LANGUAGES.find((l) => l.id === language)?.name || language.toUpperCase();
@@ -80,20 +82,32 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         {/* Syntax Health Badge */}
         {isStructured && (
           <>
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-600 dark:text-slate-400">|</span>
             {errors.length > 0 ? (
-              <span className="flex items-center gap-1 text-[11px] text-rose-400 font-sans font-medium" title={`${errors.length} 个语法错误`}>
-                <AlertCircle className="w-3 h-3 text-rose-400" />
-                <span>{errors.length} 错误</span>
-              </span>
+              <button
+                type="button"
+                onClick={onToggleDiagnostics}
+                className="flex items-center gap-1 text-[11px] text-rose-700 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-sans font-medium px-1.5 py-0.5 rounded hover:bg-canvas-surface transition-colors cursor-pointer"
+                title={`${errors.length} 个语法错误 - 点击查看错误详情与修改建议`}
+                aria-label={`${errors.length} 个语法错误，点击查看详情`}
+              >
+                <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="underline underline-offset-2">{errors.length} 错误</span>
+              </button>
             ) : warnings.length > 0 ? (
-              <span className="flex items-center gap-1 text-[11px] text-amber-400 font-sans font-medium" title={`${warnings.length} 个警告`}>
-                <AlertTriangle className="w-3 h-3 text-amber-400" />
-                <span>{warnings.length} 警告</span>
-              </span>
+              <button
+                type="button"
+                onClick={onToggleDiagnostics}
+                className="flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 font-sans font-medium px-1.5 py-0.5 rounded hover:bg-canvas-surface transition-colors cursor-pointer"
+                title={`${warnings.length} 个警告 - 点击查看警告详情与修改建议`}
+                aria-label={`${warnings.length} 个语法警告，点击查看详情`}
+              >
+                <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="underline underline-offset-2">{warnings.length} 警告</span>
+              </button>
             ) : (
-              <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-sans font-medium" title="语法有效">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              <span className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-sans font-medium" title="语法有效">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>语法有效</span>
               </span>
             )}

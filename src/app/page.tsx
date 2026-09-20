@@ -847,6 +847,31 @@ export default function WorkspacePage() {
   // Redo is available if an undone modification can be reapplied
   const canRedo = Boolean(monacoCanRedo);
 
+  // Floating syntax diagnostics panel visibility state
+  const [isDiagnosticsExpanded, setIsDiagnosticsExpanded] = useState(false);
+  const [isDiagnosticsDismissed, setIsDiagnosticsDismissed] = useState(false);
+
+  // Automatically un-dismiss when new errors are detected
+  const prevErrorCountRef = useRef(0);
+  useEffect(() => {
+    const errorCount = diagnostics.filter((d) => d.severity === 'error').length;
+    if (errorCount > 0 && errorCount !== prevErrorCountRef.current) {
+      setIsDiagnosticsDismissed(false);
+    }
+    prevErrorCountRef.current = errorCount;
+  }, [diagnostics]);
+
+  // When user clicks the error badge in bottom-left StatusBar:
+  // Restore and display the diagnostics panel
+  const handleToggleDiagnostics = useCallback(() => {
+    if (isDiagnosticsDismissed || !isDiagnosticsExpanded) {
+      setIsDiagnosticsDismissed(false);
+      setIsDiagnosticsExpanded(true);
+    } else {
+      setIsDiagnosticsExpanded(false);
+    }
+  }, [isDiagnosticsDismissed, isDiagnosticsExpanded]);
+
   // Keep ref to latest callbacks to avoid stale closures in event listeners
   const handleInstantSaveRef = useRef(handleInstantSave);
   handleInstantSaveRef.current = handleInstantSave;
@@ -1225,6 +1250,10 @@ export default function WorkspacePage() {
                   onCodeChange={handleCodeChange}
                   onDiagnosticsChange={setDiagnostics}
                   onUndoRedoChange={handleUndoRedoChange}
+                  isDiagnosticsExpanded={isDiagnosticsExpanded}
+                  onDiagnosticsExpandedChange={setIsDiagnosticsExpanded}
+                  isDiagnosticsDismissed={isDiagnosticsDismissed}
+                  onDiagnosticsDismissedChange={setIsDiagnosticsDismissed}
                   editorRef={editorRef}
                   diffEditorRef={diffEditorRef}
                   onInstantSave={handleInstantSave}
@@ -1243,6 +1272,7 @@ export default function WorkspacePage() {
                 onNextDiffChunk={handleNextDiffChunk}
                 onPrevDiffChunk={handlePrevDiffChunk}
                 onAutoDetectLanguage={handleAutoDetectLanguage}
+                onToggleDiagnostics={handleToggleDiagnostics}
                 onOpenLanguagePicker={() => {
                   setCommandPaletteMode('language-picker');
                   setCommandPaletteOpen(true);
