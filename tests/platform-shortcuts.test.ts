@@ -49,7 +49,7 @@ describe('Platform-aware Keyboard Shortcuts & Labels', () => {
     expect(getShortcutLabel('format', 'mac')).toBe('⇧⌥F');
     expect(getShortcutLabel('diffPrev', 'mac')).toBe('⇧F7');
     expect(getShortcutLabel('diffNext', 'mac')).toBe('F7');
-    expect(getShortcutLabel('search', 'mac')).toBe('⌘K');
+    expect(getShortcutLabel('search', 'mac')).toBe('⌘P');
     expect(getShortcutLabel('esc', 'mac')).toBe('Esc');
   });
 
@@ -60,7 +60,7 @@ describe('Platform-aware Keyboard Shortcuts & Labels', () => {
     expect(getShortcutLabel('format', 'windows')).toBe('Shift+Alt+F');
     expect(getShortcutLabel('diffPrev', 'windows')).toBe('Shift+F7');
     expect(getShortcutLabel('diffNext', 'windows')).toBe('F7');
-    expect(getShortcutLabel('search', 'windows')).toBe('Ctrl+K');
+    expect(getShortcutLabel('search', 'windows')).toBe('Ctrl+P');
     expect(getShortcutLabel('esc', 'windows')).toBe('Esc');
   });
 
@@ -71,7 +71,7 @@ describe('Platform-aware Keyboard Shortcuts & Labels', () => {
     expect(getShortcutLabel('format', 'linux')).toBe('Ctrl+Shift+I');
     expect(getShortcutLabel('diffPrev', 'linux')).toBe('Shift+F7');
     expect(getShortcutLabel('diffNext', 'linux')).toBe('F7');
-    expect(getShortcutLabel('search', 'linux')).toBe('Ctrl+K');
+    expect(getShortcutLabel('search', 'linux')).toBe('Ctrl+P');
     expect(getShortcutLabel('esc', 'linux')).toBe('Esc');
   });
 

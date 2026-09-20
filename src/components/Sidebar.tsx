@@ -182,18 +182,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <PanelLeft className="w-4 h-4" />
         </button>
         <button
-          onClick={onOpenSearch}
-          className="mt-2.5 p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-canvas-surface transition-colors"
-          title={`Search documents (${getShortcutLabel('search')})`}
-        >
-          <Search className="w-4 h-4" />
-        </button>
-        <button
           onClick={onNewSnippet}
-          className="mt-2 p-2 rounded-lg bg-sky-500/10 text-brand-primary hover:bg-sky-500/20 transition-colors"
+          className="mt-2.5 p-2 rounded-lg bg-sky-500/10 text-brand-primary hover:bg-sky-500/20 transition-colors"
           title={`New Document (${getShortcutLabel('new')})`}
         >
           <Plus className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onOpenSearch}
+          className="mt-2 p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-canvas-surface transition-colors"
+          title={`Search documents (${getShortcutLabel('search')})`}
+        >
+          <Search className="w-4 h-4" />
         </button>
       </div>
 
@@ -217,18 +217,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={onOpenSearch}
-              className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
-              title={`Search documents (${getShortcutLabel('search')})`}
-            >
-              <Search className="w-4 h-4" />
-            </button>
-            <button
               onClick={onNewSnippet}
               className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
               title={`New Document (${getShortcutLabel('new')})`}
             >
               <Plus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onOpenSearch}
+              className="p-1.5 rounded-md hover:bg-canvas-surface text-slate-400 hover:text-slate-100 transition-colors"
+              title={`Search documents (${getShortcutLabel('search')})`}
+            >
+              <Search className="w-4 h-4" />
             </button>
             <button
               onClick={onToggleCollapse}

@@ -194,7 +194,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           onClose();
           onOpenSearch?.();
         },
-        keywords: 'search find document files code notion ctrl+k cmd+k',
+        keywords: 'search find document files code notion ctrl+p cmd+p ctrl+k cmd+k',
       },
       {
         id: 'diff:toggle',

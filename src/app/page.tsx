@@ -633,18 +633,24 @@ export default function WorkspacePage() {
         return;
       }
 
-      // 6. Ctrl+K / Cmd+K => Open Search Modal
+      // 6. Ctrl+P / Cmd+P, Ctrl+K / Cmd+K, or Ctrl+Shift+K => Open Search Modal
+      const isKeyP = e.key?.toLowerCase() === 'p' || e.code === 'KeyP';
       const isKeyK = e.key?.toLowerCase() === 'k' || e.code === 'KeyK';
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && isKeyK) {
+      const isSearchShortcut =
+        ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && isKeyP) ||
+        ((e.ctrlKey || e.metaKey) && !e.altKey && isKeyK);
+
+      if (isSearchShortcut) {
         e.preventDefault();
+        e.stopPropagation();
         setIsSearchOpen((prev) => !prev);
         return;
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, [isDiffMode]);
 
@@ -886,6 +892,7 @@ export default function WorkspacePage() {
                   editorRef={editorRef}
                   diffEditorRef={diffEditorRef}
                   onInstantSave={handleInstantSave}
+                  onOpenSearch={() => setIsSearchOpen(true)}
                 />
               </div>
 

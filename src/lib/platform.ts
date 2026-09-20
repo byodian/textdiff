@@ -67,7 +67,7 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     editorPalette: 'F1',
     diffPrev: '⇧F7',
     diffNext: 'F7',
-    search: '⌘K',
+    search: '⌘P',
     esc: 'Esc',
   },
   windows: {
@@ -78,7 +78,7 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     editorPalette: 'F1',
     diffPrev: 'Shift+F7',
     diffNext: 'F7',
-    search: 'Ctrl+K',
+    search: 'Ctrl+P',
     esc: 'Esc',
   },
   linux: {
@@ -89,7 +89,7 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     editorPalette: 'F1',
     diffPrev: 'Shift+F7',
     diffNext: 'F7',
-    search: 'Ctrl+K',
+    search: 'Ctrl+P',
     esc: 'Esc',
   },
 };

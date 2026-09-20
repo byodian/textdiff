@@ -61,9 +61,12 @@ describe('Notion-Style SearchModal Component', () => {
     );
 
     expect(screen.getByPlaceholderText(/Search or ask a question in documents/i)).toBeDefined();
-    expect(screen.getAllByText('orders.sql').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('auth.ts').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('notes.md').length).toBeGreaterThan(0);
+    expect(screen.getByText('orders')).toBeDefined();
+    expect(screen.getByText('.sql')).toBeDefined();
+    expect(screen.getByText('auth')).toBeDefined();
+    expect(screen.getByText('.ts')).toBeDefined();
+    expect(screen.getByText('notes')).toBeDefined();
+    expect(screen.getByText('.md')).toBeDefined();
   });
 
   it('toggles highlight pane and updates hover title between Hide/Show highlight pane', () => {
@@ -145,8 +148,8 @@ describe('Notion-Style SearchModal Component', () => {
 
     // Search by content that only exists in currentCode of auth.ts
     fireEvent.change(input, { target: { value: 'authenticateUser' } });
-    expect(screen.getAllByText('auth.ts').length).toBeGreaterThan(0);
-    expect(screen.queryByText('orders.sql')).toBeNull();
+    expect(screen.getByText('auth')).toBeDefined();
+    expect(screen.queryByText('orders')).toBeNull();
 
     // Now enable "Title only" filter
     const titleOnlyBtn = screen.getByText('Title only');
@@ -157,7 +160,7 @@ describe('Notion-Style SearchModal Component', () => {
 
     // Search for "orders" in title
     fireEvent.change(input, { target: { value: 'orders' } });
-    expect(screen.getAllByText('orders.sql').length).toBeGreaterThan(0);
+    expect(screen.getByText('orders')).toBeDefined();
   });
 
   it('navigates with keyboard ArrowDown, ArrowUp, Enter and Escape', () => {

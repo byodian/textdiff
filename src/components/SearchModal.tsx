@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { SnippetSummary, WorkspaceItem } from './Sidebar';
 import { getShortcutLabel } from '@/lib/platform';
+import { splitTitleAndExtension } from '@/lib/languages';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -223,7 +224,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-16 px-4 pb-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
       <div 
-        className="w-full max-w-4xl bg-canvas-elevated border border-canvas-border rounded-xl shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 flex flex-col max-h-[85vh] text-slate-800 dark:text-slate-100"
+        className="w-full max-w-4xl h-[580px] max-h-[85vh] bg-canvas-elevated border border-canvas-border rounded-xl shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 flex flex-col text-slate-800 dark:text-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Search Input & Controls */}
@@ -255,7 +256,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </button>
           )}
 
-          <div className="flex items-center gap-1 pl-2 border-l border-canvas-border">
+          <div className="flex items-center gap-1">
             {/* Toggle Highlight Pane */}
             <button
               type="button"
@@ -364,6 +365,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       const isSelected = itemIndex === selectedIndex;
                       const isCurrentDoc = snippet.id === activeSnippetId;
                       const isMarkdown = snippet.language === 'markdown';
+                      const { baseTitle, extension } = splitTitleAndExtension(
+                        snippet.title,
+                        snippet.language,
+                        snippet.filename
+                      );
 
                       return (
                         <div
@@ -388,18 +394,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 truncate text-xs">
                                 <span className="truncate font-semibold">
-                                  {snippet.title || 'Untitled Document'}
+                                  {baseTitle}
                                 </span>
-                                {snippet.filename && (
+                                {extension && (
                                   <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
-                                    .{snippet.filename.split('.').pop()}
+                                    {extension}
                                   </span>
                                 )}
                               </div>
                               <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                                 <span>{getWorkspaceName(snippet.workspaceId)}</span>
-                                <span className="mx-1.5">·</span>
-                                <span className="font-mono text-[10px]">{snippet.language}</span>
                               </div>
                             </div>
                           </div>

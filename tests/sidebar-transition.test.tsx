@@ -138,7 +138,7 @@ describe('Sidebar smooth collapse and expand transition', () => {
     expect(onNewSnippet).toHaveBeenCalledTimes(1);
   });
 
-  it('renders Search button with Ctrl+K shortcut tooltip and handles click', () => {
+  it('renders Search button with platform shortcut tooltip and handles click', () => {
     const onOpenSearch = vi.fn();
     render(
       <Sidebar

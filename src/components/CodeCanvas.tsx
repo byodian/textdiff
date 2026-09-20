@@ -39,6 +39,7 @@ interface CodeCanvasProps {
   editorRef: React.MutableRefObject<MonacoEditorInstance | null>;
   diffEditorRef: React.MutableRefObject<MonacoDiffEditorInstance | null>;
   onInstantSave?: () => void;
+  onOpenSearch?: () => void;
 }
 
 const DEFAULT_SPLIT_RATIO = 0.7;
@@ -57,10 +58,13 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   editorRef,
   diffEditorRef,
   onInstantSave,
+  onOpenSearch,
 }) => {
   const monacoRef = React.useRef<Monaco | null>(null);
   const onInstantSaveRef = React.useRef(onInstantSave);
   onInstantSaveRef.current = onInstantSave;
+  const onOpenSearchRef = React.useRef(onOpenSearch);
+  onOpenSearchRef.current = onOpenSearch;
 
   const handleEditorDidMount = (editor: MonacoEditorInstance, monaco: Monaco) => {
     editorRef.current = editor;
@@ -70,6 +74,12 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     if (editor && typeof (editor as any).addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
       (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
         onInstantSaveRef.current?.();
+      });
+      (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
+        onOpenSearchRef.current?.();
+      });
+      (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+        onOpenSearchRef.current?.();
       });
     }
   };
@@ -83,6 +93,12 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     if (modified && typeof modified.addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
       modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
         onInstantSaveRef.current?.();
+      });
+      modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
+        onOpenSearchRef.current?.();
+      });
+      modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+        onOpenSearchRef.current?.();
       });
     }
   };
