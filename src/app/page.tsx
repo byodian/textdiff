@@ -16,7 +16,13 @@ import { DiffInspectorBar } from '@/components/DiffInspectorBar';
 import { WorkspaceEmptyState } from '@/components/WorkspaceEmptyState';
 import { StatusBar } from '@/components/StatusBar';
 import { SearchModal } from '@/components/SearchModal';
-import { detectLanguageFromFilename, detectLanguageFromTitle } from '@/lib/languages';
+import { 
+  detectLanguageFromFilename, 
+  detectLanguageFromTitle, 
+  detectLanguageFromContent,
+  formatTitleWithExtension 
+} from '@/lib/languages';
+import { SyntaxDiagnostic } from '@/lib/syntax-validator';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
 import { ALL_THEMES } from '@/lib/themes';
 import { applyGlobalThemeColors } from '@/lib/theme-colors';
@@ -68,6 +74,7 @@ export default function WorkspacePage() {
   const [code, setCode] = useState('');
   const [lastSavedCode, setLastSavedCode] = useState('');
   const [versions, setVersions] = useState<VersionItem[]>([]);
+  const [diagnostics, setDiagnostics] = useState<SyntaxDiagnostic[]>([]);
 
   // Diff & Mode State
   const [isDiffMode, setIsDiffMode] = useState(false);
@@ -562,12 +569,14 @@ export default function WorkspacePage() {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
         text = await navigator.clipboard.readText();
       }
+      const detected = detectLanguageFromContent(text || '', 'plaintext');
+      const formattedTitle = formatTitleWithExtension('Pasted Document', detected);
       const res = await fetch('/api/snippets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: 'Pasted Document',
-          language: 'plaintext',
+          title: formattedTitle,
+          language: detected,
           currentCode: text || '',
           workspaceId: activeWorkspaceId || undefined,
         }),
@@ -624,8 +633,48 @@ export default function WorkspacePage() {
     }
   }, [activeId, title, language, code]);
 
+  // 7b. Auto-detect format from content when in plaintext or untitled document
+  const handleCodeChange = useCallback((newCode: string) => {
+    setCode(newCode);
+
+    const isUntitled = !title || title.trim().toLowerCase().startsWith('untitled document');
+    if (language === 'plaintext' || isUntitled) {
+      const detected = detectLanguageFromContent(newCode);
+      if (detected && detected !== 'plaintext' && detected !== language) {
+        setLanguage(detected);
+        if (isUntitled) {
+          const newTitle = formatTitleWithExtension(title || 'Untitled Document', detected);
+          setTitle(newTitle);
+          handleAutoSaveMeta(newTitle, detected);
+        } else {
+          handleAutoSaveMeta(title, detected);
+        }
+      }
+    }
+  }, [language, title, handleAutoSaveMeta]);
+
+  // 7c. Manual trigger to auto-detect and adapt language format from content
+  const handleAutoDetectLanguage = useCallback(() => {
+    const detected = detectLanguageFromContent(code, 'plaintext');
+    if (detected && detected !== language) {
+      setLanguage(detected);
+      const isUntitled = !title || title.trim().toLowerCase().startsWith('untitled document');
+      if (isUntitled) {
+        const newTitle = formatTitleWithExtension(title || 'Untitled Document', detected);
+        setTitle(newTitle);
+        handleAutoSaveMeta(newTitle, detected);
+      } else {
+        handleAutoSaveMeta(title, detected);
+      }
+    }
+  }, [code, language, title, handleAutoSaveMeta]);
+
   // 8. Language change with auto-save
   const handleLanguageChange = (newLang: string) => {
+    if (newLang === 'auto-detect') {
+      handleAutoDetectLanguage();
+      return;
+    }
     setLanguage(newLang);
     handleAutoSaveMeta(title, newLang);
   };
@@ -850,7 +899,51 @@ export default function WorkspacePage() {
     }
   };
 
-  // 11b. Open Monaco Editor built-in Command Palette (F1)
+  // 11b. Undo action
+  const handleUndo = useCallback(() => {
+    if (isDiffMode) {
+      const modifiedEditor = diffEditorRef.current?.getModifiedEditor?.();
+      if (modifiedEditor) {
+        if (typeof modifiedEditor.trigger === 'function') {
+          modifiedEditor.trigger('toolbar', 'undo', null);
+        } else {
+          modifiedEditor.getAction('undo')?.run();
+        }
+        modifiedEditor.focus?.();
+      }
+    } else if (editorRef.current) {
+      if (typeof editorRef.current.trigger === 'function') {
+        editorRef.current.trigger('toolbar', 'undo', null);
+      } else {
+        editorRef.current.getAction('undo')?.run();
+      }
+      editorRef.current.focus?.();
+    }
+  }, [isDiffMode]);
+
+  // 11c. Redo action
+  const handleRedo = useCallback(() => {
+    if (isDiffMode) {
+      const modifiedEditor = diffEditorRef.current?.getModifiedEditor?.();
+      if (modifiedEditor) {
+        if (typeof modifiedEditor.trigger === 'function') {
+          modifiedEditor.trigger('toolbar', 'redo', null);
+        } else {
+          modifiedEditor.getAction('redo')?.run();
+        }
+        modifiedEditor.focus?.();
+      }
+    } else if (editorRef.current) {
+      if (typeof editorRef.current.trigger === 'function') {
+        editorRef.current.trigger('toolbar', 'redo', null);
+      } else {
+        editorRef.current.getAction('redo')?.run();
+      }
+      editorRef.current.focus?.();
+    }
+  }, [isDiffMode]);
+
+  // 11d. Open Monaco Editor built-in Command Palette (F1)
   const handleOpenEditorCommandPalette = () => {
     setTimeout(() => {
       if (isDiffMode) {
@@ -1049,6 +1142,8 @@ export default function WorkspacePage() {
               onCopyDiff={handleCopyDiff}
               onNextDiffChunk={handleNextDiffChunk}
               onPrevDiffChunk={handlePrevDiffChunk}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
             />
 
             <div className="flex-1 relative overflow-hidden isolate flex flex-col w-full">
@@ -1080,7 +1175,8 @@ export default function WorkspacePage() {
                   isSideBySide={isSideBySide}
                   markdownViewMode={markdownViewMode}
                   onMarkdownViewModeChange={setMarkdownViewMode}
-                  onCodeChange={setCode}
+                  onCodeChange={handleCodeChange}
+                  onDiagnosticsChange={setDiagnostics}
                   editorRef={editorRef}
                   diffEditorRef={diffEditorRef}
                   onInstantSave={handleInstantSave}
@@ -1094,9 +1190,11 @@ export default function WorkspacePage() {
                 code={code}
                 isDiffMode={isDiffMode}
                 diffStats={diffStats}
+                diagnostics={diagnostics}
                 onFormatDocument={handleFormatDocument}
                 onNextDiffChunk={handleNextDiffChunk}
                 onPrevDiffChunk={handlePrevDiffChunk}
+                onAutoDetectLanguage={handleAutoDetectLanguage}
                 onOpenLanguagePicker={() => {
                   setCommandPaletteMode('language-picker');
                   setCommandPaletteOpen(true);
@@ -1172,6 +1270,9 @@ export default function WorkspacePage() {
           handleThemeChange(th);
         }}
         onSelectLanguage={handleLanguageChange}
+        onAutoDetectLanguage={handleAutoDetectLanguage}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
         onPreviewTheme={handlePreviewTheme}
         onOpenEditorCommandPalette={handleOpenEditorCommandPalette}
         onOpenSearch={() => setIsSearchOpen(true)}

@@ -436,5 +436,44 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(screen.getByText('File: New Document')).toBeDefined();
     expect(screen.getByText(getShortcutLabel('new'))).toBeDefined();
   });
+
+  it('triggers onUndo and onRedo from CommandPalette commands', () => {
+    const handleUndo = vi.fn();
+    const handleRedo = vi.fn();
+    const handleClose = vi.fn();
+
+    render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        onClose: handleClose,
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+        onUndo: handleUndo,
+        onRedo: handleRedo,
+      })
+    );
+
+    const undoItem = screen.getByText('Edit: Undo (撤销)');
+    expect(undoItem).toBeDefined();
+    fireEvent.click(undoItem);
+    expect(handleClose).toHaveBeenCalled();
+    expect(handleUndo).toHaveBeenCalledTimes(1);
+
+    const redoItem = screen.getByText('Edit: Redo (重做)');
+    expect(redoItem).toBeDefined();
+    fireEvent.click(redoItem);
+    expect(handleRedo).toHaveBeenCalledTimes(1);
+  });
 });
 

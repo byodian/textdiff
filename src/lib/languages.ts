@@ -50,6 +50,134 @@ export function detectLanguageFromTitle(title: string, fallback = 'plaintext'): 
   return detectLanguageFromFilename(title, fallback);
 }
 
+export function detectLanguageFromContent(content: string, fallback = 'plaintext'): string {
+  const text = (content || '').trim();
+  if (!text) return fallback;
+
+  // 1. Shebang
+  if (text.startsWith('#!')) {
+    const firstLine = text.split('\n')[0].toLowerCase();
+    if (firstLine.includes('python')) return 'python';
+    if (firstLine.includes('bash') || firstLine.includes('sh') || firstLine.includes('zsh')) return 'shell';
+    if (firstLine.includes('node')) return 'javascript';
+  }
+
+  // 2. Diff / Patch
+  if (
+    text.startsWith('diff --git') ||
+    text.startsWith('Index: ') ||
+    text.startsWith('--- a/') ||
+    text.startsWith('*** ') ||
+    /^@@\s+-\d+,\d+\s+\+\d+,\d+\s+@@/m.test(text)
+  ) {
+    return 'diff';
+  }
+
+  // 3. XML / SVG / HTML
+  if (/^<\?xml\b/i.test(text) || /^<svg\b/i.test(text)) {
+    return 'xml';
+  }
+  if (/^<!DOCTYPE\s+html\b/i.test(text) || /^<html\b/i.test(text)) {
+    return 'html';
+  }
+
+  // 4. JSON
+  if ((text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))) {
+    try {
+      JSON.parse(text);
+      return 'json';
+    } catch {
+      // JSON with minor errors or formatting
+      if (
+        /^\{[\s\S]*\}$/.test(text) &&
+        (/"[\w$-]+"\s*:|'[\w$-]+'\s*:|[\w$]+\s*:\s*["'{[\d]|,\s*["'}]/.test(text))
+      ) {
+        return 'json';
+      }
+      if (/^\[[\s\S]*\]$/.test(text) && (/,\s*["'{\d[]/.test(text) || /["'{\d[]/.test(text))) {
+        return 'json';
+      }
+    }
+  }
+
+  // 5. Dockerfile
+  const rawLines = text.split(/\r?\n/);
+  const trimmedLines = rawLines.map((l) => l.trim()).filter(Boolean);
+  const dockerfileKeywords = /^(FROM|RUN|CMD|LABEL|EXPOSE|ENV|ADD|COPY|ENTRYPOINT|VOLUME|USER|WORKDIR|ARG|STOPSIGNAL|HEALTHCHECK|SHELL)\s+/i;
+  const dockerfileMatches = trimmedLines.filter((l) => dockerfileKeywords.test(l));
+  if (trimmedLines.length > 0 && dockerfileMatches.length >= Math.min(2, trimmedLines.length) && dockerfileKeywords.test(trimmedLines[0])) {
+    return 'dockerfile';
+  }
+
+  // 6. SQL
+  const sqlKeywords = /^\s*(SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+TABLE|CREATE\s+DATABASE|ALTER\s+TABLE|DROP\s+TABLE|DROP\s+DATABASE|TRUNCATE\s+TABLE|WITH\s+[\w$]+\s+AS)\b/i;
+  if (sqlKeywords.test(text)) {
+    return 'sql';
+  }
+
+  // 7. YAML
+  if (/^---\s*(\r?\n|$)/.test(text) || /^%YAML\s+/.test(text)) {
+    return 'yaml';
+  }
+  const yamlKvPattern = /^[\w$-]+:\s*(\r?\n|\S.*)/m;
+  const yamlDashPattern = /^-\s+[\w$-]+:/m;
+  if (
+    !text.includes(';') &&
+    !text.includes('{') &&
+    ((yamlKvPattern.test(text) && rawLines.some((l) => /^ {2,}[\w$-]+:/.test(l))) ||
+      yamlDashPattern.test(text))
+  ) {
+    return 'yaml';
+  }
+
+  // 8. Markdown
+  const mdHeading = /^#{1,6}\s+\S/m;
+  const mdList = /^[-*]\s+\[[ x]\]\s+\S/m;
+  const mdFence = /^```[a-zA-Z0-9_-]*\r?\n[\s\S]*?\r?\n```/m;
+  if (mdFence.test(text) || mdList.test(text) || (mdHeading.test(text) && !text.includes(';') && !text.includes('{'))) {
+    return 'markdown';
+  }
+
+  // 9. TypeScript / JavaScript
+  const hasTsTypes = /\b(interface|type)\s+[A-Z][\w$]*\s*[<={]|\bas\s+(const|[A-Z][\w$]*)|:\s*(string|number|boolean|any|unknown|never|void)\b/;
+  const hasJsKeywords = /\b(import\s+.*from\s+['"]|export\s+(default|const|let|function|class)|const\s+[\w$]+\s*=\s*|function\s*[\w$]*\s*\(|console\.log\()/;
+  if (hasTsTypes.test(text) && (hasJsKeywords.test(text) || /^[ \t]*export\s+/m.test(text))) {
+    return 'typescript';
+  }
+  if (hasJsKeywords.test(text)) {
+    return 'javascript';
+  }
+
+  // 10. Python
+  const hasPyKeywords = /\bdef\s+[\w$]+\s*\(.*?\)\s*:|\bclass\s+[\w$]+(\(.*?\))?\s*:|\bif\s+__name__\s*==\s*['"]__main__['"]\s*:|\bimport\s+[\w$]+|\bfrom\s+[\w$]+\s+import\b|\belif\s+.*?:|\bexcept\s+.*?:/;
+  if (hasPyKeywords.test(text) && !text.includes(';') && !text.includes('{')) {
+    return 'python';
+  }
+
+  // 11. CSS
+  if (
+    /@(media|keyframes|import|charset)\b/.test(text) ||
+    /^[.#a-zA-Z0-9_-][.#a-zA-Z0-9_ -]*\s*\{\s*[\w-]+\s*:\s*[^;]+;/m.test(text)
+  ) {
+    return 'css';
+  }
+
+  // 12. Shell
+  if (
+    /^(\$|#)\s+[a-zA-Z0-9_-]+/m.test(text) ||
+    /\b(echo\s+['"].*?['"]|chmod\s+\+x|sudo\s+apt|export\s+[A-Z_]+=)/.test(text)
+  ) {
+    return 'shell';
+  }
+
+  // 13. General HTML / XML tag match
+  if (/^<([a-zA-Z][a-zA-Z0-9-]*)(\s+[^>]*)?>[\s\S]*<\/\1>$/s.test(text)) {
+    return 'xml';
+  }
+
+  return fallback;
+}
+
 export function getDefaultExtensionForLanguage(language?: string | null): string {
   if (!language) return '.txt';
   const lower = language.toLowerCase();

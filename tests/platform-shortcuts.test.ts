@@ -28,6 +28,8 @@ describe('Platform-aware Keyboard Shortcuts & Labels', () => {
       'diffPrev',
       'diffNext',
       'search',
+      'undo',
+      'redo',
       'esc',
     ];
 
@@ -50,6 +52,8 @@ describe('Platform-aware Keyboard Shortcuts & Labels', () => {
     expect(getShortcutLabel('diffPrev', 'mac')).toBe('⇧F7');
     expect(getShortcutLabel('diffNext', 'mac')).toBe('F7');
     expect(getShortcutLabel('search', 'mac')).toBe('⌘K');
+    expect(getShortcutLabel('undo', 'mac')).toBe('⌘Z');
+    expect(getShortcutLabel('redo', 'mac')).toBe('⇧⌘Z');
     expect(getShortcutLabel('esc', 'mac')).toBe('Esc');
   });
 
@@ -61,6 +65,8 @@ describe('Platform-aware Keyboard Shortcuts & Labels', () => {
     expect(getShortcutLabel('diffPrev', 'windows')).toBe('Shift+F7');
     expect(getShortcutLabel('diffNext', 'windows')).toBe('F7');
     expect(getShortcutLabel('search', 'windows')).toBe('Ctrl+K');
+    expect(getShortcutLabel('undo', 'windows')).toBe('Ctrl+Z');
+    expect(getShortcutLabel('redo', 'windows')).toBe('Ctrl+Y');
     expect(getShortcutLabel('esc', 'windows')).toBe('Esc');
   });
 

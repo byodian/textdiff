@@ -4,7 +4,9 @@ import React from 'react';
 import Editor, { DiffEditor, loader, DiffOnMount, Monaco } from '@monaco-editor/react';
 import { Code, Columns, Eye } from 'lucide-react';
 import { MarkdownPreview } from './MarkdownPreview';
+import { SyntaxDiagnosticsBar } from './SyntaxDiagnosticsBar';
 import { applyMonacoTheme } from '@/lib/themes';
+import { validateSyntax, SyntaxDiagnostic } from '@/lib/syntax-validator';
 
 loader.config({
   paths: {
@@ -14,6 +16,7 @@ loader.config({
 
 export type MonacoEditorInstance = {
   getAction: (id: string) => { run: () => void } | null;
+  trigger?: (source: string, handlerId: string, payload: unknown) => void;
   layout?: () => void;
   focus?: () => void;
 };
@@ -21,8 +24,16 @@ export type MonacoEditorInstance = {
 export type MonacoDiffEditorInstance = {
   goToDiff?: (target: 'next' | 'previous') => void;
   getLineChanges?: () => unknown[] | null;
-  getModifiedEditor?: () => { getAction: (id: string) => { run: () => void } | null; focus?: () => void } | null;
-  getOriginalEditor?: () => { getAction: (id: string) => { run: () => void } | null; focus?: () => void } | null;
+  getModifiedEditor?: () => { 
+    getAction: (id: string) => { run: () => void } | null; 
+    trigger?: (source: string, handlerId: string, payload: unknown) => void;
+    focus?: () => void;
+  } | null;
+  getOriginalEditor?: () => { 
+    getAction: (id: string) => { run: () => void } | null; 
+    trigger?: (source: string, handlerId: string, payload: unknown) => void;
+    focus?: () => void;
+  } | null;
 };
 
 interface CodeCanvasProps {
@@ -40,6 +51,7 @@ interface CodeCanvasProps {
   diffEditorRef: React.MutableRefObject<MonacoDiffEditorInstance | null>;
   onInstantSave?: () => void;
   onOpenSearch?: () => void;
+  onDiagnosticsChange?: (diags: SyntaxDiagnostic[]) => void;
 }
 
 const DEFAULT_SPLIT_RATIO = 0.7;
@@ -59,17 +71,40 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   diffEditorRef,
   onInstantSave,
   onOpenSearch,
+  onDiagnosticsChange,
 }) => {
   const monacoRef = React.useRef<Monaco | null>(null);
   const onInstantSaveRef = React.useRef(onInstantSave);
   onInstantSaveRef.current = onInstantSave;
   const onOpenSearchRef = React.useRef(onOpenSearch);
   onOpenSearchRef.current = onOpenSearch;
+  const onDiagnosticsChangeRef = React.useRef(onDiagnosticsChange);
+  onDiagnosticsChangeRef.current = onDiagnosticsChange;
+
+  const [diagnostics, setDiagnostics] = React.useState<SyntaxDiagnostic[]>([]);
 
   const handleEditorDidMount = (editor: MonacoEditorInstance, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
     applyMonacoTheme(monaco, theme);
+
+    // Initial syntax validation & markers
+    const diags = validateSyntax(code, language);
+    setDiagnostics(diags);
+    onDiagnosticsChangeRef.current?.(diags);
+    const model = (editor as any)?.getModel?.();
+    if (model) {
+      const markers = diags.map((d) => ({
+        severity: d.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+        startLineNumber: d.line,
+        startColumn: d.column,
+        endLineNumber: d.endLine || d.line,
+        endColumn: d.endColumn || (model.getLineMaxColumn?.(d.line) ?? d.column + 2),
+        message: `${d.message}${d.suggestion ? `\n💡 修改建议: ${d.suggestion}` : ''}`,
+        source: 'Syntax Linter',
+      }));
+      monaco.editor.setModelMarkers(model, 'syntax-linter', markers);
+    }
 
     if (editor && typeof (editor as any).addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
       (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
@@ -109,6 +144,57 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       applyMonacoTheme(monacoRef.current, theme);
     }
   }, [theme]);
+
+  // Syntax validation and Monaco markers update on code or language changes
+  React.useEffect(() => {
+    const diags = validateSyntax(code, language);
+    setDiagnostics(diags);
+    onDiagnosticsChangeRef.current?.(diags);
+
+    if (monacoRef.current && editorRef.current) {
+      const monaco = monacoRef.current;
+      const editor = editorRef.current as any;
+      const model = editor?.getModel?.();
+      if (model) {
+        const markers = diags.map((d) => ({
+          severity: d.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+          startLineNumber: d.line,
+          startColumn: d.column,
+          endLineNumber: d.endLine || d.line,
+          endColumn: d.endColumn || (model.getLineMaxColumn?.(d.line) ?? d.column + 2),
+          message: `${d.message}${d.suggestion ? `\n💡 修改建议: ${d.suggestion}` : ''}`,
+          source: 'Syntax Linter',
+        }));
+        monaco.editor.setModelMarkers(model, 'syntax-linter', markers);
+      }
+    }
+  }, [code, language]);
+
+  const handleNavigateToError = React.useCallback(
+    (line: number, column: number) => {
+      const editor = editorRef.current as any;
+      if (editor && typeof editor.setPosition === 'function') {
+        editor.setPosition({ lineNumber: line, column });
+        if (typeof editor.revealPositionInCenter === 'function') {
+          const monaco = monacoRef.current;
+          editor.revealPositionInCenter(
+            { lineNumber: line, column },
+            monaco?.editor?.ScrollType?.Smooth ?? 0
+          );
+        }
+        editor.focus?.();
+      }
+    },
+    [editorRef]
+  );
+
+  const handleApplyQuickFix = React.useCallback(
+    (fixFn: (currentCode: string) => string) => {
+      const updated = fixFn(code);
+      onCodeChange(updated);
+    },
+    [code, onCodeChange]
+  );
 
   const [splitRatio, setSplitRatio] = React.useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -373,6 +459,16 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
         </div>
       ) : (
         editorElement
+      )}
+
+      {/* Floating Syntax Diagnostics Panel & Badge */}
+      {!isDiffMode && (
+        <SyntaxDiagnosticsBar
+          language={language}
+          diagnostics={diagnostics}
+          onNavigateToError={handleNavigateToError}
+          onApplyQuickFix={handleApplyQuickFix}
+        />
       )}
     </div>
   );

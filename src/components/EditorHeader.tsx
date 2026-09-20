@@ -13,7 +13,9 @@ import {
   FileDiff,
   X,
   Palette,
-  MoreHorizontal
+  MoreHorizontal,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 import { getShortcutLabel } from '@/lib/platform';
 
@@ -41,6 +43,10 @@ interface EditorHeaderProps {
   onCopyDiff: () => void;
   onNextDiffChunk?: () => void;
   onPrevDiffChunk?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -63,6 +69,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onFormatDocument,
   onCopyContent,
   onCopyDiff,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -186,6 +196,45 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Zone 3 (Right): Actions Toolbar */}
       <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
+        {/* Undo / Redo Actions Group */}
+        {(onUndo || onRedo) && (
+          <div className="flex items-center bg-canvas-surface border border-canvas-border rounded-md p-0.5 select-none shrink-0" role="group" aria-label="Undo and Redo">
+            {onUndo && (
+              <button
+                type="button"
+                onClick={onUndo}
+                disabled={canUndo === false}
+                className={`p-1.5 rounded transition-colors flex items-center justify-center ${
+                  canUndo === false
+                    ? 'text-slate-600 cursor-not-allowed opacity-50'
+                    : 'text-slate-300 hover:text-white hover:bg-canvas-elevated cursor-pointer'
+                }`}
+                title={`Undo (${getShortcutLabel('undo')})`}
+                aria-label="Undo"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onUndo && onRedo && <div className="w-[1px] h-3.5 bg-canvas-border my-auto" />}
+            {onRedo && (
+              <button
+                type="button"
+                onClick={onRedo}
+                disabled={canRedo === false}
+                className={`p-1.5 rounded transition-colors flex items-center justify-center ${
+                  canRedo === false
+                    ? 'text-slate-600 cursor-not-allowed opacity-50'
+                    : 'text-slate-300 hover:text-white hover:bg-canvas-elevated cursor-pointer'
+                }`}
+                title={`Redo (${getShortcutLabel('redo')})`}
+                aria-label="Redo"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
@@ -249,6 +298,48 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
           {isMoreOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-60 rounded-lg bg-canvas-surface border border-canvas-border shadow-2xl py-1.5 z-50 text-xs text-slate-200 animate-in fade-in zoom-in-95 duration-100">
+              {/* Undo in dropdown */}
+              {onUndo && !isDiffMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUndo();
+                    setIsMoreOpen(false);
+                  }}
+                  disabled={canUndo === false}
+                  className={`w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors ${
+                    canUndo === false ? 'opacity-50 cursor-not-allowed text-slate-500' : 'text-slate-200 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Undo2 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Undo</span>
+                  </div>
+                  <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('undo')}</kbd>
+                </button>
+              )}
+
+              {/* Redo in dropdown */}
+              {onRedo && !isDiffMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onRedo();
+                    setIsMoreOpen(false);
+                  }}
+                  disabled={canRedo === false}
+                  className={`w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors ${
+                    canRedo === false ? 'opacity-50 cursor-not-allowed text-slate-500' : 'text-slate-200 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Redo2 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Redo</span>
+                  </div>
+                  <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('redo')}</kbd>
+                </button>
+              )}
+
               {/* Format Document (when not diff mode) */}
               {!isDiffMode && (
                 <button

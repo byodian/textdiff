@@ -19,7 +19,9 @@ import {
   Moon,
   Sun,
   FileCode,
-  Search
+  Search,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
@@ -58,6 +60,9 @@ interface CommandPaletteProps {
   onSelectTheme: (themeId: string) => void;
   onPreviewTheme: (themeId: string) => void;
   onSelectLanguage?: (languageId: string) => void;
+  onAutoDetectLanguage?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
   onOpenEditorCommandPalette?: () => void;
   onOpenSearch?: () => void;
 }
@@ -83,6 +88,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectTheme,
   onPreviewTheme,
   onSelectLanguage,
+  onAutoDetectLanguage,
+  onUndo,
+  onRedo,
   onOpenEditorCommandPalette,
   onOpenSearch,
 }) => {
@@ -136,6 +144,41 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: <FileCode className="w-4 h-4 text-brand-primary" />,
         action: handleOpenLanguagePicker,
         keywords: 'language mode syntax highlight file type ts js py md sql json yaml',
+      },
+      {
+        id: 'language:auto-detect',
+        title: 'Document: 自动识别文件格式 (Auto-detect Language from Content)',
+        category: 'Document',
+        icon: <Sparkles className="w-4 h-4 text-brand-primary" />,
+        action: () => {
+          onClose();
+          onAutoDetectLanguage?.();
+        },
+        keywords: 'auto detect language format 自动识别 格式 智能 语言',
+      },
+      {
+        id: 'edit:undo',
+        title: 'Edit: Undo (撤销)',
+        category: 'Edit',
+        shortcut: getShortcutLabel('undo'),
+        icon: <Undo2 className="w-4 h-4 text-slate-300" />,
+        action: () => {
+          onClose();
+          onUndo?.();
+        },
+        keywords: 'undo revert step back 撤销 上一步',
+      },
+      {
+        id: 'edit:redo',
+        title: 'Edit: Redo (重做)',
+        category: 'Edit',
+        shortcut: getShortcutLabel('redo'),
+        icon: <Redo2 className="w-4 h-4 text-slate-300" />,
+        action: () => {
+          onClose();
+          onRedo?.();
+        },
+        keywords: 'redo repeat 重做 恢复 下一步',
       },
       {
         id: 'editor:command-palette',
@@ -341,8 +384,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const filteredLanguages: LanguageOption[] = React.useMemo(() => {
     if (mode !== 'language-picker') return [];
     const q = query.trim().toLowerCase();
-    if (!q) return SUPPORTED_LANGUAGES;
-    return SUPPORTED_LANGUAGES.filter(
+    const autoOption: LanguageOption = {
+      id: 'auto-detect',
+      name: '✨ 自动识别文件格式 (Auto-Detect from Content)',
+      extensions: [],
+    };
+    const allLangs = [autoOption, ...SUPPORTED_LANGUAGES];
+    if (!q) return allLangs;
+    return allLangs.filter(
       (l) =>
         l.name.toLowerCase().includes(q) ||
         l.id.toLowerCase().includes(q) ||
@@ -434,9 +483,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   }, [onSelectTheme, onClose]);
 
   const handleSelectLanguage = React.useCallback((langId: string) => {
-    onSelectLanguage?.(langId);
-    onClose();
-  }, [onSelectLanguage, onClose]);
+    if (langId === 'auto-detect') {
+      onClose();
+      onAutoDetectLanguage?.();
+    } else {
+      onSelectLanguage?.(langId);
+      onClose();
+    }
+  }, [onSelectLanguage, onAutoDetectLanguage, onClose]);
 
   const handleExitThemePicker = React.useCallback(() => {
     onPreviewTheme(initialThemeRef.current);

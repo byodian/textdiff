@@ -154,4 +154,50 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(screen.queryByText('Side-by-Side')).toBeNull();
     expect(screen.queryByText('Inline')).toBeNull();
   });
+
+  it('renders Undo and Redo toolbar buttons and triggers callbacks when clicked', () => {
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+
+    render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        onUndo,
+        onRedo,
+      })
+    );
+
+    const undoBtn = screen.getByRole('button', { name: 'Undo' });
+    const redoBtn = screen.getByRole('button', { name: 'Redo' });
+
+    expect(undoBtn).toBeDefined();
+    expect(redoBtn).toBeDefined();
+
+    fireEvent.click(undoBtn);
+    expect(onUndo).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(redoBtn);
+    expect(onRedo).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Undo and Redo buttons when canUndo or canRedo is false', () => {
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+
+    render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        onUndo,
+        onRedo,
+        canUndo: false,
+        canRedo: false,
+      })
+    );
+
+    const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement;
+    const redoBtn = screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement;
+
+    expect(undoBtn.disabled).toBe(true);
+    expect(redoBtn.disabled).toBe(true);
+  });
 });

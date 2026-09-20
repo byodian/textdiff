@@ -11,6 +11,8 @@ export type ShortcutAction =
   | 'diffPrev'
   | 'diffNext'
   | 'search'
+  | 'undo'
+  | 'redo'
   | 'esc';
 
 let platformOverride: Platform | null = null;
@@ -68,6 +70,8 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     diffPrev: '⇧F7',
     diffNext: 'F7',
     search: '⌘K',
+    undo: '⌘Z',
+    redo: '⇧⌘Z',
     esc: 'Esc',
   },
   windows: {
@@ -79,6 +83,8 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     diffPrev: 'Shift+F7',
     diffNext: 'F7',
     search: 'Ctrl+K',
+    undo: 'Ctrl+Z',
+    redo: 'Ctrl+Y',
     esc: 'Esc',
   },
   linux: {
@@ -90,6 +96,8 @@ export const SHORTCUT_DEFINITIONS: Record<Platform, Record<ShortcutAction, strin
     diffPrev: 'Shift+F7',
     diffNext: 'F7',
     search: 'Ctrl+K',
+    undo: 'Ctrl+Z',
+    redo: 'Ctrl+Y',
     esc: 'Esc',
   },
 };
