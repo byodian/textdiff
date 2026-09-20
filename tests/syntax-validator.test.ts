@@ -100,6 +100,115 @@ describe('JSON Syntax Validator & Diagnostics', () => {
     expect(bracketDiag).toBeDefined();
     expect(bracketDiag?.suggestion).toContain(']');
   });
+
+  it('detects multiple double commas across lines with reasonable counting and exact coordinates', () => {
+    const code = `{\n  "name": "Alice",,\n  "age": 30,,\n  "city": "Paris",,\n  "role": "admin"\n}`;
+    const diags = validateJsonSyntax(code);
+    const ccDiags = diags.filter((d) => d.rule === 'json/consecutive-comma');
+    expect(ccDiags).toHaveLength(3);
+
+    // Line 2: "  "name": "Alice",," (comma 1 is col 18, comma 2 is col 19)
+    expect(ccDiags[0].line).toBe(2);
+    expect(ccDiags[0].column).toBe(19);
+    expect(ccDiags[0].endLine).toBe(2);
+    expect(ccDiags[0].endColumn).toBe(20);
+
+    // Line 3: "  "age": 30,," (comma 1 is col 12, comma 2 is col 13)
+    expect(ccDiags[1].line).toBe(3);
+    expect(ccDiags[1].column).toBe(13);
+    expect(ccDiags[1].endLine).toBe(3);
+    expect(ccDiags[1].endColumn).toBe(14);
+
+    // Line 4: "  "city": "Paris",," (comma 1 is col 18, comma 2 is col 19)
+    expect(ccDiags[2].line).toBe(4);
+    expect(ccDiags[2].column).toBe(19);
+    expect(ccDiags[2].endLine).toBe(4);
+    expect(ccDiags[2].endColumn).toBe(20);
+
+    // Test quick fix on single occurrence leaves 2 remaining errors
+    const fixedOne = ccDiags[0].quickFix?.apply(code);
+    expect(fixedOne).toBeDefined();
+    const remainingDiags = validateJsonSyntax(fixedOne!);
+    expect(remainingDiags.filter((d) => d.rule === 'json/consecutive-comma')).toHaveLength(2);
+
+    // Fixing all occurrences results in valid JSON
+    let allFixed = code;
+    for (let round = 0; round < 3; round++) {
+      const currentDiags = validateJsonSyntax(allFixed);
+      const firstError = currentDiags.find((d) => d.rule === 'json/consecutive-comma');
+      if (!firstError?.quickFix) break;
+      allFixed = firstError.quickFix.apply(allFixed);
+    }
+    expect(validateJsonSyntax(allFixed)).toEqual([]);
+  });
+
+  it('detects multiple extra commas (e.g. ,,,) and cleans them in quickFix', () => {
+    const code = `{\n  "count": 1,,,\n  "name": "test"\n}`;
+    const diags = validateJsonSyntax(code);
+    const cc = diags.find((d) => d.rule === 'json/consecutive-comma');
+    expect(cc).toBeDefined();
+    expect(cc?.line).toBe(2);
+    expect(cc?.column).toBe(14);
+    expect(cc?.endColumn).toBe(16);
+
+    const fixed = cc?.quickFix?.apply(code);
+    expect(fixed).toContain('"count": 1,');
+    expect(validateJsonSyntax(fixed!)).toEqual([]);
+  });
+
+  it('does not treat commas inside string literals as consecutive commas', () => {
+    const code = `{\n  "title": "Hello,, world! Here is a ,, double comma.",\n  "tags": ["item,,1", "item,,2"]\n}`;
+    const diags = validateJsonSyntax(code);
+    expect(diags).toEqual([]);
+  });
+
+  it('calculates exact coordinates without drift on CRLF line endings', () => {
+    const code = '{\r\n  "first": 1,,\r\n  "second": 2,,\r\n  "third": 3\r\n}';
+    const diags = validateJsonSyntax(code);
+    const ccDiags = diags.filter((d) => d.rule === 'json/consecutive-comma');
+    expect(ccDiags).toHaveLength(2);
+
+    // Line 2: "  "first": 1,,"
+    expect(ccDiags[0].line).toBe(2);
+    expect(ccDiags[0].column).toBe(14);
+
+    // Line 3: "  "second": 2,,"
+    expect(ccDiags[1].line).toBe(3);
+    expect(ccDiags[1].column).toBe(15);
+  });
+
+  it('detects consecutive commas separated by whitespace', () => {
+    const code = `{\n  "a": 1,   ,\n  "b": 2\n}`;
+    const diags = validateJsonSyntax(code);
+    const cc = diags.find((d) => d.rule === 'json/consecutive-comma');
+    expect(cc).toBeDefined();
+    expect(cc?.line).toBe(2);
+  });
+
+  it('detects leading commas in arrays and objects with location and quickFix', () => {
+    const code = `[\n  ,\n  "apple",\n  "banana"\n]`;
+    const diags = validateJsonSyntax(code);
+    const lc = diags.find((d) => d.rule === 'json/leading-comma');
+    expect(lc).toBeDefined();
+    expect(lc?.line).toBe(2);
+    expect(lc?.column).toBe(3);
+
+    const fixed = lc?.quickFix?.apply(code);
+    expect(fixed).not.toContain('  ,');
+    expect(validateJsonSyntax(fixed!)).toEqual([]);
+  });
+
+  it('detects missing commas between object properties with location and quickFix', () => {
+    const code = `{\n  "first": 1\n  "second": 2\n}`;
+    const diags = validateJsonSyntax(code);
+    const mc = diags.find((d) => d.rule === 'json/missing-comma');
+    expect(mc).toBeDefined();
+    expect(mc?.line).toBe(2);
+
+    const fixed = mc?.quickFix?.apply(code);
+    expect(fixed).toContain('"first": 1,');
+    expect(validateJsonSyntax(fixed!)).toEqual([]);
+  });
 });
 
 describe('YAML Syntax Validator & Diagnostics', () => {
