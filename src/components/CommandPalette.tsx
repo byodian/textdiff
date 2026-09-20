@@ -35,6 +35,7 @@ export interface CommandItem {
   icon: React.ReactNode;
   action: () => void;
   keywords?: string;
+  disabled?: boolean;
 }
 
 export type PaletteMode = 'commands' | 'theme-picker' | 'language-picker';
@@ -44,10 +45,13 @@ interface CommandPaletteProps {
   currentTheme: string;
   currentLanguage?: string;
   isDiffMode: boolean;
-  isMarkdown: boolean;
+  isMarkdown?: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
+  activeSnippetId?: string | null;
+  snippets?: SnippetSummary[];
   initialMode?: PaletteMode;
   onClose: () => void;
+  onSelectSnippet: (id: string) => void;
   onNewSnippet: () => void;
   onSavePrompt: () => void;
   onOpenHistory: () => void;
@@ -63,6 +67,8 @@ interface CommandPaletteProps {
   onAutoDetectLanguage?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   onOpenEditorCommandPalette?: () => void;
   onOpenSearch?: () => void;
 }
@@ -91,6 +97,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onAutoDetectLanguage,
   onUndo,
   onRedo,
+  canUndo,
+  canRedo,
   onOpenEditorCommandPalette,
   onOpenSearch,
 }) => {
@@ -161,8 +169,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Edit: Undo (撤销)',
         category: 'Edit',
         shortcut: getShortcutLabel('undo'),
-        icon: <Undo2 className="w-4 h-4 text-slate-300" />,
+        icon: <Undo2 className={`w-4 h-4 ${canUndo === false ? 'text-slate-500' : 'text-slate-300'}`} />,
+        disabled: canUndo === false,
         action: () => {
+          if (canUndo === false) return;
           onClose();
           onUndo?.();
         },
@@ -173,8 +183,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Edit: Redo (重做)',
         category: 'Edit',
         shortcut: getShortcutLabel('redo'),
-        icon: <Redo2 className="w-4 h-4 text-slate-300" />,
+        icon: <Redo2 className={`w-4 h-4 ${canRedo === false ? 'text-slate-500' : 'text-slate-300'}`} />,
+        disabled: canRedo === false,
         action: () => {
+          if (canRedo === false) return;
           onClose();
           onRedo?.();
         },
@@ -552,7 +564,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         e.stopPropagation();
         if (mode === 'commands') {
           const cmd = filteredCommands[selectedIndex];
-          if (cmd) cmd.action();
+          if (cmd && !cmd.disabled) cmd.action();
         } else if (mode === 'theme-picker') {
           const th = filteredThemes[selectedIndex];
           if (th) {
@@ -746,18 +758,24 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 return (
                   <div
                     key={cmd.id}
-                    onClick={() => cmd.action()}
+                    onClick={() => {
+                      if (!cmd.disabled) cmd.action();
+                    }}
                     onMouseEnter={() => setSelectedIndex(idx)}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
-                      isHighlighted
-                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary'
-                        : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100'
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
+                      cmd.disabled
+                        ? 'opacity-40 cursor-not-allowed text-slate-500'
+                        : isHighlighted
+                        ? 'theme-item-highlight bg-brand-primary/15 text-brand-primary cursor-pointer'
+                        : 'text-slate-300 hover:bg-canvas-surface/70 hover:text-slate-100 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="shrink-0">{cmd.icon}</div>
                       <span className={`theme-item-title font-medium text-sm truncate ${
-                        isHighlighted
+                        cmd.disabled
+                          ? 'text-slate-500'
+                          : isHighlighted
                           ? 'text-white'
                           : 'text-slate-200'
                       }`}>

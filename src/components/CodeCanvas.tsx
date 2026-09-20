@@ -52,6 +52,7 @@ interface CodeCanvasProps {
   onInstantSave?: () => void;
   onOpenSearch?: () => void;
   onDiagnosticsChange?: (diags: SyntaxDiagnostic[]) => void;
+  onUndoRedoChange?: (canUndo: boolean, canRedo: boolean) => void;
 }
 
 const DEFAULT_SPLIT_RATIO = 0.7;
@@ -72,6 +73,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   onInstantSave,
   onOpenSearch,
   onDiagnosticsChange,
+  onUndoRedoChange,
 }) => {
   const monacoRef = React.useRef<Monaco | null>(null);
   const onInstantSaveRef = React.useRef(onInstantSave);
@@ -80,6 +82,23 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   onOpenSearchRef.current = onOpenSearch;
   const onDiagnosticsChangeRef = React.useRef(onDiagnosticsChange);
   onDiagnosticsChangeRef.current = onDiagnosticsChange;
+  const onUndoRedoChangeRef = React.useRef(onUndoRedoChange);
+  onUndoRedoChangeRef.current = onUndoRedoChange;
+
+  const updateUndoRedoAvailability = React.useCallback(() => {
+    if (!onUndoRedoChangeRef.current) return;
+    const targetEditor = isDiffMode
+      ? diffEditorRef.current?.getModifiedEditor?.()
+      : editorRef.current;
+    const model = (targetEditor as any)?.getModel?.();
+    if (model) {
+      const u = typeof model.canUndo === 'function' ? model.canUndo() : false;
+      const r = typeof model.canRedo === 'function' ? model.canRedo() : false;
+      onUndoRedoChangeRef.current(u, r);
+    } else {
+      onUndoRedoChangeRef.current(false, false);
+    }
+  }, [isDiffMode, editorRef, diffEditorRef]);
 
   const [diagnostics, setDiagnostics] = React.useState<SyntaxDiagnostic[]>([]);
 
@@ -104,6 +123,13 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
         source: 'Syntax Linter',
       }));
       monaco.editor.setModelMarkers(model, 'syntax-linter', markers);
+
+      updateUndoRedoAvailability();
+      if (typeof model.onDidChangeContent === 'function') {
+        model.onDidChangeContent(() => {
+          updateUndoRedoAvailability();
+        });
+      }
     }
 
     if (editor && typeof (editor as any).addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
@@ -125,16 +151,25 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     applyMonacoTheme(monaco, theme);
 
     const modified = (editor as any).getModifiedEditor?.();
-    if (modified && typeof modified.addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
-      modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-        onInstantSaveRef.current?.();
-      });
-      modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
-        onOpenSearchRef.current?.();
-      });
-      modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
-        onOpenSearchRef.current?.();
-      });
+    if (modified) {
+      const model = modified.getModel?.();
+      updateUndoRedoAvailability();
+      if (model && typeof model.onDidChangeContent === 'function') {
+        model.onDidChangeContent(() => {
+          updateUndoRedoAvailability();
+        });
+      }
+      if (typeof modified.addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
+        modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+          onInstantSaveRef.current?.();
+        });
+        modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
+          onOpenSearchRef.current?.();
+        });
+        modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+          onOpenSearchRef.current?.();
+        });
+      }
     }
   };
 
@@ -192,8 +227,9 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     (fixFn: (currentCode: string) => string) => {
       const updated = fixFn(code);
       onCodeChange(updated);
+      setTimeout(updateUndoRedoAvailability, 20);
     },
-    [code, onCodeChange]
+    [code, onCodeChange, updateUndoRedoAvailability]
   );
 
   const [splitRatio, setSplitRatio] = React.useState<number>(() => {

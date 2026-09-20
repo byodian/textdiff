@@ -155,7 +155,7 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(screen.queryByText('Inline')).toBeNull();
   });
 
-  it('renders Undo and Redo toolbar buttons and triggers callbacks when clicked', () => {
+  it('renders Undo and Redo toolbar buttons and triggers callbacks when clicked in modified state', () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
 
@@ -164,6 +164,8 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
         ...defaultProps,
         onUndo,
         onRedo,
+        canUndo: true,
+        canRedo: true,
       })
     );
 
@@ -180,7 +182,26 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(onRedo).toHaveBeenCalledTimes(1);
   });
 
-  it('disables Undo and Redo buttons when canUndo or canRedo is false', () => {
+  it('disables Undo and Redo buttons by default when text is not modified', () => {
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+
+    render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        onUndo,
+        onRedo,
+      })
+    );
+
+    const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement;
+    const redoBtn = screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement;
+
+    expect(undoBtn.disabled).toBe(true);
+    expect(redoBtn.disabled).toBe(true);
+  });
+
+  it('disables Undo and Redo buttons when canUndo or canRedo is explicitly false', () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
 

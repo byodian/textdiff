@@ -71,8 +71,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onCopyDiff,
   onUndo,
   onRedo,
-  canUndo,
-  canRedo,
+  canUndo = false,
+  canRedo = false,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -203,13 +203,13 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               <button
                 type="button"
                 onClick={onUndo}
-                disabled={canUndo === false}
+                disabled={!canUndo}
                 className={`p-1.5 rounded transition-colors flex items-center justify-center ${
-                  canUndo === false
-                    ? 'text-slate-600 cursor-not-allowed opacity-50'
-                    : 'text-slate-300 hover:text-white hover:bg-canvas-elevated cursor-pointer'
+                  !canUndo
+                    ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-40'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-canvas-elevated cursor-pointer'
                 }`}
-                title={`Undo (${getShortcutLabel('undo')})`}
+                title={`Undo (${getShortcutLabel('undo')})${!canUndo ? ' - 无可撤销更改' : ''}`}
                 aria-label="Undo"
               >
                 <Undo2 className="w-3.5 h-3.5" />
@@ -220,13 +220,13 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               <button
                 type="button"
                 onClick={onRedo}
-                disabled={canRedo === false}
+                disabled={!canRedo}
                 className={`p-1.5 rounded transition-colors flex items-center justify-center ${
-                  canRedo === false
-                    ? 'text-slate-600 cursor-not-allowed opacity-50'
-                    : 'text-slate-300 hover:text-white hover:bg-canvas-elevated cursor-pointer'
+                  !canRedo
+                    ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-40'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-canvas-elevated cursor-pointer'
                 }`}
-                title={`Redo (${getShortcutLabel('redo')})`}
+                title={`Redo (${getShortcutLabel('redo')})${!canRedo ? ' - 无可重做更改' : ''}`}
                 aria-label="Redo"
               >
                 <Redo2 className="w-3.5 h-3.5" />
@@ -303,12 +303,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    onUndo();
-                    setIsMoreOpen(false);
+                    if (canUndo) {
+                      onUndo();
+                      setIsMoreOpen(false);
+                    }
                   }}
-                  disabled={canUndo === false}
+                  disabled={!canUndo}
                   className={`w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors ${
-                    canUndo === false ? 'opacity-50 cursor-not-allowed text-slate-500' : 'text-slate-200 hover:text-white'
+                    !canUndo ? 'opacity-40 cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-200 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -324,12 +326,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    onRedo();
-                    setIsMoreOpen(false);
+                    if (canRedo) {
+                      onRedo();
+                      setIsMoreOpen(false);
+                    }
                   }}
-                  disabled={canRedo === false}
+                  disabled={!canRedo}
                   className={`w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors ${
-                    canRedo === false ? 'opacity-50 cursor-not-allowed text-slate-500' : 'text-slate-200 hover:text-white'
+                    !canRedo ? 'opacity-40 cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-200 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-2">

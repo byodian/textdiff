@@ -705,6 +705,8 @@ export default function WorkspacePage() {
       if (res.ok) {
         const updated = await res.json();
         setLastSavedCode(code);
+        setMonacoCanUndo(false);
+        setMonacoCanRedo(false);
         clearDraft(activeId);
         const newVersions: VersionItem[] = updated.versions || [];
         setVersions(newVersions);
@@ -824,6 +826,27 @@ export default function WorkspacePage() {
 
   const hasUnsavedChanges = code !== lastSavedCode;
 
+  // Undo / Redo availability tracking conforming to document editing state
+  const [monacoCanUndo, setMonacoCanUndo] = useState(false);
+  const [monacoCanRedo, setMonacoCanRedo] = useState(false);
+
+  // Reset undo/redo state whenever switching snippets
+  useEffect(() => {
+    setMonacoCanUndo(false);
+    setMonacoCanRedo(false);
+  }, [activeId]);
+
+  const handleUndoRedoChange = useCallback((u: boolean, r: boolean) => {
+    setMonacoCanUndo(u);
+    setMonacoCanRedo(r);
+  }, []);
+
+  // When text is not in a modified state, Undo is disabled.
+  // Undo is available if the document has modifications and Monaco's undo stack (if available) allows undo.
+  const canUndo = Boolean(hasUnsavedChanges && (monacoCanUndo || !editorRef.current));
+  // Redo is available if an undone modification can be reapplied
+  const canRedo = Boolean(monacoCanRedo);
+
   // Keep ref to latest callbacks to avoid stale closures in event listeners
   const handleInstantSaveRef = useRef(handleInstantSave);
   handleInstantSaveRef.current = handleInstantSave;
@@ -901,6 +924,7 @@ export default function WorkspacePage() {
 
   // 11b. Undo action
   const handleUndo = useCallback(() => {
+    if (!canUndo) return;
     if (isDiffMode) {
       const modifiedEditor = diffEditorRef.current?.getModifiedEditor?.();
       if (modifiedEditor) {
@@ -910,6 +934,11 @@ export default function WorkspacePage() {
           modifiedEditor.getAction('undo')?.run();
         }
         modifiedEditor.focus?.();
+        const model = modifiedEditor.getModel?.();
+        if (model) {
+          setMonacoCanUndo(typeof model.canUndo === 'function' ? model.canUndo() : false);
+          setMonacoCanRedo(typeof model.canRedo === 'function' ? model.canRedo() : true);
+        }
       }
     } else if (editorRef.current) {
       if (typeof editorRef.current.trigger === 'function') {
@@ -918,11 +947,17 @@ export default function WorkspacePage() {
         editorRef.current.getAction('undo')?.run();
       }
       editorRef.current.focus?.();
+      const model = editorRef.current.getModel?.();
+      if (model) {
+        setMonacoCanUndo(typeof model.canUndo === 'function' ? model.canUndo() : false);
+        setMonacoCanRedo(typeof model.canRedo === 'function' ? model.canRedo() : true);
+      }
     }
-  }, [isDiffMode]);
+  }, [isDiffMode, canUndo]);
 
   // 11c. Redo action
   const handleRedo = useCallback(() => {
+    if (!canRedo) return;
     if (isDiffMode) {
       const modifiedEditor = diffEditorRef.current?.getModifiedEditor?.();
       if (modifiedEditor) {
@@ -932,6 +967,11 @@ export default function WorkspacePage() {
           modifiedEditor.getAction('redo')?.run();
         }
         modifiedEditor.focus?.();
+        const model = modifiedEditor.getModel?.();
+        if (model) {
+          setMonacoCanUndo(typeof model.canUndo === 'function' ? model.canUndo() : true);
+          setMonacoCanRedo(typeof model.canRedo === 'function' ? model.canRedo() : false);
+        }
       }
     } else if (editorRef.current) {
       if (typeof editorRef.current.trigger === 'function') {
@@ -940,8 +980,13 @@ export default function WorkspacePage() {
         editorRef.current.getAction('redo')?.run();
       }
       editorRef.current.focus?.();
+      const model = editorRef.current.getModel?.();
+      if (model) {
+        setMonacoCanUndo(typeof model.canUndo === 'function' ? model.canUndo() : true);
+        setMonacoCanRedo(typeof model.canRedo === 'function' ? model.canRedo() : false);
+      }
     }
-  }, [isDiffMode]);
+  }, [isDiffMode, canRedo]);
 
   // 11d. Open Monaco Editor built-in Command Palette (F1)
   const handleOpenEditorCommandPalette = () => {
@@ -1144,6 +1189,8 @@ export default function WorkspacePage() {
               onPrevDiffChunk={handlePrevDiffChunk}
               onUndo={handleUndo}
               onRedo={handleRedo}
+              canUndo={canUndo}
+              canRedo={canRedo}
             />
 
             <div className="flex-1 relative overflow-hidden isolate flex flex-col w-full">
@@ -1177,6 +1224,7 @@ export default function WorkspacePage() {
                   onMarkdownViewModeChange={setMarkdownViewMode}
                   onCodeChange={handleCodeChange}
                   onDiagnosticsChange={setDiagnostics}
+                  onUndoRedoChange={handleUndoRedoChange}
                   editorRef={editorRef}
                   diffEditorRef={diffEditorRef}
                   onInstantSave={handleInstantSave}
@@ -1273,6 +1321,8 @@ export default function WorkspacePage() {
         onAutoDetectLanguage={handleAutoDetectLanguage}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onPreviewTheme={handlePreviewTheme}
         onOpenEditorCommandPalette={handleOpenEditorCommandPalette}
         onOpenSearch={() => setIsSearchOpen(true)}
