@@ -32,7 +32,7 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const { title, filename, language, currentCode, createVersion, commitMsg } = body;
+    const { title, filename, language, currentCode, createVersion, commitMsg, workspaceId } = body;
 
     const existing = await prisma.snippet.findUnique({
       where: { id: params.id },
@@ -57,6 +57,7 @@ export async function PUT(
         filename: filename !== undefined ? filename : existing.filename,
         language: language !== undefined ? language : existing.language,
         currentCode: currentCode !== undefined ? currentCode : existing.currentCode,
+        workspaceId: workspaceId !== undefined ? workspaceId : existing.workspaceId,
         ...(createVersion
           ? {
               versions: {

@@ -257,4 +257,65 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
 
     expect(onUpdateMsg).toHaveBeenCalledWith('v-1', 'New revised note');
   });
+
+  it('closes History modal via close button and Escape key, and simplifies card actions', async () => {
+    const onClose = vi.fn();
+    const onCompare = vi.fn();
+    const onRevert = vi.fn();
+
+    const sampleVersion = {
+      id: 'v-1',
+      versionNo: 1,
+      title: 'Doc',
+      code: 'content',
+      commitMsg: 'Initial version',
+      createdAt: new Date().toISOString(),
+    };
+
+    render(
+      <HistoryDrawer
+        isOpen={true}
+        onClose={onClose}
+        versions={[sampleVersion]}
+        selectedVersionA={null}
+        selectedVersionB={null}
+        onCompareWithCurrent={onCompare}
+        onCompareTwoVersions={vi.fn()}
+        onClearCustomDiff={vi.fn()}
+        onRevertToVersion={onRevert}
+        onUpdateVersionMsg={vi.fn()}
+        documentTitle="test.ts"
+        currentDraftCode="modified content"
+      />
+    );
+
+    // Header contains Revision History and document title
+    expect(screen.getByText('Revision History')).toBeDefined();
+    expect(screen.getByText('test.ts')).toBeDefined();
+
+    // Redundant card buttons are NOT present
+    expect(screen.queryByText('Diff Draft')).toBeNull();
+
+    // Clicking card triggers comparison
+    const versionCard = screen.getByText('Initial version').closest('.cursor-pointer')!;
+    expect(versionCard).toBeDefined();
+    fireEvent.click(versionCard);
+    expect(onCompare).toHaveBeenCalledWith(sampleVersion);
+
+    // Global Restore action in header
+    const restoreBtn = screen.getByText('Restore v1');
+    expect(restoreBtn).toBeDefined();
+    fireEvent.click(restoreBtn);
+    expect(onRevert).toHaveBeenCalledWith(sampleVersion);
+
+    // Click close X button
+    const closeBtn = screen.getByTitle('Close (Esc)');
+    expect(closeBtn).toBeDefined();
+    fireEvent.click(closeBtn);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    // Escape should close
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
 });

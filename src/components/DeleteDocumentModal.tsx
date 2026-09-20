@@ -32,8 +32,14 @@ export const DeleteDocumentModal: React.FC<DeleteDocumentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-md bg-canvas-elevated border border-canvas-border rounded-xl shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-md bg-canvas-elevated border border-canvas-border rounded-xl shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="px-4 py-3 border-b border-canvas-border flex items-center justify-between bg-canvas-surface/70">
           <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-semibold text-xs sm:text-sm">
             <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />

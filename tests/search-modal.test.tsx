@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { SearchModal } from '../src/components/SearchModal';
 import { SnippetSummary, WorkspaceItem } from '../src/components/Sidebar';
 
@@ -160,7 +160,7 @@ describe('Notion-Style SearchModal Component', () => {
 
     // Search for "orders" in title
     fireEvent.change(input, { target: { value: 'orders' } });
-    expect(screen.getByText('orders')).toBeDefined();
+    expect(screen.getAllByText('orders').length).toBeGreaterThan(0);
   });
 
   it('navigates with keyboard ArrowDown, ArrowUp, Enter and Escape', () => {
@@ -190,5 +190,137 @@ describe('Notion-Style SearchModal Component', () => {
     // Press Escape
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(handleClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes via backdrop click and does not have top-right close button', () => {
+    const handleClose = vi.fn();
+
+    const { container } = render(
+      <SearchModal
+        isOpen={true}
+        onClose={handleClose}
+        snippets={dummySnippets}
+        activeSnippetId="snip-1"
+        workspaces={dummyWorkspaces}
+        activeWorkspaceId="ws-1"
+        onSelectSnippet={vi.fn()}
+      />
+    );
+
+    // Top-right close button should not exist
+    expect(screen.queryByTitle('Close (Esc)')).toBeNull();
+
+    // Click on dialog card inside should NOT close
+    const dialogCard = container.querySelector('.max-w-4xl')!;
+    expect(dialogCard).toBeDefined();
+    fireEvent.click(dialogCard);
+    expect(handleClose).not.toHaveBeenCalled();
+
+    // Click on backdrop outside modal dialog should close
+    const backdrop = dialogCard.parentElement!;
+    expect(backdrop).toBeDefined();
+    fireEvent.click(backdrop);
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('defaults to searching in all workspaces even when activeWorkspaceId is provided', () => {
+    render(
+      <SearchModal
+        isOpen={true}
+        onClose={vi.fn()}
+        snippets={dummySnippets}
+        activeSnippetId="snip-1"
+        workspaces={dummyWorkspaces}
+        activeWorkspaceId="ws-1"
+        onSelectSnippet={vi.fn()}
+      />
+    );
+
+    // Workspace select dropdown should default to "all" ("In All Workspaces")
+    const wsSelect = screen.getByDisplayValue('In All Workspaces') as HTMLSelectElement;
+    expect(wsSelect.value).toBe('all');
+
+    // Both snippets from ws-1 (orders.sql, notes.md) and ws-2 (auth.ts) should be visible
+    expect(screen.getByText('orders')).toBeDefined();
+    expect(screen.getByText('auth')).toBeDefined();
+    expect(screen.getByText('notes')).toBeDefined();
+
+    // Selecting ws-2 filters the list to only ws-2 snippets
+    fireEvent.change(wsSelect, { target: { value: 'ws-2' } });
+    expect(wsSelect.value).toBe('ws-2');
+    expect(screen.queryByText('orders')).toBeNull();
+    expect(screen.getByText('auth')).toBeDefined();
+    expect(screen.queryByText('notes')).toBeNull();
+  });
+
+  it('fetches all snippets from /api/snippets when opened if initial snippets list is empty', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(dummySnippets),
+    });
+    global.fetch = fetchMock;
+
+    render(
+      <SearchModal
+        isOpen={true}
+        onClose={vi.fn()}
+        snippets={[]}
+        activeSnippetId={null}
+        workspaces={dummyWorkspaces}
+        activeWorkspaceId="ws-1"
+        onSelectSnippet={vi.fn()}
+      />
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/snippets');
+    // Wait for state update
+    const authItem = await screen.findByText('auth');
+    expect(authItem).toBeDefined();
+    expect(screen.getByText('orders')).toBeDefined();
+  });
+
+  it('highlights searched text with theme-adaptive styling in titles, content excerpts, and preview pane', async () => {
+    let container!: HTMLElement;
+    await act(async () => {
+      const res = render(
+        <SearchModal
+          isOpen={true}
+          onClose={vi.fn()}
+          snippets={dummySnippets}
+          activeSnippetId="snip-1"
+          workspaces={dummyWorkspaces}
+          activeWorkspaceId="ws-1"
+          onSelectSnippet={vi.fn()}
+        />
+      );
+      container = res.container;
+    });
+
+    const input = screen.getByPlaceholderText(/Search or ask a question/i);
+    act(() => {
+      fireEvent.change(input, { target: { value: 'orders' } });
+    });
+
+    // Find all <mark> elements containing "orders"
+    const marks = container.querySelectorAll('mark.search-highlight');
+    expect(marks.length).toBeGreaterThan(0);
+
+    // Each highlight element has theme-adaptive classes
+    marks.forEach((mark) => {
+      expect(mark.className).toContain('search-highlight');
+      expect(mark.className).toContain('text-brand-primary');
+      expect(mark.textContent?.toLowerCase()).toBe('orders');
+    });
+
+    // Content match search (e.g. "authenticateUser" in auth.ts)
+    act(() => {
+      fireEvent.change(input, { target: { value: 'authenticateUser' } });
+    });
+    const contentMarks = container.querySelectorAll('mark.search-highlight');
+    expect(contentMarks.length).toBeGreaterThan(0);
+    contentMarks.forEach((mark) => {
+      expect(mark.textContent).toBe('authenticateUser');
+      expect(mark.className).toContain('text-brand-primary');
+    });
   });
 });

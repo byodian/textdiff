@@ -34,6 +34,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { title, filename, language, currentCode, workspaceId } = body;
 
+    const hasInitialCode = typeof currentCode === 'string' && currentCode.trim().length > 0;
+
     const snippet = await prisma.snippet.create({
       data: {
         title: title || 'Untitled Document',
@@ -41,14 +43,18 @@ export async function POST(req: Request) {
         language: language || 'plaintext',
         currentCode: currentCode || '',
         workspaceId: workspaceId || null,
-        versions: {
-          create: {
-            versionNo: 1,
-            title: title || 'Untitled Document',
-            code: currentCode || '',
-            commitMsg: 'Initial version',
-          },
-        },
+        ...(hasInitialCode
+          ? {
+              versions: {
+                create: {
+                  versionNo: 1,
+                  title: title || 'Untitled Document',
+                  code: currentCode,
+                  commitMsg: 'Initial version',
+                },
+              },
+            }
+          : {}),
       },
       include: {
         versions: true,

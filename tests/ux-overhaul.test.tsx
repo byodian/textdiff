@@ -78,6 +78,22 @@ describe('TextDiff UX Overhaul Component Seams', () => {
     expect(cancelBtn.className).toContain('text-slate-700');
     expect(cancelBtn.className).toContain('dark:text-slate-300');
 
+    // Click inside modal dialog should NOT trigger onClose
+    const modalDialog = alertTitle.closest('.max-w-md')!;
+    expect(modalDialog).toBeDefined();
+    fireEvent.click(modalDialog);
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Click on backdrop outside modal dialog should trigger onClose
+    const backdrop = modalDialog.parentElement!;
+    expect(backdrop).toBeDefined();
+    fireEvent.click(backdrop);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    // Escape should also trigger onClose
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(2);
+
     fireEvent.click(screen.getByText('Delete Permanently'));
     expect(onConfirmDelete).toHaveBeenCalledTimes(1);
   });

@@ -52,6 +52,11 @@ input:active {
   -webkit-tap-highlight-color: transparent;
 }
 
+mark {
+  background-color: transparent;
+  color: inherit;
+}
+
 /* Dynamic contrast mapping for light themes so elements remain crisp and readable */
 .light-theme .text-slate-100 {
   color: #0f172a !important; /* Very dark navy slate */
@@ -299,6 +304,42 @@ input:active {
 .theme-item-title,
 .theme-item-highlight .theme-item-title {
   font-weight: 500 !important;
+}
+
+/* ==========================================================================
+   Search Modal Text Highlight: dynamically adapts to active theme brand color
+   ========================================================================== */
+mark.search-highlight,
+.search-highlight {
+  background-color: transparent !important;
+  color: var(--color-brand-primary, #38bdf8) !important;
+  font-weight: 600;
+  box-shadow: none !important;
+  padding: 0;
+}
+
+.light-theme mark.search-highlight,
+.light-theme .search-highlight {
+  background-color: transparent !important;
+  color: var(--color-brand-primary, #0284c7) !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+
+.search-item-selected mark.search-highlight,
+.search-item-selected .search-highlight {
+  background-color: transparent !important;
+  color: var(--color-brand-primary, #38bdf8) !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+
+.light-theme .search-item-selected mark.search-highlight,
+.light-theme .search-item-selected .search-highlight {
+  background-color: transparent !important;
+  color: var(--color-brand-primary, #0284c7) !important;
+  box-shadow: none !important;
+  padding: 0;
 }
 
 /* ==========================================================================

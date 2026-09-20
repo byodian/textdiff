@@ -62,6 +62,46 @@ function formatRelativeTime(isoString: string): string {
   return date.toLocaleDateString();
 }
 
+export function highlightText(text: string, query: string, className?: string): React.ReactNode {
+  const trimmed = query ? query.trim() : '';
+  if (!trimmed || !text) return text;
+
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts = text.split(regex);
+  if (parts.length <= 1) return text;
+
+  return parts.map((part, i) => {
+    if (!part) return null;
+    if (part.toLowerCase() === trimmed.toLowerCase()) {
+      return (
+        <mark
+          key={i}
+          className={`search-highlight bg-transparent text-brand-primary font-semibold ${className || ''}`}
+        >
+          {part}
+        </mark>
+      );
+    }
+    return part;
+  });
+}
+
+export function getMatchingExcerpt(
+  code: string | undefined,
+  query: string
+): { line: number; text: string } | null {
+  const q = query ? query.trim().toLowerCase() : '';
+  if (!q || !code) return null;
+  const lines = code.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].toLowerCase().includes(q)) {
+      return { line: i + 1, text: lines[i].trim() };
+    }
+  }
+  return null;
+}
+
 export const SearchModal: React.FC<SearchModalProps> = ({
   isOpen,
   onClose,
@@ -78,23 +118,48 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const [showHighlightPane, setShowHighlightPane] = useState(true);
   const [showFilters, setShowFilters] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [allSnippets, setAllSnippets] = useState<SnippetSummary[]>(snippets);
+
+  useEffect(() => {
+    setAllSnippets(snippets);
+  }, [snippets]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let isMounted = true;
+    fetch('/api/snippets')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setAllSnippets(data);
+        }
+      })
+      .catch(() => {
+        // Gracefully ignore fetch failures in tests or offline environments
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listContainerRef = useRef<HTMLDivElement>(null);
 
-  // Available unique languages in current snippets
+  // Available unique languages in all snippets
   const availableLanguages = useMemo(() => {
     const langs = new Set<string>();
-    snippets.forEach((s) => {
+    allSnippets.forEach((s) => {
       if (s.language) langs.add(s.language.toLowerCase());
     });
     return Array.from(langs).sort();
-  }, [snippets]);
+  }, [allSnippets]);
 
-  // Focus input whenever modal opens
+  // Focus input and reset filters to all workspaces whenever modal opens
   useEffect(() => {
     if (isOpen) {
       setQuery('');
+      setSelectedWorkspaceId('all');
+      setSelectedLanguage('all');
       setSelectedIndex(0);
       setTimeout(() => {
         inputRef.current?.focus();
@@ -105,7 +170,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   // Filter snippets based on query, titleOnly, workspace, language
   const filteredSnippets = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return snippets.filter((s) => {
+    return allSnippets.filter((s) => {
       // Workspace filter
       if (selectedWorkspaceId !== 'all') {
         if ((s.workspaceId || '') !== selectedWorkspaceId) {
@@ -132,7 +197,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const codeMatch = ((s as any).currentCode || (s as any).code || '').toLowerCase().includes(q);
       return titleMatch || codeMatch;
     });
-  }, [snippets, query, titleOnly, selectedWorkspaceId, selectedLanguage]);
+  }, [allSnippets, query, titleOnly, selectedWorkspaceId, selectedLanguage]);
 
   // Group filtered snippets by time
   const groupedSnippets = useMemo(() => {
@@ -175,6 +240,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   // Currently focused snippet for the highlight/preview pane
   const currentSnippet = flatItems[selectedIndex] || null;
+
+  // Slice preview lines for the right pane, auto-scrolling to match if match is further down
+  const previewContent = useMemo(() => {
+    if (!currentSnippet) return null;
+    const raw = ((currentSnippet as any).currentCode || (currentSnippet as any).code || '');
+    if (!raw.trim()) return null;
+    const allLines: string[] = raw.split('\n');
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return { lines: allLines.slice(0, 30) };
+    }
+    const matchIdx = allLines.findIndex((l) => l.toLowerCase().includes(q));
+    if (matchIdx >= 25) {
+      const start = Math.max(0, matchIdx - 4);
+      return { lines: allLines.slice(start, start + 30) };
+    }
+    return { lines: allLines.slice(0, 30) };
+  }, [currentSnippet, query]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -222,7 +305,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-16 px-4 pb-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+    <div 
+      className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-16 px-4 pb-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+      onClick={onClose}
+    >
       <div 
         className="w-full max-w-4xl h-[580px] max-h-[85vh] bg-canvas-elevated border border-canvas-border rounded-xl shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 flex flex-col text-slate-800 dark:text-slate-100"
         onClick={(e) => e.stopPropagation()}
@@ -370,6 +456,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                         snippet.language,
                         snippet.filename
                       );
+                      const matchingExcerpt = !titleOnly && query.trim()
+                        ? getMatchingExcerpt((snippet as any).currentCode || (snippet as any).code, query)
+                        : null;
 
                       return (
                         <div
@@ -381,7 +470,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                           onMouseEnter={() => setSelectedIndex(itemIndex)}
                           className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                             isSelected
-                              ? 'bg-slate-200/70 dark:bg-canvas-surface text-slate-900 dark:text-white font-medium shadow-sm'
+                              ? 'search-item-selected bg-slate-200/70 dark:bg-canvas-surface text-slate-900 dark:text-white font-medium shadow-sm'
                               : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-canvas-surface/60'
                           }`}
                         >
@@ -394,16 +483,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 truncate text-xs">
                                 <span className="truncate font-semibold">
-                                  {baseTitle}
+                                  {highlightText(baseTitle, query)}
                                 </span>
                                 {extension && (
                                   <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
-                                    {extension}
+                                    {highlightText(extension, query)}
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1.5">
                                 <span>{getWorkspaceName(snippet.workspaceId)}</span>
+                                {matchingExcerpt && (
+                                  <>
+                                    <span className="text-slate-400 dark:text-slate-600">•</span>
+                                    <span className="font-mono text-[10px] text-slate-500 truncate">
+                                      L{matchingExcerpt.line}: {highlightText(matchingExcerpt.text, query)}
+                                    </span>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -432,7 +529,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                         <span>{getWorkspaceName(currentSnippet.workspaceId)}</span>
                       </div>
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                        {currentSnippet.title || 'Untitled Document'}
+                        {highlightText(currentSnippet.title || 'Untitled Document', query)}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
                         <span className="px-1.5 py-0.2 rounded bg-canvas-surface border border-canvas-border font-mono uppercase text-brand-primary">
@@ -461,12 +558,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       Preview
                     </div>
                     <div className="flex-1 overflow-y-auto rounded-lg bg-white dark:bg-canvas-default border border-slate-200 dark:border-canvas-border p-3 font-mono text-[11px] leading-relaxed text-slate-800 dark:text-slate-200">
-                      {((currentSnippet as any).currentCode || (currentSnippet as any).code || '').trim() ? (
+                      {previewContent ? (
                         <pre className="whitespace-pre-wrap break-all">
-                          {((currentSnippet as any).currentCode || (currentSnippet as any).code || '')
-                            .split('\n')
-                            .slice(0, 30)
-                            .join('\n')}
+                          {previewContent.lines.map((line: string, idx: number) => (
+                            <React.Fragment key={idx}>
+                              {idx > 0 && '\n'}
+                              {highlightText(line, query)}
+                            </React.Fragment>
+                          ))}
                         </pre>
                       ) : (
                         <div className="text-slate-400 italic text-[11px]">

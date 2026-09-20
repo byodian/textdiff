@@ -12,7 +12,10 @@ import {
   ChevronDown,
   FolderPlus,
   Folder,
-  Check
+  Check,
+  Edit2,
+  FolderInput,
+  X
 } from 'lucide-react';
 import { splitTitleAndExtension, formatTitleWithExtension } from '@/lib/languages';
 import { getShortcutLabel } from '@/lib/platform';
@@ -42,6 +45,9 @@ interface SidebarProps {
   activeWorkspaceId?: string | null;
   onSelectWorkspace?: (id: string) => void;
   onCreateWorkspace?: (name: string) => void;
+  onRenameWorkspace?: (id: string, newName: string) => void;
+  onRequestDeleteWorkspace?: (ws: WorkspaceItem) => void;
+  onRequestMoveSnippet?: (snippet: SnippetSummary) => void;
   onToggleCollapse: () => void;
   onOpenSearch?: () => void;
   onSearchChange?: (q: string) => void;
@@ -111,6 +117,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeHasUnsavedChanges,
   onSelectWorkspace,
   onCreateWorkspace,
+  onRenameWorkspace,
+  onRequestDeleteWorkspace,
+  onRequestMoveSnippet,
   onToggleCollapse,
   onOpenSearch,
   onSearchChange,
@@ -122,6 +131,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isWsMenuOpen, setIsWsMenuOpen] = useState(false);
   const [newWsName, setNewWsName] = useState('');
   const [isAddingWs, setIsAddingWs] = useState(false);
+  const [editingWsId, setEditingWsId] = useState<string | null>(null);
+  const [editingWsName, setEditingWsName] = useState('');
   const wsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -130,6 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (wsMenuRef.current && !wsMenuRef.current.contains(e.target as Node)) {
         setIsWsMenuOpen(false);
         setIsAddingWs(false);
+        setEditingWsId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -269,24 +281,103 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="max-h-48 overflow-y-auto space-y-0.5">
                   {wsList.map((ws) => {
                     const isSelected = ws.id === (activeWorkspaceId || activeWs?.id);
+                    if (editingWsId === ws.id) {
+                      return (
+                        <form
+                          key={ws.id}
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (editingWsName.trim() && onRenameWorkspace) {
+                              onRenameWorkspace(ws.id, editingWsName.trim());
+                              setEditingWsId(null);
+                            }
+                          }}
+                          className="px-2 py-1 flex items-center gap-1.5 bg-canvas-elevated rounded mx-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editingWsName}
+                            onChange={(e) => setEditingWsName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
+                                e.stopPropagation();
+                                setEditingWsId(null);
+                              }
+                            }}
+                            className="flex-1 bg-canvas-surface border border-canvas-border rounded px-1.5 py-0.5 text-xs text-slate-200 focus:outline-none focus:border-brand-primary min-w-0"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!editingWsName.trim()}
+                            className="p-1 text-slate-400 hover:text-brand-primary transition-colors disabled:opacity-40"
+                            title="Save (Enter)"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingWsId(null)}
+                            className="p-1 text-slate-400 hover:text-slate-200 transition-colors"
+                            title="Cancel (Esc)"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </form>
+                      );
+                    }
+
                     return (
-                      <button
+                      <div
                         key={ws.id}
-                        type="button"
                         onClick={() => {
                           onSelectWorkspace?.(ws.id);
                           setIsWsMenuOpen(false);
                         }}
-                        className={`w-full px-2.5 py-1.5 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors ${
+                        className={`group/ws w-full px-2.5 py-1.5 flex items-center justify-between rounded hover:bg-canvas-elevated text-left transition-colors cursor-pointer ${
                           isSelected ? 'text-brand-primary font-medium' : 'text-slate-300'
                         }`}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           <Folder className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate">{ws.name}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-brand-primary shrink-0 ml-0.5" />}
                         </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-brand-primary shrink-0" />}
-                      </button>
+                        <div className="opacity-0 group-hover/ws:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0 ml-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingWsId(ws.id);
+                              setEditingWsName(ws.name);
+                            }}
+                            className="p-1 hover:text-brand-primary text-slate-400 hover:bg-canvas-surface rounded transition-colors"
+                            title="Rename workspace"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={wsList.length <= 1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (wsList.length > 1) {
+                                setIsWsMenuOpen(false);
+                                onRequestDeleteWorkspace?.(ws);
+                              }
+                            }}
+                            className={`p-1 rounded transition-colors ${
+                              wsList.length <= 1
+                                ? 'opacity-30 cursor-not-allowed text-slate-500'
+                                : 'hover:text-rose-500 text-slate-400 hover:bg-canvas-surface'
+                            }`}
+                            title={wsList.length <= 1 ? 'Cannot delete the only remaining workspace' : 'Delete workspace'}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -387,6 +478,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
 
                   <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRequestMoveSnippet?.(s);
+                      }}
+                      className="p-1 hover:text-brand-primary transition-colors rounded hover:bg-canvas-elevated"
+                      title="Move to workspace"
+                    >
+                      <FolderInput className="w-3 h-3" />
+                    </button>
                     <button
                       onClick={(e) => onDuplicateSnippet(s.id, e)}
                       className="p-1 hover:text-brand-primary transition-colors rounded hover:bg-canvas-elevated"

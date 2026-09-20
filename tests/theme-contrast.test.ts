@@ -153,5 +153,39 @@ describe('Theme Contrast & Button Text Colors', () => {
     const searchBtns = screen.getAllByTitle(/Search documents/i);
     expect(searchBtns.length).toBeGreaterThan(0);
   });
+
+  it('tailwind config withOpacity never outputs NaN% for solid or translucent tokens', async () => {
+    const tailwindConfig = (await import('../tailwind.config')).default;
+    const canvasColors = tailwindConfig.theme?.extend?.colors?.canvas as any;
+    const brandColors = tailwindConfig.theme?.extend?.colors?.brand as any;
+
+    expect(typeof canvasColors.DEFAULT).toBe('function');
+
+    // Standard Tailwind utility call without slash opacity (passes CSS variable or default)
+    const solidCanvas = canvasColors.DEFAULT({ opacityValue: 'var(--tw-bg-opacity, 1)' });
+    expect(solidCanvas).not.toContain('NaN');
+    expect(solidCanvas).toBe('var(--color-canvas-default, #0b0f19)');
+
+    const solidElevated = canvasColors.elevated({ opacityValue: 'var(--tw-bg-opacity, 1)' });
+    expect(solidElevated).not.toContain('NaN');
+    expect(solidElevated).toBe('var(--color-canvas-elevated, #111827)');
+
+    const solidSurface = canvasColors.surface({ opacityValue: 'var(--tw-bg-opacity, 1)' });
+    expect(solidSurface).not.toContain('NaN');
+    expect(solidSurface).toBe('var(--color-canvas-surface, #161e2e)');
+
+    const solidBorder = canvasColors.border({ opacityValue: 'var(--tw-border-opacity, 1)' });
+    expect(solidBorder).not.toContain('NaN');
+    expect(solidBorder).toBe('var(--color-canvas-border, #1f293d)');
+
+    const solidBrand = brandColors.primary({ opacityValue: 'var(--tw-bg-opacity, 1)' });
+    expect(solidBrand).not.toContain('NaN');
+    expect(solidBrand).toBe('var(--color-brand-primary, #38bdf8)');
+
+    // Translucent Tailwind utility call with slash opacity (e.g. /70, /80)
+    const translucentSurface = canvasColors.surface({ opacityValue: '0.7' });
+    expect(translucentSurface).not.toContain('NaN');
+    expect(translucentSurface).toBe('color-mix(in srgb, var(--color-canvas-surface, #161e2e) 70%, transparent)');
+  });
 });
 
