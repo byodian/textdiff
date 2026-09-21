@@ -81,9 +81,28 @@ describe('detectLanguageFromContent', () => {
     expect(detectLanguageFromContent(diff)).toBe('diff');
   });
 
-  it('detects Markdown', () => {
+  it('detects Markdown for genuine markdown documents with code blocks or links', () => {
     const md = '# Project Title\n\nThis is a description.\n\n```ts\nconst a = 1;\n```';
     expect(detectLanguageFromContent(md)).toBe('markdown');
+
+    const mdWithLink = '# Documentation\n\nSee the [official guide](https://example.com) for details.';
+    expect(detectLanguageFromContent(mdWithLink)).toBe('markdown');
+  });
+
+  it('keeps plain text notes with simple hash headings as plaintext', () => {
+    const notes = '# 今日待办\n1. 买菜\n2. 散步\n3. 读书';
+    expect(detectLanguageFromContent(notes)).toBe('plaintext');
+
+    const meetingNotes = '# Meeting Notes\nDiscussed team progress and upcoming release deadlines.';
+    expect(detectLanguageFromContent(meetingNotes)).toBe('plaintext');
+  });
+
+  it('prioritizes Python and Shell comments over markdown', () => {
+    const pyWithComment = '# Global configuration helper\ndef load_config():\n    return {"debug": True}';
+    expect(detectLanguageFromContent(pyWithComment)).toBe('python');
+
+    const shWithComment = '# Deployment runner\necho "Deploying service..."\nchmod +x ./build.sh';
+    expect(detectLanguageFromContent(shWithComment)).toBe('shell');
   });
 
   it('falls back to plaintext for generic text', () => {

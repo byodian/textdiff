@@ -155,8 +155,6 @@ export default function WorkspacePage() {
       if (!res.ok) return;
       const s = await res.json();
       setActiveId(s.id);
-      setTitle(s.title);
-      setLanguage(s.language || detectLanguageFromTitle(s.title) || 'plaintext');
 
       // If the loaded snippet belongs to another workspace, switch active workspace
       if (s.workspaceId && s.workspaceId !== activeWorkspaceIdRef.current) {
@@ -169,10 +167,37 @@ export default function WorkspacePage() {
         }
       }
 
-      // Restore unsaved draft from localStorage if one exists
       const draft = loadDraft(s.id, s.currentCode);
-      setCode(draft ?? s.currentCode);
+      const activeCode = draft ?? s.currentCode;
+      setCode(activeCode);
       setLastSavedCode(s.currentCode);
+
+      // Determine the actual language of the text:
+      let effectiveLang = s.language || detectLanguageFromTitle(s.title) || 'plaintext';
+      if ((!s.language || s.language === 'typescript') && activeCode && activeCode.trim().length > 0) {
+        const detected = detectLanguageFromContent(activeCode);
+        if (detected && detected !== 'plaintext' && detected !== 'markdown') {
+          effectiveLang = detected;
+        }
+      }
+      setLanguage(effectiveLang);
+
+      const isUntitled = !s.title || s.title.trim().toLowerCase().startsWith('untitled document');
+      const loadedTitle = isUntitled
+        ? formatTitleWithExtension('Untitled Document', effectiveLang, s.filename, activeCode)
+        : s.title;
+      setTitle(loadedTitle);
+
+      if (effectiveLang !== s.language || loadedTitle !== s.title) {
+        const updater = (prev: SnippetSummary[]) =>
+          prev.map((item) =>
+            item.id === s.id
+              ? { ...item, language: effectiveLang, title: loadedTitle, currentCode: activeCode }
+              : item
+          );
+        setSnippets(updater);
+        setAllSnippets(updater);
+      }
 
       setVersions(s.versions || []);
       setVersionA(null);
@@ -603,51 +628,56 @@ export default function WorkspacePage() {
   };
 
   // 7. Auto-save metadata (title, language) without creating a new version
-  const handleAutoSaveMeta = useCallback(async (newTitle = title, newLanguage = language) => {
+  const handleAutoSaveMeta = useCallback(async (newTitle = title, newLanguage = language, currentCodeParam = code) => {
     if (!activeId) return;
 
+    const formattedTitle = newTitle.trim() || 'Untitled Document';
+    const updater = (prev: SnippetSummary[]) =>
+      prev.map((s) =>
+        s.id === activeId
+          ? {
+              ...s,
+              title: formattedTitle,
+              language: newLanguage,
+              currentCode: currentCodeParam,
+              updatedAt: new Date().toISOString(),
+            }
+          : s
+      );
+    setSnippets(updater);
+    setAllSnippets(updater);
+
     try {
-      const res = await fetch(`/api/snippets/${activeId}`, {
+      await fetch(`/api/snippets/${activeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: newTitle.trim() || 'Untitled Document',
+          title: formattedTitle,
           language: newLanguage,
-          currentCode: code,
+          currentCode: currentCodeParam,
           createVersion: false,
         }),
       });
-
-      if (res.ok) {
-        const updater = (prev: SnippetSummary[]) =>
-          prev.map((s) =>
-            s.id === activeId
-              ? { ...s, title: newTitle.trim() || 'Untitled Document', language: newLanguage, updatedAt: new Date().toISOString() }
-              : s
-          );
-        setSnippets(updater);
-        setAllSnippets(updater);
-      }
     } catch (err) {
       console.error('Failed to auto-save metadata', err);
     }
   }, [activeId, title, language, code]);
 
-  // 7b. Auto-detect format from content when in plaintext or untitled document
+  // 7b. Auto-detect format from content when in plaintext, typescript default, or untitled document
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
 
     const isUntitled = !title || title.trim().toLowerCase().startsWith('untitled document');
-    if (language === 'plaintext' || isUntitled) {
+    if (language === 'plaintext' || language === 'typescript' || isUntitled) {
       const detected = detectLanguageFromContent(newCode);
-      if (detected && detected !== 'plaintext' && detected !== language) {
+      if (detected && detected !== 'plaintext' && detected !== 'markdown' && detected !== language) {
         setLanguage(detected);
         if (isUntitled) {
-          const newTitle = formatTitleWithExtension(title || 'Untitled Document', detected);
+          const newTitle = formatTitleWithExtension('Untitled Document', detected, undefined, newCode);
           setTitle(newTitle);
-          handleAutoSaveMeta(newTitle, detected);
+          handleAutoSaveMeta(newTitle, detected, newCode);
         } else {
-          handleAutoSaveMeta(title, detected);
+          handleAutoSaveMeta(title, detected, newCode);
         }
       }
     }
@@ -660,11 +690,11 @@ export default function WorkspacePage() {
       setLanguage(detected);
       const isUntitled = !title || title.trim().toLowerCase().startsWith('untitled document');
       if (isUntitled) {
-        const newTitle = formatTitleWithExtension(title || 'Untitled Document', detected);
+        const newTitle = formatTitleWithExtension('Untitled Document', detected, undefined, code);
         setTitle(newTitle);
-        handleAutoSaveMeta(newTitle, detected);
+        handleAutoSaveMeta(newTitle, detected, code);
       } else {
-        handleAutoSaveMeta(title, detected);
+        handleAutoSaveMeta(title, detected, code);
       }
     }
   }, [code, language, title, handleAutoSaveMeta]);
@@ -676,7 +706,12 @@ export default function WorkspacePage() {
       return;
     }
     setLanguage(newLang);
-    handleAutoSaveMeta(title, newLang);
+    const isUntitled = !title || title.trim().toLowerCase().startsWith('untitled document');
+    const newTitle = isUntitled
+      ? formatTitleWithExtension('Untitled Document', newLang, undefined, code)
+      : formatTitleWithExtension(title, newLang, undefined, code);
+    setTitle(newTitle);
+    handleAutoSaveMeta(newTitle, newLang, code);
   };
 
   // 9. Instant Save: zero-interruption optimistic snapshot
@@ -1156,11 +1191,41 @@ export default function WorkspacePage() {
     return () => clearTimeout(timer);
   }, [activeId, code, lastSavedCode]);
 
+  // Derived live snippets for Sidebar and SearchModal to guarantee instant format synchronization
+  const sidebarSnippets = useMemo(() => {
+    return snippets.map((s) => {
+      if (s.id === activeId) {
+        return {
+          ...s,
+          title,
+          language,
+          currentCode: code,
+        };
+      }
+      return s;
+    });
+  }, [snippets, activeId, title, language, code]);
+
+  const searchSnippets = useMemo(() => {
+    const base = allSnippets.length > 0 ? allSnippets : snippets;
+    return base.map((s) => {
+      if (s.id === activeId) {
+        return {
+          ...s,
+          title,
+          language,
+          currentCode: code,
+        };
+      }
+      return s;
+    });
+  }, [allSnippets, snippets, activeId, title, language, code]);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-canvas text-slate-100 antialiased">
       {/* Sidebar navigation */}
       <Sidebar
-        snippets={snippets}
+        snippets={sidebarSnippets}
         activeId={activeId}
         searchQuery={searchQuery}
         isCollapsed={isSidebarCollapsed}
@@ -1202,7 +1267,7 @@ export default function WorkspacePage() {
               customDiffLabel={customDiffLabel}
               onExitCustomDiff={handleExitCustomDiff}
               onTitleChange={handleTitleChange}
-              onTitleBlur={() => handleAutoSaveMeta(title, language)}
+              onTitleBlur={() => handleAutoSaveMeta(title, language, code)}
               onToggleDiffMode={() => setIsDiffMode(!isDiffMode)}
               onToggleSideBySide={() => setIsSideBySide(!isSideBySide)}
               onOpenHistory={() => setHistoryOpen(true)}
@@ -1266,6 +1331,7 @@ export default function WorkspacePage() {
                 language={language}
                 code={code}
                 isDiffMode={isDiffMode}
+                isSidebarOpen={!isSidebarCollapsed}
                 diffStats={diffStats}
                 diagnostics={diagnostics}
                 onFormatDocument={handleFormatDocument}
@@ -1414,7 +1480,7 @@ export default function WorkspacePage() {
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-        snippets={allSnippets.length > 0 ? allSnippets : snippets}
+        snippets={searchSnippets}
         activeSnippetId={activeId}
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}

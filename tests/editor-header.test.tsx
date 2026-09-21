@@ -221,4 +221,77 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(undoBtn.disabled).toBe(true);
     expect(redoBtn.disabled).toBe(true);
   });
+
+  it('unifies header control heights to compact h-7 across all buttons and inputs', () => {
+    const { container } = render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        hasUnsavedChanges: true,
+        diffStats: { added: 12, removed: 4, hasChanges: true },
+        onUndo: vi.fn(),
+        onRedo: vi.fn(),
+        versionCount: 3,
+      })
+    );
+
+    // Title input has h-7
+    const titleInput = screen.getByPlaceholderText(/Document Title/i);
+    expect(titleInput.className).toContain('h-7');
+
+    // Unsaved edits button has h-7
+    const unsavedBtn = screen.getByTitle(/Unsaved edits \(\+12\/-4\)\. Click to inspect diff\./i);
+    expect(unsavedBtn).toBeDefined();
+    expect(unsavedBtn.className).toContain('h-7');
+
+    // Mode switch container has h-7
+    const modeSwitchContainer = unsavedBtn.closest('header')?.querySelector('.bg-canvas-surface.rounded-md');
+    expect(modeSwitchContainer?.className).toContain('h-7');
+
+    // Undo/Redo container has h-7
+    const undoRedoContainer = screen.getByRole('group', { name: 'Undo and Redo' });
+    expect(undoRedoContainer.className).toContain('h-7');
+
+    // History button has h-7
+    const historyBtn = screen.getByTitle(/Revision History/i);
+    expect(historyBtn.className).toContain('h-7');
+
+    // Save button has h-7
+    const saveBtn = screen.getByTitle(/Save Version/i);
+    expect(saveBtn.className).toContain('h-7');
+
+    // More actions button has h-7 and w-7
+    const moreBtn = screen.getByTitle(/More actions/i);
+    expect(moreBtn.className).toContain('h-7');
+    expect(moreBtn.className).toContain('w-7');
+  });
+
+  it('hides Unsaved edits and Editor/Diff text on screens below xl and provides informative hover tooltips', () => {
+    render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        hasUnsavedChanges: true,
+        diffStats: { added: 8, removed: 3, hasChanges: true },
+        isDiffMode: false,
+      })
+    );
+
+    // Unsaved edits text element has hidden xl:inline responsive class
+    const unsavedText = screen.getByText('Unsaved edits');
+    expect(unsavedText.className).toContain('hidden xl:inline');
+
+    // Tooltip includes diff stats and instruction
+    const unsavedBtn = screen.getByTitle('Unsaved edits (+8/-3). Click to inspect diff.');
+    expect(unsavedBtn).toBeDefined();
+
+    // Editor button text has hidden xl:inline and descriptive title
+    const editorText = screen.getByText('Editor');
+    expect(editorText.className).toContain('hidden xl:inline');
+    expect(screen.getByTitle('Editor mode (Edit document)')).toBeDefined();
+
+    // Diff button text has hidden xl:inline and diff stats title
+    const diffText = screen.getByText('Diff');
+    expect(diffText.className).toContain('hidden xl:inline');
+    expect(screen.getByTitle('Diff mode (+8/-3)')).toBeDefined();
+  });
 });
+

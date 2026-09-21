@@ -454,7 +454,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       const { baseTitle, extension } = splitTitleAndExtension(
                         snippet.title,
                         snippet.language,
-                        snippet.filename
+                        snippet.filename,
+                        (snippet as any).currentCode || (snippet as any).code
                       );
                       const matchingExcerpt = !titleOnly && query.trim()
                         ? getMatchingExcerpt((snippet as any).currentCode || (snippet as any).code, query)

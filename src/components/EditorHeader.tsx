@@ -114,9 +114,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   }, [title]);
 
   return (
-    <header className="relative z-30 h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 select-none">
+    <header className="relative z-30 h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-3 select-none">
       {/* Zone 1 (Left): Document Identity (Title & Dirty indicator) */}
-      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 max-w-[50%] lg:max-w-[58%]">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 sm:flex-initial">
         <input
           type="text"
           value={title}
@@ -129,7 +129,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           }}
           placeholder="Document Title (e.g. app.tsx, schema.sql)"
           style={{ width: `${inputWidthCh}ch` }}
-          className="bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1.5 py-0.5 outline-none transition-all min-w-[200px] max-w-full sm:max-w-md lg:max-w-xl xl:max-w-2xl truncate shrink"
+          className="h-7 bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1.5 outline-none transition-all min-w-[100px] sm:min-w-[160px] max-w-full sm:max-w-md lg:max-w-xl xl:max-w-2xl truncate shrink"
           title="Click to edit document title (auto-saves on blur)"
         />
 
@@ -138,11 +138,15 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           <button
             type="button"
             onClick={onToggleDiffMode}
-            className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300/80 text-amber-900 hover:bg-amber-200/90 dark:bg-amber-950/40 dark:border-amber-700/50 dark:text-amber-300 dark:hover:bg-amber-900/50 shrink-0 transition-colors shadow-sm"
-            title="Unsaved edits. Click to inspect diff against latest version."
+            className="h-7 flex items-center gap-1.5 text-xs font-medium px-2.5 rounded-full bg-amber-100 border border-amber-300/80 text-amber-900 hover:bg-amber-200/90 dark:bg-amber-950/40 dark:border-amber-700/50 dark:text-amber-300 dark:hover:bg-amber-900/50 shrink-0 transition-colors shadow-sm"
+            title={
+              diffStats.hasChanges
+                ? `Unsaved edits (+${diffStats.added}/-${diffStats.removed}). Click to inspect diff.`
+                : 'Unsaved edits. Click to inspect diff.'
+            }
           >
             <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400 animate-pulse shrink-0" />
-            <span className="font-medium">Unsaved edits</span>
+            <span className="font-medium hidden xl:inline">Unsaved edits</span>
             {diffStats.hasChanges && (
               <span className="font-mono text-[11px] font-semibold text-amber-800 dark:text-amber-200 ml-0.5">
                 (+{diffStats.added}/-{diffStats.removed})
@@ -154,28 +158,28 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Zone 2 (Center): Primary Mode Switcher (Edit vs Diff) */}
       <div className="flex items-center justify-center shrink-0">
-        <div className="flex items-center p-0.5 bg-canvas-surface border border-canvas-border rounded-lg shadow-inner">
+        <div className="h-7 flex items-center p-0.5 bg-canvas-surface border border-canvas-border rounded-md shadow-inner">
           <button
             type="button"
             onClick={() => {
               if (isDiffMode) onToggleDiffMode();
             }}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`h-full flex items-center gap-1.5 px-2.5 xl:px-3 rounded text-xs font-medium transition-all ${
               !isDiffMode
                 ? 'bg-canvas-elevated text-brand-primary shadow-sm font-semibold'
                 : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
-            title="Return to code editor"
+            title="Editor mode (Edit document)"
           >
-            <Code className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Editor</span>
+            <Code className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xl:inline">Editor</span>
           </button>
           <button
             type="button"
             onClick={() => {
               if (!isDiffMode) onToggleDiffMode();
             }}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`h-full flex items-center gap-1.5 px-2.5 xl:px-3 rounded text-xs font-medium transition-all ${
               isDiffMode
                 ? 'bg-canvas-elevated text-brand-primary shadow-sm font-semibold'
                 : diffStats.hasChanges
@@ -184,12 +188,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             }`}
             title={
               diffStats.hasChanges
-                ? `Inspect diff (+${diffStats.added}/-${diffStats.removed})`
-                : 'Inspect diff (No unsaved changes)'
+                ? `Diff mode (+${diffStats.added}/-${diffStats.removed})`
+                : 'Diff mode (No unsaved changes)'
             }
           >
-            <Split className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Diff</span>
+            <Split className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xl:inline">Diff</span>
           </button>
         </div>
       </div>
@@ -198,13 +202,13 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
         {/* Undo / Redo Actions Group */}
         {(onUndo || onRedo) && (
-          <div className="flex items-center bg-canvas-surface border border-canvas-border rounded-md p-0.5 select-none shrink-0" role="group" aria-label="Undo and Redo">
+          <div className="h-7 flex items-center bg-canvas-surface border border-canvas-border rounded-md p-0.5 select-none shrink-0" role="group" aria-label="Undo and Redo">
             {onUndo && (
               <button
                 type="button"
                 onClick={onUndo}
                 disabled={!canUndo}
-                className={`p-1.5 rounded transition-colors flex items-center justify-center ${
+                className={`h-full w-6 rounded transition-colors flex items-center justify-center ${
                   !canUndo
                     ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-40'
                     : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-canvas-elevated cursor-pointer'
@@ -215,13 +219,13 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
             )}
-            {onUndo && onRedo && <div className="w-[1px] h-3.5 bg-canvas-border my-auto" />}
+            {onUndo && onRedo && <div className="w-[1px] h-3 bg-canvas-border my-auto" />}
             {onRedo && (
               <button
                 type="button"
                 onClick={onRedo}
                 disabled={!canRedo}
-                className={`p-1.5 rounded transition-colors flex items-center justify-center ${
+                className={`h-full w-6 rounded transition-colors flex items-center justify-center ${
                   !canRedo
                     ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-40'
                     : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-canvas-elevated cursor-pointer'
@@ -238,7 +242,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
-          className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-xs text-slate-100 hover:text-white font-medium transition-colors shrink-0"
+          className="h-7 flex items-center gap-1.5 px-2.5 rounded bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-xs text-slate-100 hover:text-white font-medium transition-colors shrink-0"
           title="Revision History"
         >
           <History className="w-3.5 h-3.5 text-sky-400" />
@@ -253,7 +257,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* Primary Action: Save Version Snapshot */}
         <button
           onClick={onSavePrompt}
-          className={`flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded font-semibold text-xs transition-colors shrink-0 ${
+          className={`h-7 flex items-center gap-1.5 px-3 rounded font-semibold text-xs transition-colors shrink-0 ${
             isJustSaved
               ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
               : 'bg-brand-primary hover:brightness-110 active:scale-95 text-brand-text'
@@ -284,7 +288,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsMoreOpen((prev) => !prev)}
-            className={`p-1.5 rounded border transition-colors flex items-center justify-center ${
+            className={`h-7 w-7 rounded border transition-colors flex items-center justify-center shrink-0 ${
               isMoreOpen
                 ? 'bg-canvas-elevated border-brand-primary/60 text-brand-primary'
                 : 'bg-canvas-surface border border-canvas-border text-slate-400 hover:text-slate-100 hover:border-canvas-highlight'

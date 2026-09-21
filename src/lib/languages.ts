@@ -130,11 +130,19 @@ export function detectLanguageFromContent(content: string, fallback = 'plaintext
     return 'yaml';
   }
 
-  // 8. Markdown
-  const mdHeading = /^#{1,6}\s+\S/m;
-  const mdList = /^[-*]\s+\[[ x]\]\s+\S/m;
+  // 8. Markdown (strict: requires genuine markdown structure, not just a simple note header)
   const mdFence = /^```[a-zA-Z0-9_-]*\r?\n[\s\S]*?\r?\n```/m;
-  if (mdFence.test(text) || mdList.test(text) || (mdHeading.test(text) && !text.includes(';') && !text.includes('{'))) {
+  const mdTable = /^\|.+?\|\r?\n\|[-:\s|]+\|\r?\n\|.+?\|/m;
+  const mdLink = /\[.+?\]\(https?:\/\/[^\s)]+\)/;
+  const mdHeading = /^#{1,6}\s+\S/m;
+  const mdTaskList = /^[-*]\s+\[[ x]\]\s+\S/m;
+
+  if (
+    (mdFence.test(text) && (mdHeading.test(text) || mdLink.test(text) || /\*\*.+?\*\*/.test(text))) ||
+    (mdTable.test(text) && mdHeading.test(text)) ||
+    (mdHeading.test(text) && mdLink.test(text)) ||
+    (mdHeading.test(text) && mdTaskList.test(text))
+  ) {
     return 'markdown';
   }
 
@@ -150,7 +158,7 @@ export function detectLanguageFromContent(content: string, fallback = 'plaintext
 
   // 10. Python
   const hasPyKeywords = /\bdef\s+[\w$]+\s*\(.*?\)\s*:|\bclass\s+[\w$]+(\(.*?\))?\s*:|\bif\s+__name__\s*==\s*['"]__main__['"]\s*:|\bimport\s+[\w$]+|\bfrom\s+[\w$]+\s+import\b|\belif\s+.*?:|\bexcept\s+.*?:/;
-  if (hasPyKeywords.test(text) && !text.includes(';') && !text.includes('{')) {
+  if (hasPyKeywords.test(text) && !text.includes(';')) {
     return 'python';
   }
 
@@ -164,13 +172,33 @@ export function detectLanguageFromContent(content: string, fallback = 'plaintext
 
   // 12. Shell
   if (
-    /^(\$|#)\s+[a-zA-Z0-9_-]+/m.test(text) ||
+    /^\$\s+[a-zA-Z0-9_-]+/m.test(text) ||
     /\b(echo\s+['"].*?['"]|chmod\s+\+x|sudo\s+apt|export\s+[A-Z_]+=)/.test(text)
   ) {
     return 'shell';
   }
 
-  // 13. General HTML / XML tag match
+  // 13. Go
+  if (/\bpackage\s+[a-zA-Z_]\w*|\bfunc\s+(\([^)]+\)\s+)?[a-zA-Z_]\w*\s*\(|\bimport\s+\(\s*"/.test(text)) {
+    return 'go';
+  }
+
+  // 14. Rust
+  if (/\bfn\s+[a-zA-Z_]\w*\s*\(|\blet\s+mut\s+|\bimpl\s+[A-Z]|\bpub\s+(fn|struct|enum)\b/.test(text)) {
+    return 'rust';
+  }
+
+  // 15. Java
+  if (/\bpublic\s+class\s+[A-Z]|\bpublic\s+static\s+void\s+main\b|\bSystem\.out\.println\b/.test(text)) {
+    return 'java';
+  }
+
+  // 16. C / C++
+  if (/#include\s+<[a-zA-Z0-9_.]+>|#include\s+"[a-zA-Z0-9_.]+"/.test(text)) {
+    return text.includes('std::') || text.includes('cout') || text.includes('cin') ? 'cpp' : 'c';
+  }
+
+  // 17. General HTML / XML tag match
   if (/^<([a-zA-Z][a-zA-Z0-9-]*)(\s+[^>]*)?>[\s\S]*<\/\1>$/s.test(text)) {
     return 'xml';
   }
@@ -190,7 +218,8 @@ export function getDefaultExtensionForLanguage(language?: string | null): string
 export function splitTitleAndExtension(
   title?: string | null,
   language?: string | null,
-  filename?: string | null
+  filename?: string | null,
+  code?: string | null
 ): { baseTitle: string; extension: string } {
   const rawTitle = (title || '').trim();
   const effectiveTitle = rawTitle || 'Untitled Document';
@@ -199,49 +228,117 @@ export function splitTitleAndExtension(
     return { baseTitle: effectiveTitle, extension: '' };
   }
 
-  // 1. Check if title ends with any supported language extension
+  const isUntitled = effectiveTitle.toLowerCase().startsWith('untitled document');
+
+  // 1. Extract existing extension and base name from title
+  let baseFromTitle = effectiveTitle;
+  let titleExt = '';
+
   for (const lang of SUPPORTED_LANGUAGES) {
     for (const ext of lang.extensions) {
       if (ext.startsWith('.') && effectiveTitle.toLowerCase().endsWith(ext.toLowerCase())) {
-        const base = effectiveTitle.slice(0, effectiveTitle.length - ext.length);
-        if (base.length > 0) {
-          return { baseTitle: base, extension: ext };
+        const potentialBase = effectiveTitle.slice(0, effectiveTitle.length - ext.length);
+        if (potentialBase.length > 0) {
+          baseFromTitle = potentialBase;
+          titleExt = ext.toLowerCase();
+          break;
         }
+      }
+    }
+    if (titleExt) break;
+  }
+
+  // If not matched to supported language, check standard dot extension (e.g. .csv, .vue, .proto)
+  if (!titleExt) {
+    const extMatch = effectiveTitle.match(/^(.+?)(\.[a-zA-Z][a-zA-Z0-9_-]{0,7})$/);
+    if (extMatch) {
+      baseFromTitle = extMatch[1];
+      titleExt = extMatch[2].toLowerCase();
+    }
+  }
+
+  // 2. Determine effective language of the text
+  let effectiveLang = (language || '').toLowerCase().trim();
+
+  // If language is missing, plaintext, or typescript default, OR if this is an untitled document,
+  // check if content has a detectable format
+  if (
+    (!effectiveLang || effectiveLang === 'plaintext' || effectiveLang === 'typescript' || isUntitled) &&
+    code &&
+    code.trim().length > 0
+  ) {
+    const detected = detectLanguageFromContent(code);
+    if (detected && detected !== 'plaintext') {
+      // NEVER auto-promote plaintext or .txt files to markdown based on content
+      if (!(detected === 'markdown' && (effectiveLang === 'plaintext' || titleExt === '.txt'))) {
+        effectiveLang = detected;
       }
     }
   }
 
-  // 2. Check if title already ends with any standard extension (e.g. .csv, .vue, .proto)
-  const extMatch = effectiveTitle.match(/^(.+?)(\.[a-zA-Z][a-zA-Z0-9_-]{0,7})$/);
-  if (extMatch) {
-    return { baseTitle: extMatch[1], extension: extMatch[2] };
+  // Also check if filename has an extension that indicates language
+  if ((!effectiveLang || effectiveLang === 'plaintext') && filename) {
+    const fromFilename = detectLanguageFromFilename(filename, '');
+    if (fromFilename) {
+      effectiveLang = fromFilename;
+    }
   }
 
-  // 3. Fallback to filename extension if present
+  // 3. Protect explicit .txt extension:
+  // If the file explicitly has a .txt extension and language is markdown or plaintext, keep .txt
+  if (titleExt === '.txt' && (effectiveLang === 'markdown' || effectiveLang === 'plaintext' || !effectiveLang)) {
+    return { baseTitle: baseFromTitle, extension: '.txt' };
+  }
+
+  // 4. Reconcile with effective language:
+  // If effectiveLang is known and not plaintext:
+  if (effectiveLang && effectiveLang !== 'plaintext') {
+    const langObj = SUPPORTED_LANGUAGES.find((l) => l.id === effectiveLang);
+    if (langObj) {
+      // Check if existing titleExt is a valid extension for this language
+      const isMatchingExt = titleExt && langObj.extensions.some((e) => e.toLowerCase() === titleExt);
+      if (isMatchingExt) {
+        // Preserves e.g. .tsx vs .ts, or .yml vs .yaml
+        return { baseTitle: baseFromTitle, extension: titleExt };
+      }
+
+      // Check if filename has a valid extension for this language
+      if (filename) {
+        for (const ext of langObj.extensions) {
+          if (ext.startsWith('.') && filename.toLowerCase().endsWith(ext.toLowerCase())) {
+            return { baseTitle: baseFromTitle, extension: ext.toLowerCase() };
+          }
+        }
+      }
+
+      // If titleExt belongs to another language (e.g. outdated .txt when language is Python/JSON) or was missing,
+      // use language's default extension
+      const defaultExt = getDefaultExtensionForLanguage(effectiveLang);
+      return { baseTitle: baseFromTitle, extension: defaultExt };
+    }
+  }
+
+  // 5. If effectiveLang is plaintext (or unknown):
+  if (titleExt) {
+    return { baseTitle: baseFromTitle, extension: titleExt };
+  }
+
   if (filename) {
-    for (const lang of SUPPORTED_LANGUAGES) {
-      for (const ext of lang.extensions) {
-        if (ext.startsWith('.') && filename.toLowerCase().endsWith(ext.toLowerCase())) {
-          return { baseTitle: effectiveTitle, extension: ext };
-        }
-      }
-    }
     const fnMatch = filename.match(/\.[a-zA-Z][a-zA-Z0-9_-]{0,7}$/);
     if (fnMatch) {
-      return { baseTitle: effectiveTitle, extension: fnMatch[0] };
+      return { baseTitle: effectiveTitle, extension: fnMatch[0].toLowerCase() };
     }
   }
 
-  // 4. Default to language extension
-  const defaultExt = getDefaultExtensionForLanguage(language);
-  return { baseTitle: effectiveTitle, extension: defaultExt };
+  return { baseTitle: effectiveTitle, extension: getDefaultExtensionForLanguage(effectiveLang || 'plaintext') };
 }
 
 export function formatTitleWithExtension(
   title?: string | null,
   language?: string | null,
-  filename?: string | null
+  filename?: string | null,
+  code?: string | null
 ): string {
-  const { baseTitle, extension } = splitTitleAndExtension(title, language, filename);
+  const { baseTitle, extension } = splitTitleAndExtension(title, language, filename, code);
   return `${baseTitle}${extension}`;
 }

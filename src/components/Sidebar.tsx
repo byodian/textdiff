@@ -25,9 +25,10 @@ export interface SnippetSummary {
   title: string;
   filename?: string | null;
   language: string;
+  currentCode?: string;
   updatedAt: string;
   workspaceId?: string | null;
-  versions?: { versionNo: number }[];
+  versions?: { versionNo: number; code?: string }[];
 }
 
 export interface WorkspaceItem {
@@ -164,7 +165,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const filtered = snippets.filter((s) => {
     const q = searchQuery.toLowerCase();
-    const fullTitle = formatTitleWithExtension(s.title, s.language, s.filename).toLowerCase();
+    const sCode = s.currentCode ?? s.versions?.[0]?.code;
+    const fullTitle = formatTitleWithExtension(s.title, s.language, s.filename, sCode).toLowerCase();
     return (
       fullTitle.includes(q) ||
       s.title.toLowerCase().includes(q) ||
@@ -435,10 +437,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             filtered.map((s) => {
               const isActive = s.id === activeId;
+              const sCode = s.currentCode ?? s.versions?.[0]?.code;
               const { baseTitle, extension } = splitTitleAndExtension(
                 s.title,
                 s.language,
-                s.filename
+                s.filename,
+                sCode
               );
               const fullTitle = `${baseTitle}${extension}`;
 
