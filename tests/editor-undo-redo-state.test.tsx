@@ -42,6 +42,12 @@ describe('Editor Undo/Redo State Conformance', () => {
       />
     );
 
+    // Toolbar does not render duplicate Undo/Redo
+    expect(screen.queryByRole('group', { name: 'Undo and Redo' })).toBeNull();
+
+    // Open More actions dropdown
+    fireEvent.click(screen.getByTitle(/More actions/i));
+
     const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement;
     const redoBtn = screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement;
 
@@ -74,19 +80,24 @@ describe('Editor Undo/Redo State Conformance', () => {
       />
     );
 
+    // Toolbar does not render duplicate Undo/Redo
+    expect(screen.queryByRole('group', { name: 'Undo and Redo' })).toBeNull();
+
+    // Open More actions dropdown
+    fireEvent.click(screen.getByTitle(/More actions/i));
+
     const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement;
     const redoBtn = screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement;
 
-    expect(undoBtn.disabled).toBe(false);
     expect(redoBtn.disabled).toBe(true);
-    expect(undoBtn.className).toContain('cursor-pointer');
     expect(redoBtn.className).toContain('cursor-not-allowed');
-
-    fireEvent.click(undoBtn);
-    expect(onUndo).toHaveBeenCalledTimes(1);
-
     fireEvent.click(redoBtn);
     expect(onRedo).not.toHaveBeenCalled();
+
+    expect(undoBtn.disabled).toBe(false);
+    expect(undoBtn.className).toContain('hover:text-white');
+    fireEvent.click(undoBtn);
+    expect(onUndo).toHaveBeenCalledTimes(1);
   });
 
   it('enables Redo and greys out Undo when all changes have been undone back to unmodified state', () => {
@@ -104,15 +115,20 @@ describe('Editor Undo/Redo State Conformance', () => {
       />
     );
 
+    // Toolbar does not render duplicate Undo/Redo
+    expect(screen.queryByRole('group', { name: 'Undo and Redo' })).toBeNull();
+
+    // Open More actions dropdown
+    fireEvent.click(screen.getByTitle(/More actions/i));
+
     const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement;
     const redoBtn = screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement;
 
     expect(undoBtn.disabled).toBe(true);
-    expect(redoBtn.disabled).toBe(false);
-
     fireEvent.click(undoBtn);
     expect(onUndo).not.toHaveBeenCalled();
 
+    expect(redoBtn.disabled).toBe(false);
     fireEvent.click(redoBtn);
     expect(onRedo).toHaveBeenCalledTimes(1);
   });

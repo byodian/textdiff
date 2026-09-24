@@ -67,4 +67,64 @@ describe('HTTP API Seam Tests', () => {
     const count = await prisma.snippet.count();
     expect(count).toBe(0);
   });
+
+  it('does not create a new version when updating with duplicate/identical content', async () => {
+    // 1. Create Snippet
+    const createReq = new Request('http://localhost:3000/api/snippets', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Dedup Test Snippet',
+        language: 'typescript',
+        currentCode: 'const x = 1;',
+      }),
+    });
+    const createRes = await createSnippet(createReq);
+    const createdData = await createRes.json();
+    expect(createdData.versions.length).toBe(1);
+    expect(createdData.versions[0].versionNo).toBe(1);
+
+    // 2. PUT with createVersion: true but IDENTICAL currentCode
+    const updateReq1 = new Request(`http://localhost:3000/api/snippets/${createdData.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentCode: 'const x = 1;',
+        createVersion: true,
+        commitMsg: 'Duplicate attempt 1',
+      }),
+    });
+    const updateRes1 = await updateSnippet(updateReq1, { params: { id: createdData.id } });
+    const updateData1 = await updateRes1.json();
+
+    // Must NOT create a second version
+    expect(updateData1.versions.length).toBe(1);
+    expect(updateData1.versions[0].versionNo).toBe(1);
+
+    // 3. Update with NEW code -> creates version 2
+    const updateReq2 = new Request(`http://localhost:3000/api/snippets/${createdData.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentCode: 'const x = 2;',
+        createVersion: true,
+        commitMsg: 'Updated x',
+      }),
+    });
+    const updateRes2 = await updateSnippet(updateReq2, { params: { id: createdData.id } });
+    const updateData2 = await updateRes2.json();
+    expect(updateData2.versions.length).toBe(2);
+    expect(updateData2.versions[0].versionNo).toBe(2);
+
+    // 4. Repeatedly PUT with the SAME code ('const x = 2;') -> must stay 2 versions
+    const updateReq3 = new Request(`http://localhost:3000/api/snippets/${createdData.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentCode: 'const x = 2;',
+        createVersion: true,
+        commitMsg: 'Duplicate attempt 2',
+      }),
+    });
+    const updateRes3 = await updateSnippet(updateReq3, { params: { id: createdData.id } });
+    const updateData3 = await updateRes3.json();
+    expect(updateData3.versions.length).toBe(2);
+    expect(updateData3.versions[0].versionNo).toBe(2);
+  });
 });

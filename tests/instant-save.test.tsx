@@ -177,6 +177,86 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
     );
   });
 
+  it('ignores repeated keydown events (e.repeat) when holding Ctrl+S', async () => {
+    window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 4;');
+
+    await act(async () => {
+      render(React.createElement(WorkspacePage));
+    });
+
+    const putCallsBefore = (global.fetch as any).mock.calls.filter(
+      (c: any[]) => c[0] === '/api/snippets/snip-1' && c[1]?.method === 'PUT'
+    ).length;
+
+    // Simulate key repeat: e.repeat is true
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 's', ctrlKey: true, repeat: true });
+    });
+
+    const putCallsAfter = (global.fetch as any).mock.calls.filter(
+      (c: any[]) => c[0] === '/api/snippets/snip-1' && c[1]?.method === 'PUT'
+    ).length;
+
+    // Should NOT trigger any new PUT calls
+    expect(putCallsAfter).toBe(putCallsBefore);
+  });
+
+  it('prevents concurrent in-flight save requests from duplicate button clicks or rapid events', async () => {
+    window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 5;');
+
+    // Delay fetch resolution to simulate network in-flight state
+    let resolvePut: (val: any) => void;
+    const putPromise = new Promise((resolve) => {
+      resolvePut = resolve;
+    });
+
+    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/snippets') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([mockSnippet]) });
+      }
+      if (url === '/api/snippets/snip-1') {
+        if (init?.method === 'PUT') {
+          return putPromise.then(() => ({
+            ok: true,
+            json: () => Promise.resolve({
+              ...mockSnippet,
+              versions: [
+                { id: 'v-2', versionNo: 2, title: 'Test Snippet', code: 'const modifiedCode = 5;', commitMsg: 'Snapshot at 17:50', createdAt: new Date().toISOString() },
+                ...mockSnippet.versions,
+              ],
+            }),
+          }));
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSnippet) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    });
+
+    await act(async () => {
+      render(React.createElement(WorkspacePage));
+    });
+
+    const saveBtn = screen.getByTitle(/Save Version/i);
+
+    // Rapidly click save button twice
+    await act(async () => {
+      fireEvent.click(saveBtn);
+      fireEvent.click(saveBtn);
+    });
+
+    const putCalls = (global.fetch as any).mock.calls.filter(
+      (c: any[]) => c[0] === '/api/snippets/snip-1' && c[1]?.method === 'PUT'
+    );
+
+    // Only 1 PUT request should be initiated, second must be blocked by in-flight lock
+    expect(putCalls.length).toBe(1);
+
+    // Resolve in-flight promise
+    await act(async () => {
+      resolvePut!({});
+    });
+  });
+
   it('renders PostSaveToast component with diff badges and expandable note form', async () => {
     const onAddNote = vi.fn();
     const onRevert = vi.fn();

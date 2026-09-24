@@ -27,6 +27,7 @@ interface EditorHeaderProps {
   diffStats: { added: number; removed: number; hasChanges: boolean };
   hasUnsavedChanges: boolean;
   isJustSaved?: boolean;
+  isSaving?: boolean;
   copiedCode: boolean;
   copiedDiff: boolean;
   versionCount?: number;
@@ -56,6 +57,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   diffStats,
   hasUnsavedChanges,
   isJustSaved = false,
+  isSaving = false,
   copiedCode,
   copiedDiff,
   versionCount,
@@ -200,45 +202,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Zone 3 (Right): Actions Toolbar */}
       <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
-        {/* Undo / Redo Actions Group */}
-        {(onUndo || onRedo) && (
-          <div className="h-7 flex items-center bg-canvas-surface border border-canvas-border rounded-md p-0.5 select-none shrink-0" role="group" aria-label="Undo and Redo">
-            {onUndo && (
-              <button
-                type="button"
-                onClick={onUndo}
-                disabled={!canUndo}
-                className={`h-full w-6 rounded transition-colors flex items-center justify-center ${
-                  !canUndo
-                    ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-40'
-                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-canvas-elevated cursor-pointer'
-                }`}
-                title={`Undo (${getShortcutLabel('undo')})${!canUndo ? ' - 无可撤销更改' : ''}`}
-                aria-label="Undo"
-              >
-                <Undo2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {onUndo && onRedo && <div className="w-[1px] h-3 bg-canvas-border my-auto" />}
-            {onRedo && (
-              <button
-                type="button"
-                onClick={onRedo}
-                disabled={!canRedo}
-                className={`h-full w-6 rounded transition-colors flex items-center justify-center ${
-                  !canRedo
-                    ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-40'
-                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-canvas-elevated cursor-pointer'
-                }`}
-                title={`Redo (${getShortcutLabel('redo')})${!canRedo ? ' - 无可重做更改' : ''}`}
-                aria-label="Redo"
-              >
-                <Redo2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        )}
-
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
@@ -257,14 +220,19 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         {/* Primary Action: Save Version Snapshot */}
         <button
           onClick={onSavePrompt}
+          disabled={isSaving}
           className={`h-7 flex items-center gap-1.5 px-3 rounded font-semibold text-xs transition-colors shrink-0 ${
             isJustSaved
               ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              : isSaving
+              ? 'bg-brand-primary/60 cursor-not-allowed text-brand-text'
               : 'bg-brand-primary hover:brightness-110 active:scale-95 text-brand-text'
           }`}
           title={
             isJustSaved
               ? 'Version Saved!'
+              : isSaving
+              ? 'Saving Version...'
               : hasUnsavedChanges
               ? `Save Version (${getShortcutLabel('save')})`
               : `Save Version (No modifications to save, ${getShortcutLabel('save')})`
@@ -313,6 +281,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                     }
                   }}
                   disabled={!canUndo}
+                  title={`Undo (${getShortcutLabel('undo')})${!canUndo ? ' - 无可撤销更改' : ''}`}
+                  aria-label="Undo"
                   className={`w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors ${
                     !canUndo ? 'opacity-40 cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-200 hover:text-white'
                   }`}
@@ -336,6 +306,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                     }
                   }}
                   disabled={!canRedo}
+                  title={`Redo (${getShortcutLabel('redo')})${!canRedo ? ' - 无可重做更改' : ''}`}
+                  aria-label="Redo"
                   className={`w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors ${
                     !canRedo ? 'opacity-40 cursor-not-allowed text-slate-400 dark:text-slate-500' : 'text-slate-200 hover:text-white'
                   }`}

@@ -30,6 +30,12 @@ describe('Markdown Floating View Controls in Edit Area', () => {
     expect(screen.queryByText('Edit')).toBeNull();
     expect(screen.queryByText('Split')).toBeNull();
     expect(screen.queryByText('Preview')).toBeNull();
+
+    // Verify compact size (h-6 container, smaller than header h-7 controls)
+    const container = screen.getByRole('group', { name: 'Markdown view mode' });
+    expect(container.className).toContain('h-6');
+    const editBtn = screen.getByTitle(/Edit markdown source only/i);
+    expect(editBtn.className).toContain('w-5');
   });
 
   it('triggers view mode change when clicking floating Edit/Split/Preview buttons', () => {

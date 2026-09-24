@@ -48,7 +48,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Snippet not found' }, { status: 404 });
     }
 
-    const nextVersionNo = (existing.versions[0]?.versionNo ?? 0) + 1;
+    const targetCode = currentCode !== undefined ? currentCode : existing.currentCode;
+    const latestVersion = existing.versions[0];
+    const isDuplicateContent = latestVersion && latestVersion.code === targetCode;
+    const shouldCreateVersion = Boolean(createVersion && !isDuplicateContent);
+    const nextVersionNo = (latestVersion?.versionNo ?? 0) + 1;
 
     const updated = await prisma.snippet.update({
       where: { id: params.id },
@@ -56,15 +60,15 @@ export async function PUT(
         title: title !== undefined ? title : existing.title,
         filename: filename !== undefined ? filename : existing.filename,
         language: language !== undefined ? language : existing.language,
-        currentCode: currentCode !== undefined ? currentCode : existing.currentCode,
+        currentCode: targetCode,
         workspaceId: workspaceId !== undefined ? workspaceId : existing.workspaceId,
-        ...(createVersion
+        ...(shouldCreateVersion
           ? {
               versions: {
                 create: {
                   versionNo: nextVersionNo,
                   title: title || existing.title,
-                  code: currentCode !== undefined ? currentCode : existing.currentCode,
+                  code: targetCode,
                   commitMsg: commitMsg || `Version ${nextVersionNo}`,
                 },
               },

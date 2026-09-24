@@ -155,7 +155,7 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(screen.queryByText('Inline')).toBeNull();
   });
 
-  it('renders Undo and Redo toolbar buttons and triggers callbacks when clicked in modified state', () => {
+  it('does not render Undo and Redo in header toolbar, but provides them inside More actions dropdown', () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
 
@@ -169,6 +169,12 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
       })
     );
 
+    // Undo and Redo button group is NOT in the header toolbar
+    expect(screen.queryByRole('group', { name: 'Undo and Redo' })).toBeNull();
+
+    // Open More actions dropdown
+    fireEvent.click(screen.getByTitle(/More actions/i));
+
     const undoBtn = screen.getByRole('button', { name: 'Undo' });
     const redoBtn = screen.getByRole('button', { name: 'Redo' });
 
@@ -178,11 +184,14 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     fireEvent.click(undoBtn);
     expect(onUndo).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(redoBtn);
+    // Reopen dropdown since clicking an action closes it
+    fireEvent.click(screen.getByTitle(/More actions/i));
+    const redoBtnReopened = screen.getByRole('button', { name: 'Redo' });
+    fireEvent.click(redoBtnReopened);
     expect(onRedo).toHaveBeenCalledTimes(1);
   });
 
-  it('disables Undo and Redo buttons by default when text is not modified', () => {
+  it('disables Undo and Redo buttons in More actions dropdown when text is not modified', () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
 
@@ -194,6 +203,8 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
       })
     );
 
+    fireEvent.click(screen.getByTitle(/More actions/i));
+
     const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement;
     const redoBtn = screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement;
 
@@ -201,7 +212,7 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(redoBtn.disabled).toBe(true);
   });
 
-  it('disables Undo and Redo buttons when canUndo or canRedo is explicitly false', () => {
+  it('disables Undo and Redo buttons in More actions dropdown when canUndo or canRedo is explicitly false', () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
 
@@ -214,6 +225,8 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
         canRedo: false,
       })
     );
+
+    fireEvent.click(screen.getByTitle(/More actions/i));
 
     const undoBtn = screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement;
     const redoBtn = screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement;
@@ -234,6 +247,9 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
       })
     );
 
+    // Toolbar does not render Undo/Redo
+    expect(screen.queryByRole('group', { name: 'Undo and Redo' })).toBeNull();
+
     // Title input has h-7
     const titleInput = screen.getByPlaceholderText(/Document Title/i);
     expect(titleInput.className).toContain('h-7');
@@ -246,10 +262,6 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     // Mode switch container has h-7
     const modeSwitchContainer = unsavedBtn.closest('header')?.querySelector('.bg-canvas-surface.rounded-md');
     expect(modeSwitchContainer?.className).toContain('h-7');
-
-    // Undo/Redo container has h-7
-    const undoRedoContainer = screen.getByRole('group', { name: 'Undo and Redo' });
-    expect(undoRedoContainer.className).toContain('h-7');
 
     // History button has h-7
     const historyBtn = screen.getByTitle(/Revision History/i);

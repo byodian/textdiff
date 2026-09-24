@@ -119,6 +119,8 @@ export default function WorkspacePage() {
   // History comparison pair
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isJustSaved, setIsJustSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
   const [postSaveToast, setPostSaveToast] = useState<{
     versionId: string;
     versionNo: number;
@@ -214,7 +216,7 @@ export default function WorkspacePage() {
       const res = await fetch('/api/snippets');
       if (!res.ok) return;
       const data = await res.json();
-      setAllSnippets(data);
+      setAllSnippets(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch all snippets', err);
     }
@@ -227,13 +229,13 @@ export default function WorkspacePage() {
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
-      setSnippets(data);
-      if (data.length > 0) {
-        loadSnippet(data[0].id);
+      const list = Array.isArray(data) ? data : [];
+      setSnippets(list);
+      if (list.length > 0) {
+        loadSnippet(list[0].id);
       } else {
         setActiveId(null);
         setTitle('Untitled Document');
-        setFilename('');
         setLanguage('plaintext');
         setCode('');
         setLastSavedCode('');
@@ -716,7 +718,10 @@ export default function WorkspacePage() {
 
   // 9. Instant Save: zero-interruption optimistic snapshot
   const handleInstantSave = useCallback(async (customNote?: unknown) => {
-    if (!activeId || code === lastSavedCode) return;
+    if (!activeId || code === lastSavedCode || isSavingRef.current) return;
+
+    isSavingRef.current = true;
+    setIsSaving(true);
 
     const stats = calculateDiffStats(lastSavedCode, code);
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -777,6 +782,9 @@ export default function WorkspacePage() {
       }
     } catch (err) {
       console.error('Failed to save version', err);
+    } finally {
+      isSavingRef.current = false;
+      setIsSaving(false);
     }
   }, [activeId, code, lastSavedCode, title, language]);
 
@@ -914,21 +922,57 @@ export default function WorkspacePage() {
   const handleNewSnippetRef = useRef(handleNewSnippet);
   handleNewSnippetRef.current = handleNewSnippet;
 
+  const isSearchOpenRef = useRef(isSearchOpen);
+  isSearchOpenRef.current = isSearchOpen;
+
+  const commandPaletteOpenRef = useRef(commandPaletteOpen);
+  commandPaletteOpenRef.current = commandPaletteOpen;
+
+  // Mutually exclusive modal management: Command Palette & Search Modal cannot be open simultaneously
+  const handleOpenCommandPalette = useCallback((mode: PaletteMode = 'commands') => {
+    setIsSearchOpen(false);
+    setCommandPaletteMode(mode);
+    setCommandPaletteOpen(true);
+  }, []);
+
+  const handleCloseCommandPalette = useCallback(() => {
+    setCommandPaletteOpen(false);
+    setCommandPaletteMode('commands');
+  }, []);
+
+  const handleOpenSearchModal = useCallback(() => {
+    setCommandPaletteOpen(false);
+    setIsSearchOpen(true);
+  }, []);
+
+  const handleCloseSearchModal = useCallback(() => {
+    setIsSearchOpen(false);
+  }, []);
+
   // 10. Global keyboard shortcuts (Ctrl+S for Instant Save, Ctrl+Shift+P for Command Palette, Ctrl+Alt+N / Ctrl+N for New Document)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 1. Ctrl+S / Cmd+S => Instant Save (only if there are modifications)
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key?.toLowerCase() === 's' || e.code === 'KeyS')) {
         e.preventDefault();
+        e.stopPropagation();
+        if (e.repeat) return;
         handleInstantSaveRef.current();
         return;
       }
 
-      // 2. Ctrl+Shift+P / Cmd+Shift+P => Open Command Palette
+      // 2. Ctrl+Shift+P / Cmd+Shift+P => Open/Toggle Command Palette (mutually exclusive with Search Modal)
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
-        setCommandPaletteMode('commands');
-        setCommandPaletteOpen((prev) => !prev);
+        e.stopPropagation();
+        if (isSearchOpenRef.current) {
+          setIsSearchOpen(false);
+          setCommandPaletteMode('commands');
+          setCommandPaletteOpen(true);
+        } else {
+          setCommandPaletteMode('commands');
+          setCommandPaletteOpen((prev) => !prev);
+        }
         return;
       }
 
@@ -957,14 +1001,19 @@ export default function WorkspacePage() {
         return;
       }
 
-      // 6. Ctrl+K / Cmd+K or Ctrl+Shift+K => Open Search Modal
+      // 6. Ctrl+K / Cmd+K or Ctrl+Shift+K => Open/Toggle Search Modal (mutually exclusive with Command Palette)
       const isKeyK = e.key?.toLowerCase() === 'k' || e.code === 'KeyK';
       const isSearchShortcut = (e.ctrlKey || e.metaKey) && !e.altKey && isKeyK;
 
       if (isSearchShortcut) {
         e.preventDefault();
         e.stopPropagation();
-        setIsSearchOpen((prev) => !prev);
+        if (commandPaletteOpenRef.current) {
+          setCommandPaletteOpen(false);
+          setIsSearchOpen(true);
+        } else {
+          setIsSearchOpen((prev) => !prev);
+        }
         return;
       }
     };
@@ -1238,7 +1287,7 @@ export default function WorkspacePage() {
         onRequestDeleteWorkspace={handleRequestDeleteWorkspace}
         onRequestMoveSnippet={handleRequestMoveSnippet}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenSearch={handleOpenSearchModal}
         onSearchChange={setSearchQuery}
         onSelectSnippet={requestSelectSnippet}
         onNewSnippet={requestNewSnippet}
@@ -1252,15 +1301,13 @@ export default function WorkspacePage() {
           <>
             <EditorHeader
               title={title}
-              onOpenThemePalette={() => {
-                setCommandPaletteMode('theme-picker');
-                setCommandPaletteOpen(true);
-              }}
+              onOpenThemePalette={() => handleOpenCommandPalette('theme-picker')}
               isDiffMode={isDiffMode}
               isSideBySide={isSideBySide}
               diffStats={diffStats}
               hasUnsavedChanges={hasUnsavedChanges}
               isJustSaved={isJustSaved}
+              isSaving={isSaving}
               copiedCode={copiedCode}
               copiedDiff={copiedDiff}
               versionCount={versions.length}
@@ -1322,7 +1369,7 @@ export default function WorkspacePage() {
                   editorRef={editorRef}
                   diffEditorRef={diffEditorRef}
                   onInstantSave={handleInstantSave}
-                  onOpenSearch={() => setIsSearchOpen(true)}
+                  onOpenSearch={handleOpenSearchModal}
                 />
               </div>
 
@@ -1339,10 +1386,7 @@ export default function WorkspacePage() {
                 onPrevDiffChunk={handlePrevDiffChunk}
                 onAutoDetectLanguage={handleAutoDetectLanguage}
                 onToggleDiagnostics={handleToggleDiagnostics}
-                onOpenLanguagePicker={() => {
-                  setCommandPaletteMode('language-picker');
-                  setCommandPaletteOpen(true);
-                }}
+                onOpenLanguagePicker={() => handleOpenCommandPalette('language-picker')}
               />
             </div>
           </>
@@ -1390,17 +1434,14 @@ export default function WorkspacePage() {
 
       {/* VS Code-style Command Palette (Ctrl+Shift+P) */}
       <CommandPalette
-        isOpen={commandPaletteOpen}
+        isOpen={commandPaletteOpen && !isSearchOpen}
         initialMode={commandPaletteMode}
         currentTheme={editorTheme}
         currentLanguage={language}
         isDiffMode={isDiffMode}
         isMarkdown={language === 'markdown'}
         markdownViewMode={markdownViewMode}
-        onClose={() => {
-          setCommandPaletteOpen(false);
-          setCommandPaletteMode('commands');
-        }}
+        onClose={handleCloseCommandPalette}
         onNewSnippet={handleNewSnippet}
         onSavePrompt={handleInstantSave}
         onOpenHistory={() => setHistoryOpen(true)}
@@ -1421,7 +1462,7 @@ export default function WorkspacePage() {
         canRedo={canRedo}
         onPreviewTheme={handlePreviewTheme}
         onOpenEditorCommandPalette={handleOpenEditorCommandPalette}
-        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenSearch={handleOpenSearchModal}
       />
 
       {/* Navigation Guard Modal for Unsaved Changes */}
@@ -1478,8 +1519,8 @@ export default function WorkspacePage() {
 
       {/* Notion-style Document Search Modal (Ctrl+K / Cmd+K) */}
       <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        isOpen={isSearchOpen && !commandPaletteOpen}
+        onClose={handleCloseSearchModal}
         snippets={searchSnippets}
         activeSnippetId={activeId}
         workspaces={workspaces}

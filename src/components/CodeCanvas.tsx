@@ -376,51 +376,51 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       className="flex-1 h-full w-full relative bg-canvas transition-colors duration-150"
       style={{ backgroundColor: 'var(--color-editor-bg, var(--color-canvas-default))' }}
     >
-      {/* Floating Markdown View Mode Controls in Edit Area */}
+      {/* Floating Markdown View Mode Controls in Edit Area (Compact h-6, smaller than header h-7 controls) */}
       {!isDiffMode && language === 'markdown' && onMarkdownViewModeChange && (
         <div 
-          className="absolute top-2.5 right-4 z-30 flex items-center bg-canvas-elevated border border-canvas-border rounded-md p-0.5 select-none gap-0.5" 
+          className="absolute top-2.5 right-4 z-30 h-6 flex items-center bg-canvas-elevated/90 backdrop-blur-sm border border-canvas-border rounded p-0.5 select-none gap-0.5 shadow-sm" 
           role="group" 
           aria-label="Markdown view mode"
         >
           <button
             type="button"
             onClick={() => onMarkdownViewModeChange('edit')}
-            className={`p-1.5 rounded transition-colors flex items-center justify-center ${
+            className={`h-full w-5 rounded-sm transition-colors flex items-center justify-center ${
               markdownViewMode === 'edit'
-                ? 'bg-canvas-surface text-brand-primary font-medium border border-canvas-border'
+                ? 'bg-canvas-surface text-brand-primary font-medium shadow-xs'
                 : 'text-slate-400 hover:text-slate-100 hover:bg-canvas-surface/80'
             }`}
             title="Edit markdown source only"
             aria-label="Edit markdown source only"
           >
-            <Code className="w-3.5 h-3.5" />
+            <Code className="w-3 h-3 shrink-0" />
           </button>
           <button
             type="button"
             onClick={() => onMarkdownViewModeChange('split')}
-            className={`p-1.5 rounded transition-colors flex items-center justify-center ${
+            className={`h-full w-5 rounded-sm transition-colors flex items-center justify-center ${
               markdownViewMode === 'split'
-                ? 'bg-canvas-surface text-brand-primary font-medium border border-canvas-border'
+                ? 'bg-canvas-surface text-brand-primary font-medium shadow-xs'
                 : 'text-slate-400 hover:text-slate-100 hover:bg-canvas-surface/80'
             }`}
             title="Side-by-side edit and rendered preview"
             aria-label="Side-by-side edit and rendered preview"
           >
-            <Columns className="w-3.5 h-3.5" />
+            <Columns className="w-3 h-3 shrink-0" />
           </button>
           <button
             type="button"
             onClick={() => onMarkdownViewModeChange('preview')}
-            className={`p-1.5 rounded transition-colors flex items-center justify-center ${
+            className={`h-full w-5 rounded-sm transition-colors flex items-center justify-center ${
               markdownViewMode === 'preview'
-                ? 'bg-canvas-surface text-brand-primary font-medium border border-canvas-border'
+                ? 'bg-canvas-surface text-brand-primary font-medium shadow-xs'
                 : 'text-slate-400 hover:text-slate-100 hover:bg-canvas-surface/80'
             }`}
             title="Rendered preview only"
             aria-label="Rendered preview only"
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-3 h-3 shrink-0" />
           </button>
         </div>
       )}
