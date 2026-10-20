@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="textdiff-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090e1a" />
+      <stop offset="50%" stop-color="#0d1527" />
+      <stop offset="100%" stop-color="#131e33" />
+    </linearGradient>
+
+    <!-- Border / Rim Gradient -->
+    <linearGradient id="textdiff-rim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.7" />
+      <stop offset="45%" stop-color="#1e293b" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.4" />
+    </linearGradient>
+
+    <!-- Left Bracket: Rose Red Gradient (Deletions / Previous Version) -->
+    <linearGradient id="textdiff-rose" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fda4af" />
+      <stop offset="40%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#e11d48" />
+    </linearGradient>
+
+    <!-- Right Bracket: Emerald Green Gradient (Additions / Current Version) -->
+    <linearGradient id="textdiff-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7b7" />
+      <stop offset="40%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+
+    <!-- Center Node / Sky Blue Gradient -->
+    <linearGradient id="textdiff-sky" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7dd3fc" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Soft Glow Filters -->
+    <filter id="textdiff-glow-rose" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="textdiff-glow-emerald" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="textdiff-glow-cyan" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base -->
+  <rect x="20" y="20" width="472" height="472" rx="112" fill="url(#textdiff-bg)" stroke="url(#textdiff-rim)" stroke-width="4" />
+
+  <!-- Ambient light glow pools -->
+  <circle cx="152" cy="256" r="110" fill="#f43f5e" fill-opacity="0.08" />
+  <circle cx="360" cy="256" r="110" fill="#10b981" fill-opacity="0.08" />
+  <circle cx="256" cy="256" r="70" fill="#38bdf8" fill-opacity="0.08" />
+
+  <!-- Center Split Seam (Diff gutter divider) -->
+  <line x1="256" y1="76" x2="256" y2="436" stroke="#38bdf8" stroke-width="4" stroke-dasharray="10 10" stroke-linecap="round" stroke-opacity="0.35" />
+
+  <!-- Central Revision / Compare Node (Double Ring) -->
+  <circle cx="256" cy="256" r="18" fill="#090e1a" stroke="url(#textdiff-sky)" stroke-width="4.5" filter="url(#textdiff-glow-cyan)" />
+  <circle cx="256" cy="256" r="6.5" fill="#38bdf8" />
+
+  <!-- LEFT: Rose Code Bracket < (Original / Deletion) -->
+  <g filter="url(#textdiff-glow-rose)">
+    <path d="M 194 144 L 84 256 L 194 368"
+          fill="none"
+          stroke="url(#textdiff-rose)"
+          stroke-width="30"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+  </g>
+  <!-- Minus Sign (-) with crisp pill geometry -->
+  <rect x="122" y="244" width="56" height="24" rx="12" fill="#ffffff" />
+
+  <!-- RIGHT: Emerald Code Bracket > (Modified / Addition) -->
+  <g filter="url(#textdiff-glow-emerald)">
+    <path d="M 318 144 L 428 256 L 318 368"
+          fill="none"
+          stroke="url(#textdiff-emerald)"
+          stroke-width="30"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+  </g>
+  <!-- Plus Sign (+) with crisp cross geometry -->
+  <path d="M 366 226 L 366 286 M 336 256 L 396 256"
+        fill="none"
+        stroke="#ffffff"
+        stroke-width="22"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+</svg>

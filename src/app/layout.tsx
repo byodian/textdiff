@@ -4,6 +4,12 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'TextDiff — Text & Code Snippet & Diff Inspector',
   description: 'A focused, aesthetic workspace for drafting snippets, inspecting real-time diffs, and traversing revision histories.',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({

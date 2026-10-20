@@ -8,7 +8,6 @@ import {
   PanelLeftClose, 
   PanelLeft, 
   Copy,
-  FolderGit2,
   ChevronDown,
   FolderPlus,
   Folder,
@@ -17,6 +16,7 @@ import {
   FolderInput,
   X
 } from 'lucide-react';
+import { TextDiffLogo } from '@/components/TextDiffLogo';
 import { splitTitleAndExtension, formatTitleWithExtension } from '@/lib/languages';
 import { getShortcutLabel } from '@/lib/platform';
 
@@ -222,9 +222,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand Header */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-canvas-border shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center text-brand-primary">
-              <FolderGit2 className="w-4 h-4" />
-            </div>
+            <TextDiffLogo className="w-7 h-7 rounded-lg shrink-0 shadow-sm" />
             <h1 className="font-semibold text-sm tracking-wide text-slate-100">
               TextDiff
             </h1>
