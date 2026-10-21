@@ -103,7 +103,6 @@ interface WorkspaceEmptyStateProps {
   onApplyTemplate: (template: { title: string; language: string; code: string }) => void;
   onPasteFromClipboard: () => void;
   onImportBackup?: () => void;
-  onImportDevDb?: () => void;
 }
 
 export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
@@ -111,7 +110,6 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
   onApplyTemplate,
   onPasteFromClipboard,
   onImportBackup,
-  onImportDevDb,
 }) => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 overflow-y-auto text-center">
@@ -159,18 +157,6 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
             >
               <Upload className="w-4 h-4 text-amber-400" />
               <span>Import Backup</span>
-            </button>
-          )}
-
-          {onImportDevDb && (
-            <button
-              type="button"
-              onClick={onImportDevDb}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 text-emerald-300 text-xs font-medium transition-all active:scale-95"
-              title="Import all data from local development SQLite database (dev.db)"
-            >
-              <Database className="w-4 h-4 text-emerald-400" />
-              <span>Import from dev.db</span>
             </button>
           )}
         </div>

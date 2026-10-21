@@ -23,8 +23,7 @@ import {
   Undo2,
   Redo2,
   Download,
-  Upload,
-  Database
+  Upload
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
@@ -77,7 +76,6 @@ interface CommandPaletteProps {
   onOpenSearch?: () => void;
   onExportBackup?: () => void;
   onImportBackup?: () => void;
-  onImportDevDb?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -110,7 +108,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onOpenSearch,
   onExportBackup,
   onImportBackup,
-  onImportDevDb,
 }) => {
   const [mode, setMode] = useState<PaletteMode>(initialMode || 'commands');
   const [query, setQuery] = useState('');
@@ -294,17 +291,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         },
         keywords: 'import restore upload json backup workspaces file',
       },
-      {
-        id: 'data:import-dev',
-        title: 'Data: Import from Dev SQLite Database (dev.db)',
-        category: 'Data',
-        icon: <Database className="w-4 h-4 text-emerald-400" />,
-        action: () => {
-          onClose();
-          onImportDevDb?.();
-        },
-        keywords: 'import dev sqlite database dev.db local restore',
-      },
     ];
 
     if (isDiffMode) {
@@ -422,7 +408,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onAutoDetectLanguage,
     onExportBackup,
     onImportBackup,
-    onImportDevDb,
     onOpenEditorCommandPalette,
     onOpenSearch,
     onRedo,
