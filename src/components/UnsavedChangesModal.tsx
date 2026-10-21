@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, X, Save, ArrowRight } from 'lucide-react';
+import { AlertTriangle, X, Save } from 'lucide-react';
 
 interface UnsavedChangesModalProps {
   isOpen: boolean;

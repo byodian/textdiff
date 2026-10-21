@@ -29,6 +29,7 @@ import {
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
 import { getShortcutLabel } from '@/lib/platform';
+import type { SnippetSummary } from '@/components/Sidebar';
 
 export interface CommandItem {
   id: string;
@@ -54,7 +55,7 @@ interface CommandPaletteProps {
   snippets?: SnippetSummary[];
   initialMode?: PaletteMode;
   onClose: () => void;
-  onSelectSnippet: (id: string) => void;
+  onSelectSnippet?: (id: string) => void;
   onNewSnippet: () => void;
   onSavePrompt: () => void;
   onOpenHistory: () => void;

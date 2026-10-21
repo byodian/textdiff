@@ -199,7 +199,7 @@ export function detectLanguageFromContent(content: string, fallback = 'plaintext
   }
 
   // 17. General HTML / XML tag match
-  if (/^<([a-zA-Z][a-zA-Z0-9-]*)(\s+[^>]*)?>[\s\S]*<\/\1>$/s.test(text)) {
+  if (/^<([a-zA-Z][a-zA-Z0-9-]*)(\s+[^>]*)?>[\s\S]*<\/\1>$/.test(text)) {
     return 'xml';
   }
 

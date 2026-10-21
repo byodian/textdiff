@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, ChevronUp, ChevronDown, Check, FileText, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ChevronUp, ChevronDown, FileText, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/languages';
 import { getShortcutLabel } from '@/lib/platform';
 import { SyntaxDiagnostic } from '@/lib/syntax-validator';

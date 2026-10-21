@@ -126,7 +126,8 @@ describe('Theme Contrast & Button Text Colors', () => {
           },
         ],
         activeId: 's-1',
-        isDiffMode: false,
+        isCollapsed: false,
+        onToggleCollapse: vi.fn(),
         onSelectSnippet: vi.fn(),
         onNewSnippet: vi.fn(),
         onDeleteSnippet: vi.fn(),
@@ -156,8 +157,8 @@ describe('Theme Contrast & Button Text Colors', () => {
 
   it('tailwind config withOpacity never outputs NaN% for solid or translucent tokens', async () => {
     const tailwindConfig = (await import('../tailwind.config')).default;
-    const canvasColors = tailwindConfig.theme?.extend?.colors?.canvas as any;
-    const brandColors = tailwindConfig.theme?.extend?.colors?.brand as any;
+    const canvasColors = (tailwindConfig.theme?.extend?.colors as Record<string, unknown>)?.canvas as any;
+    const brandColors = (tailwindConfig.theme?.extend?.colors as Record<string, unknown>)?.brand as any;
 
     expect(typeof canvasColors.DEFAULT).toBe('function');
 

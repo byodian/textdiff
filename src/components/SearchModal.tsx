@@ -13,7 +13,6 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { SnippetSummary, WorkspaceItem } from './Sidebar';
-import { getShortcutLabel } from '@/lib/platform';
 import { splitTitleAndExtension } from '@/lib/languages';
 import { storage } from '@/lib/storage';
 
@@ -107,9 +106,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   isOpen,
   onClose,
   snippets,
-  activeSnippetId,
   workspaces,
-  activeWorkspaceId,
   onSelectSnippet,
 }) => {
   const [query, setQuery] = useState('');
@@ -194,7 +191,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         return titleMatch;
       }
 
-      const codeMatch = ((s as any).currentCode || (s as any).code || '').toLowerCase().includes(q);
+      const codeMatch = (s.currentCode || s.code || '').toLowerCase().includes(q);
       return titleMatch || codeMatch;
     });
   }, [allSnippets, query, titleOnly, selectedWorkspaceId, selectedLanguage]);
@@ -244,7 +241,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   // Slice preview lines for the right pane, auto-scrolling to match if match is further down
   const previewContent = useMemo(() => {
     if (!currentSnippet) return null;
-    const raw = ((currentSnippet as any).currentCode || (currentSnippet as any).code || '');
+    const raw = (currentSnippet.currentCode || currentSnippet.code || '');
     if (!raw.trim()) return null;
     const allLines: string[] = raw.split('\n');
     const q = query.trim().toLowerCase();
@@ -449,16 +446,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     {items.map((snippet) => {
                       const itemIndex = flatItems.findIndex((s) => s.id === snippet.id);
                       const isSelected = itemIndex === selectedIndex;
-                      const isCurrentDoc = snippet.id === activeSnippetId;
                       const isMarkdown = snippet.language === 'markdown';
                       const { baseTitle, extension } = splitTitleAndExtension(
                         snippet.title,
                         snippet.language,
                         snippet.filename,
-                        (snippet as any).currentCode || (snippet as any).code
+                        snippet.currentCode || snippet.code
                       );
                       const matchingExcerpt = !titleOnly && query.trim()
-                        ? getMatchingExcerpt((snippet as any).currentCode || (snippet as any).code, query)
+                        ? getMatchingExcerpt(snippet.currentCode || snippet.code, query)
                         : null;
 
                       return (

@@ -434,7 +434,6 @@ export default function WorkspacePage() {
         } else {
           setActiveId(null);
           setTitle('Untitled Document');
-          setFilename('');
           setLanguage('plaintext');
           setCode('');
           setLastSavedCode('');
@@ -473,7 +472,6 @@ export default function WorkspacePage() {
         } else {
           setActiveId(null);
           setTitle('Untitled Document');
-          setFilename('');
           setCode('');
           setLastSavedCode('');
           setVersions([]);
@@ -1209,7 +1207,7 @@ export default function WorkspacePage() {
           if (snipList.length > 0) {
             await loadSnippet(snipList[0].id);
           } else {
-            setCurrentSnippet(null);
+            setActiveId(null);
             setTitle('');
             setLastSavedCode('');
             setCode('');
@@ -1254,7 +1252,7 @@ export default function WorkspacePage() {
         if (snipList.length > 0) {
           await loadSnippet(snipList[0].id);
         } else {
-          setCurrentSnippet(null);
+          setActiveId(null);
           setTitle('');
           setLastSavedCode('');
           setCode('');

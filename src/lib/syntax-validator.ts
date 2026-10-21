@@ -525,7 +525,7 @@ export function validateJsonSyntax(content: string): SyntaxDiagnostic[] {
 
   const stack: StackItem[] = [];
 
-  const recordMissingComma = (prevTok: JsonToken, nextTok: JsonToken) => {
+  const recordMissingComma = (prevTok: JsonToken) => {
     const sPos = offsetToPosition(lineStarts, prevTok.end);
     diagnostics.push({
       id: `json-missing-comma-${prevTok.end}`,
@@ -552,14 +552,14 @@ export function validateJsonSyntax(content: string): SyntaxDiagnostic[] {
     if (tok.type === 'punct') {
       if (tok.value === '{') {
         if (top && top.expecting === 'comma') {
-          recordMissingComma(nonComments[j - 1], tok);
+          recordMissingComma(nonComments[j - 1]);
         }
         stack.push({ type: '{', start: tok.start, expecting: 'key' });
         continue;
       }
       if (tok.value === '[') {
         if (top && top.expecting === 'comma') {
-          recordMissingComma(nonComments[j - 1], tok);
+          recordMissingComma(nonComments[j - 1]);
         }
         stack.push({ type: '[', start: tok.start, expecting: 'value' });
         continue;
@@ -654,7 +654,7 @@ export function validateJsonSyntax(content: string): SyntaxDiagnostic[] {
     if (top) {
       if (top.type === '{') {
         if (top.expecting === 'comma') {
-          recordMissingComma(nonComments[j - 1], tok);
+          recordMissingComma(nonComments[j - 1]);
           top.expecting = 'colon';
         } else if (top.expecting === 'key') {
           top.expecting = 'colon';
@@ -663,7 +663,7 @@ export function validateJsonSyntax(content: string): SyntaxDiagnostic[] {
         }
       } else if (top.type === '[') {
         if (top.expecting === 'comma') {
-          recordMissingComma(nonComments[j - 1], tok);
+          recordMissingComma(nonComments[j - 1]);
           top.expecting = 'comma';
         } else if (top.expecting === 'value') {
           top.expecting = 'comma';
@@ -714,8 +714,8 @@ export function validateJsonSyntax(content: string): SyntaxDiagnostic[] {
   if (diagnostics.length === 0) {
     try {
       JSON.parse(content);
-    } catch (err: any) {
-      const errMsg = err?.message || 'JSON 解析错误';
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'JSON 解析错误';
       let errLine = 1;
       let errCol = 1;
 
@@ -832,8 +832,8 @@ export function validateYamlSyntax(content: string): SyntaxDiagnostic[] {
       if (err.linePos && err.linePos[0]) {
         line = err.linePos[0].line;
         column = err.linePos[0].col;
-      } else if (typeof (err as any).pos?.[0] === 'number') {
-        const p = (err as any).pos[0];
+      } else if (typeof (err as unknown as { pos?: [number] }).pos?.[0] === 'number') {
+        const p = (err as unknown as { pos: [number] }).pos[0];
         const pos = offsetToPosition(lineStarts, p);
         line = pos.line;
         column = pos.column;
@@ -881,14 +881,15 @@ export function validateYamlSyntax(content: string): SyntaxDiagnostic[] {
         suggestion: '建议根据 YAML 规范优化该配置项的书写方式。',
       });
     });
-  } catch (ex: any) {
+  } catch (ex: unknown) {
+    const exMsg = ex instanceof Error ? ex.message : '未知错误';
     diagnostics.push({
       id: 'yaml-fatal-error',
       line: 1,
       column: 1,
       severity: 'error',
       rule: 'yaml/fatal',
-      message: `YAML 解析失败: ${ex?.message || '未知错误'}`,
+      message: `YAML 解析失败: ${exMsg}`,
       suggestion: '请检查文本是否为有效的 YAML 文档结构。',
     });
   }

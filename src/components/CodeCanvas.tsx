@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Editor, { DiffEditor, loader, DiffOnMount, Monaco } from '@monaco-editor/react';
+import Editor, { DiffEditor, loader, DiffOnMount, Monaco, OnMount } from '@monaco-editor/react';
 import { Code, Columns, Eye } from 'lucide-react';
 import { MarkdownPreview } from './MarkdownPreview';
 import { SyntaxDiagnosticsBar } from './SyntaxDiagnosticsBar';
@@ -14,26 +14,29 @@ loader.config({
   },
 });
 
+export type MonacoModelInstance = {
+  canUndo?: () => boolean;
+  canRedo?: () => boolean;
+  getLineMaxColumn?: (lineNumber: number) => number;
+  onDidChangeContent?: (listener: () => void) => void;
+};
+
 export type MonacoEditorInstance = {
   getAction: (id: string) => { run: () => void } | null;
   trigger?: (source: string, handlerId: string, payload: unknown) => void;
   layout?: () => void;
   focus?: () => void;
+  getModel?: () => MonacoModelInstance | null;
+  addCommand?: (keybinding: number, handler: () => void) => void;
+  setPosition?: (position: { lineNumber: number; column: number }) => void;
+  revealPositionInCenter?: (position: { lineNumber: number; column: number }, scrollType?: number) => void;
 };
 
 export type MonacoDiffEditorInstance = {
   goToDiff?: (target: 'next' | 'previous') => void;
   getLineChanges?: () => unknown[] | null;
-  getModifiedEditor?: () => { 
-    getAction: (id: string) => { run: () => void } | null; 
-    trigger?: (source: string, handlerId: string, payload: unknown) => void;
-    focus?: () => void;
-  } | null;
-  getOriginalEditor?: () => { 
-    getAction: (id: string) => { run: () => void } | null; 
-    trigger?: (source: string, handlerId: string, payload: unknown) => void;
-    focus?: () => void;
-  } | null;
+  getModifiedEditor?: () => MonacoEditorInstance | null;
+  getOriginalEditor?: () => MonacoEditorInstance | null;
 };
 
 interface CodeCanvasProps {
@@ -98,7 +101,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     const targetEditor = isDiffMode
       ? diffEditorRef.current?.getModifiedEditor?.()
       : editorRef.current;
-    const model = (targetEditor as any)?.getModel?.();
+    const model = targetEditor?.getModel?.();
     if (model) {
       const u = typeof model.canUndo === 'function' ? model.canUndo() : false;
       const r = typeof model.canRedo === 'function' ? model.canRedo() : false;
@@ -110,8 +113,8 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
 
   const [diagnostics, setDiagnostics] = React.useState<SyntaxDiagnostic[]>([]);
 
-  const handleEditorDidMount = (editor: MonacoEditorInstance, monaco: Monaco) => {
-    editorRef.current = editor;
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor as unknown as MonacoEditorInstance;
     monacoRef.current = monaco;
     applyMonacoTheme(monaco, theme);
 
@@ -119,7 +122,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     const diags = validateSyntax(code, language);
     setDiagnostics(diags);
     onDiagnosticsChangeRef.current?.(diags);
-    const model = (editor as any)?.getModel?.();
+    const model = editor.getModel();
     if (model) {
       const markers = diags.map((d) => ({
         severity: d.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
@@ -130,7 +133,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
         message: `${d.message}${d.suggestion ? `\n💡 修改建议: ${d.suggestion}` : ''}`,
         source: 'Syntax Linter',
       }));
-      monaco.editor.setModelMarkers(model, 'syntax-linter', markers);
+      monaco.editor.setModelMarkers(model as unknown as Parameters<typeof monaco.editor.setModelMarkers>[0], 'syntax-linter', markers);
 
       updateUndoRedoAvailability();
       if (typeof model.onDidChangeContent === 'function') {
@@ -140,14 +143,14 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       }
     }
 
-    if (editor && typeof (editor as any).addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
-      (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+    if (editor && typeof editor.addCommand === 'function' && monaco?.KeyMod && monaco?.KeyCode) {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
         onInstantSaveRef.current?.();
       });
-      (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
         onOpenSearchRef.current?.();
       });
-      (editor as any).addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
         onOpenSearchRef.current?.();
       });
     }
@@ -158,9 +161,9 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
     monacoRef.current = monaco;
     applyMonacoTheme(monaco, theme);
 
-    const modified = (editor as any).getModifiedEditor?.();
+    const modified = editor.getModifiedEditor();
     if (modified) {
-      const model = modified.getModel?.();
+      const model = modified.getModel();
       updateUndoRedoAvailability();
       if (model && typeof model.onDidChangeContent === 'function') {
         model.onDidChangeContent(() => {
@@ -196,8 +199,8 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
 
     if (monacoRef.current && editorRef.current) {
       const monaco = monacoRef.current;
-      const editor = editorRef.current as any;
-      const model = editor?.getModel?.();
+      const editor = editorRef.current;
+      const model = editor.getModel?.();
       if (model) {
         const markers = diags.map((d) => ({
           severity: d.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
@@ -208,14 +211,14 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
           message: `${d.message}${d.suggestion ? `\n💡 修改建议: ${d.suggestion}` : ''}`,
           source: 'Syntax Linter',
         }));
-        monaco.editor.setModelMarkers(model, 'syntax-linter', markers);
+        monaco.editor.setModelMarkers(model as unknown as Parameters<typeof monaco.editor.setModelMarkers>[0], 'syntax-linter', markers);
       }
     }
-  }, [code, language]);
+  }, [code, language, editorRef]);
 
   const handleNavigateToError = React.useCallback(
     (line: number, column: number) => {
-      const editor = editorRef.current as any;
+      const editor = editorRef.current;
       if (editor && typeof editor.setPosition === 'function') {
         editor.setPosition({ lineNumber: line, column });
         if (typeof editor.revealPositionInCenter === 'function') {

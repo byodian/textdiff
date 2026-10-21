@@ -30,7 +30,7 @@ export function getPlatform(): Platform {
     return 'windows';
   }
 
-  const nav = navigator as any;
+  const nav = navigator as unknown as { userAgentData?: { platform?: string }; platform?: string; userAgent?: string };
   const platformStr = `${nav.userAgentData?.platform || ''} ${nav.platform || ''} ${nav.userAgent || ''}`.toLowerCase();
 
   if (

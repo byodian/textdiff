@@ -152,11 +152,11 @@ export class MemoryBackend implements StorageBackend {
   }
 
   async deleteVersionsBySnippet(snippetId: string): Promise<void> {
-    for (const [id, ver] of this.versions.entries()) {
+    this.versions.forEach((ver, id) => {
       if (ver.snippetId === snippetId) {
         this.versions.delete(id);
       }
-    }
+    });
   }
 
   async clear(): Promise<void> {

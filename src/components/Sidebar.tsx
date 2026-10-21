@@ -9,7 +9,6 @@ import {
   PanelLeft, 
   Copy,
   ChevronDown,
-  FolderPlus,
   Folder,
   Check,
   Edit2,
@@ -26,6 +25,8 @@ export interface SnippetSummary {
   filename?: string | null;
   language: string;
   currentCode?: string;
+  code?: string;
+  createdAt?: string;
   updatedAt: string;
   workspaceId?: string | null;
   versions?: { versionNo: number; code?: string }[];
@@ -123,7 +124,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRequestMoveSnippet,
   onToggleCollapse,
   onOpenSearch,
-  onSearchChange,
   onSelectSnippet,
   onNewSnippet,
   onDuplicateSnippet,
