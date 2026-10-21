@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { DeleteWorkspaceModal } from '../src/components/DeleteWorkspaceModal';
 import { MoveDocumentModal } from '../src/components/MoveDocumentModal';
 import { Sidebar, WorkspaceItem, SnippetSummary } from '../src/components/Sidebar';
@@ -253,5 +253,62 @@ describe('Sidebar Workspace Actions & Move Document Trigger', () => {
     fireEvent.click(moveBtn);
 
     expect(onMoveDoc).toHaveBeenCalledWith(snippets[0]);
+  });
+});
+
+describe('Workspace Persistence across page reloads', () => {
+  it('remembers and restores last selected workspace on page load', async () => {
+    const storageState: Record<string, string> = {};
+    const mockStorage = {
+      getItem: vi.fn((key: string) => storageState[key] || null),
+      setItem: vi.fn((key: string, val: string) => { storageState[key] = val; }),
+      removeItem: vi.fn((key: string) => { delete storageState[key]; }),
+      clear: vi.fn(() => { for (const k in storageState) delete storageState[k]; }),
+    };
+    Object.defineProperty(window, 'localStorage', {
+      value: mockStorage,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: mockStorage,
+      writable: true,
+      configurable: true,
+    });
+
+    const WorkspacePage = (await import('../src/app/page')).default;
+    const { storage } = await import('../src/lib/storage');
+
+    await storage.clearAll();
+    const ws1 = await storage.workspaces.create('Workspace Alpha');
+    const ws2 = await storage.workspaces.create('Workspace Beta');
+    await storage.snippets.create({
+      title: 'Doc in Alpha',
+      language: 'plaintext',
+      currentCode: 'Alpha Content',
+      workspaceId: ws1.id,
+    });
+    await storage.snippets.create({
+      title: 'Doc in Beta',
+      language: 'plaintext',
+      currentCode: 'Beta Content',
+      workspaceId: ws2.id,
+    });
+
+    // Simulate saved workspace in localStorage pointing to ws2
+    window.localStorage.setItem('textdiff_active_workspace', ws2.id);
+
+    let unmount: () => void;
+    await act(async () => {
+      const res = render(React.createElement(WorkspacePage));
+      unmount = res.unmount;
+    });
+
+    // Should load Doc in Beta because Workspace Beta was restored
+    await vi.waitFor(() => {
+      expect(screen.getByText('Doc in Beta')).toBeDefined();
+    });
+
+    unmount!();
   });
 });

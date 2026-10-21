@@ -28,6 +28,30 @@ import { applyGlobalThemeColors } from '@/lib/theme-colors';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/draft-storage';
 import { storage } from '@/lib/storage';
 
+const ACTIVE_WORKSPACE_STORAGE_KEY = 'textdiff_active_workspace';
+
+function getSavedActiveWorkspaceId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function persistActiveWorkspaceId(id: string | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (id) {
+      localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore in private browsing or disabled storage
+  }
+}
+
 export default function WorkspacePage() {
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
@@ -161,6 +185,7 @@ export default function WorkspacePage() {
       if (s.workspaceId && s.workspaceId !== activeWorkspaceIdRef.current) {
         setActiveWorkspaceId(s.workspaceId);
         activeWorkspaceIdRef.current = s.workspaceId;
+        persistActiveWorkspaceId(s.workspaceId);
         const wsSnippets = await storage.snippets.list(s.workspaceId);
         setSnippets(wsSnippets);
       }
@@ -236,17 +261,21 @@ export default function WorkspacePage() {
     }
   }, [loadSnippet]);
 
-  // 3. Initialize workspaces on load: select default workspace and only its documents
+  // 3. Initialize workspaces on load: select saved workspace (or default) and only its documents
   const initWorkspaceAndSnippets = useCallback(async () => {
     try {
       const data = await storage.workspaces.list();
       setWorkspaces(data);
       fetchAllSnippets();
       if (data.length > 0) {
-        const defaultWsId = data[0].id;
-        setActiveWorkspaceId(defaultWsId);
-        activeWorkspaceIdRef.current = defaultWsId;
-        fetchSnippets(defaultWsId);
+        const savedWsId = getSavedActiveWorkspaceId();
+        const matched = savedWsId ? data.find((w) => w.id === savedWsId) : null;
+        const targetWsId = matched ? matched.id : data[0].id;
+
+        setActiveWorkspaceId(targetWsId);
+        activeWorkspaceIdRef.current = targetWsId;
+        persistActiveWorkspaceId(targetWsId);
+        fetchSnippets(targetWsId);
         return;
       }
       fetchSnippets();
@@ -303,6 +332,7 @@ export default function WorkspacePage() {
   const handleSelectWorkspace = useCallback((wsId: string) => {
     setActiveWorkspaceId(wsId);
     activeWorkspaceIdRef.current = wsId;
+    persistActiveWorkspaceId(wsId);
     fetchSnippets(wsId);
   }, [fetchSnippets]);
 
@@ -313,6 +343,7 @@ export default function WorkspacePage() {
       setWorkspaces((prev) => [...prev, created]);
       setActiveWorkspaceId(created.id);
       activeWorkspaceIdRef.current = created.id;
+      persistActiveWorkspaceId(created.id);
       fetchSnippets(created.id);
     } catch (err) {
       console.error('Failed to create workspace', err);
@@ -358,10 +389,12 @@ export default function WorkspacePage() {
         if (nextWs) {
           setActiveWorkspaceId(nextWs.id);
           activeWorkspaceIdRef.current = nextWs.id;
+          persistActiveWorkspaceId(nextWs.id);
           fetchSnippets(nextWs.id);
         } else {
           setActiveWorkspaceId(null);
           activeWorkspaceIdRef.current = null;
+          persistActiveWorkspaceId(null);
           setSnippets([]);
           setActiveId(null);
         }
@@ -1172,10 +1205,8 @@ export default function WorkspacePage() {
           const wsList = await storage.workspaces.list();
           setWorkspaces(wsList);
           const firstWsId = wsList[0]?.id;
-          setActiveWorkspaceId(firstWsId);
-          if (firstWsId) {
-            localStorage.setItem('textdiff_active_workspace', firstWsId);
-          }
+          setActiveWorkspaceId(firstWsId || null);
+          persistActiveWorkspaceId(firstWsId || null);
           const snipList = await storage.snippets.list(firstWsId);
           setSnippets(snipList);
           if (snipList.length > 0) {
