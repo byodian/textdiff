@@ -42,3 +42,5 @@ test.db
 test.db-journal
 *.db
 *.db-journal
+backup-*.json
+*-backup.json

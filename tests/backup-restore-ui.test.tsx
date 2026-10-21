@@ -71,6 +71,7 @@ describe('Backup & Restore UI Integration', () => {
     // Both actions should exist in dropdown
     expect(screen.getByText('Export Backup (JSON)')).toBeDefined();
     expect(screen.getByText('Import Backup (JSON)')).toBeDefined();
+    expect(screen.getByText('Import from dev.db')).toBeDefined();
   });
 
   it('triggers storage export when clicking Export Backup in More actions menu', async () => {
@@ -116,9 +117,10 @@ describe('Backup & Restore UI Integration', () => {
     // Verify commands exist
     expect(screen.getByText('Data: Export All Workspaces Backup (JSON)')).toBeDefined();
     expect(screen.getByText('Data: Import Workspaces Backup (JSON)')).toBeDefined();
+    expect(screen.getByText('Data: Import from Dev SQLite Database (dev.db)')).toBeDefined();
   });
 
-  it('renders Import Backup button in WorkspaceEmptyState when no document is active', async () => {
+  it('renders Import Backup and Import from dev.db buttons in WorkspaceEmptyState when no document is active', async () => {
     await storage.clearAll();
 
     await act(async () => {
@@ -127,5 +129,43 @@ describe('Backup & Restore UI Integration', () => {
 
     expect(screen.getByText('No document selected')).toBeDefined();
     expect(screen.getByText('Import Backup')).toBeDefined();
+    expect(screen.getByText('Import from dev.db')).toBeDefined();
+  });
+
+  it('triggers dev db import when clicking Import from dev.db in empty state', async () => {
+    await storage.clearAll();
+
+    const devBackupData = {
+      version: 1,
+      app: 'textdiff',
+      exportedAt: new Date().toISOString(),
+      workspaces: [{ id: 'ws-dev', name: 'Dev Workspace', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+      snippets: [{ id: 'snip-dev', workspaceId: 'ws-dev', title: 'test.ts', language: 'typescript', currentCode: 'const a = 1;', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+      versions: [],
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/dev/db-backup') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: devBackupData }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    });
+
+    const importSpy = vi.spyOn(storage.backup, 'importData');
+
+    await act(async () => {
+      render(React.createElement(WorkspacePage));
+    });
+
+    const importDevBtn = screen.getByText('Import from dev.db');
+    await act(async () => {
+      fireEvent.click(importDevBtn);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/dev/db-backup');
+    expect(importSpy).toHaveBeenCalledWith(devBackupData);
   });
 });

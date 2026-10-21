@@ -239,9 +239,35 @@ export default function WorkspacePage() {
   // 3. Initialize workspaces on load: select default workspace and only its documents
   const initWorkspaceAndSnippets = useCallback(async () => {
     try {
-      fetchAllSnippets();
-      const data = await storage.workspaces.list();
+      let data = await storage.workspaces.list();
+      const allSnips = await storage.snippets.list();
+
+      // Auto-import from dev.db on initial launch if local storage has 0 snippets
+      const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+      if (!isTest && allSnips.length === 0 && typeof window !== 'undefined') {
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalHost) {
+          try {
+            const devRes = await fetch('/api/dev/db-backup');
+            if (devRes.ok) {
+              const resJson = await devRes.json();
+              if (resJson.success && resJson.data && resJson.data.snippets?.length > 0) {
+                await storage.backup.importData(resJson.data);
+                data = await storage.workspaces.list();
+                setUndoToast({
+                  message: `已自动将开发环境数据库 (dev.db) 的 ${resJson.data.workspaces.length} 个工作区与 ${resJson.data.snippets.length} 篇文档导入到本地存储！`,
+                  previousCode: '',
+                });
+              }
+            }
+          } catch {
+            // Ignore in offline or restricted environments
+          }
+        }
+      }
+
       setWorkspaces(data);
+      fetchAllSnippets();
       if (data.length > 0) {
         const defaultWsId = data[0].id;
         setActiveWorkspaceId(defaultWsId);
@@ -1206,6 +1232,46 @@ export default function WorkspacePage() {
     fileInput.click();
   }, [loadSnippet]);
 
+  const handleImportDevDb = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dev/db-backup');
+      if (!res.ok) {
+        alert('未找到可用的本地开发数据库数据 (dev.db)');
+        return;
+      }
+      const json = await res.json();
+      if (json.success && json.data) {
+        const result = await storage.backup.importData(json.data);
+        const wsList = await storage.workspaces.list();
+        setWorkspaces(wsList);
+        const firstWsId = wsList[0]?.id;
+        setActiveWorkspaceId(firstWsId);
+        if (firstWsId) {
+          localStorage.setItem('textdiff_active_workspace', firstWsId);
+        }
+        const snipList = await storage.snippets.list(firstWsId);
+        setSnippets(snipList);
+        if (snipList.length > 0) {
+          await loadSnippet(snipList[0].id);
+        } else {
+          setCurrentSnippet(null);
+          setTitle('');
+          setLastSavedCode('');
+          setCode('');
+          setVersions([]);
+        }
+        fetchAllSnippets();
+        setUndoToast({
+          message: `已成功导入开发环境数据库 (dev.db) 的 ${result.importedCount.workspaces} 个工作区与 ${result.importedCount.snippets} 篇文档！`,
+          previousCode: '',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to import dev db:', err);
+      alert('导入开发数据库失败');
+    }
+  }, [loadSnippet, fetchAllSnippets]);
+
   // Auto-persist draft to localStorage (debounced)
   useEffect(() => {
     if (!activeId) return;
@@ -1309,6 +1375,7 @@ export default function WorkspacePage() {
               canRedo={canRedo}
               onExportBackup={handleExportBackup}
               onImportBackup={handleImportBackup}
+              onImportDevDb={handleImportDevDb}
             />
 
             <div className="flex-1 relative overflow-hidden isolate flex flex-col w-full">
@@ -1377,6 +1444,7 @@ export default function WorkspacePage() {
             onApplyTemplate={handleApplyTemplate}
             onPasteFromClipboard={handlePasteFromClipboard}
             onImportBackup={handleImportBackup}
+            onImportDevDb={handleImportDevDb}
           />
         )}
       </main>
@@ -1447,6 +1515,7 @@ export default function WorkspacePage() {
         onOpenSearch={handleOpenSearchModal}
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
+        onImportDevDb={handleImportDevDb}
       />
 
       {/* Navigation Guard Modal for Unsaved Changes */}

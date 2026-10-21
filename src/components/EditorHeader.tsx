@@ -15,7 +15,8 @@ import {
   Undo2,
   Redo2,
   Download,
-  Upload
+  Upload,
+  Database
 } from 'lucide-react';
 import { getShortcutLabel } from '@/lib/platform';
 
@@ -50,6 +51,7 @@ interface EditorHeaderProps {
   canRedo?: boolean;
   onExportBackup?: () => void;
   onImportBackup?: () => void;
+  onImportDevDb?: () => void;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -77,6 +79,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   canRedo = false,
   onExportBackup,
   onImportBackup,
+  onImportDevDb,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -392,6 +395,23 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   <div className="flex items-center gap-2">
                     <Upload className="w-3.5 h-3.5 text-amber-400" />
                     <span>Import Backup (JSON)</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Import from dev.db */}
+              {onImportDevDb && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onImportDevDb();
+                    setIsMoreOpen(false);
+                  }}
+                  className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
+                >
+                  <div className="flex items-center gap-2">
+                    <Database className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Import from dev.db</span>
                   </div>
                 </button>
               )}
