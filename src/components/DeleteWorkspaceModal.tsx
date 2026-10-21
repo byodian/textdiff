@@ -43,23 +43,19 @@ export const DeleteWorkspaceModal: React.FC<DeleteWorkspaceModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-4 py-3 border-b border-canvas-border flex items-center justify-between bg-canvas-surface/70">
-          <div
-            className={`flex items-center gap-2 font-semibold text-xs sm:text-sm ${
-              hasDocuments ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
-            }`}
-          >
+        <div className="px-5 py-3.5 border-b border-canvas-border flex items-center justify-between bg-canvas-surface/50">
+          <div className="flex items-center gap-2 font-semibold text-sm text-slate-900 dark:text-slate-100">
             {hasDocuments ? (
-              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0" />
             ) : (
-              <Trash2 className="w-4 h-4 shrink-0" />
+              <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
             )}
             <span>{hasDocuments ? 'Cannot Delete Workspace' : 'Delete Workspace'}</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-canvas-surface transition-colors"
+            className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-canvas-surface transition-colors"
             title="Cancel (Esc)"
           >
             <X className="w-4 h-4" />
@@ -67,12 +63,12 @@ export const DeleteWorkspaceModal: React.FC<DeleteWorkspaceModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 space-y-4 text-xs text-slate-600 dark:text-slate-300">
+        <div className="p-5 space-y-4 text-sm text-slate-600 dark:text-slate-300">
           {hasDocuments ? (
             <>
               <p className="leading-relaxed">
                 Workspace{' '}
-                <strong className="text-slate-900 dark:text-slate-100 font-semibold font-mono bg-canvas-surface/60 dark:bg-canvas-surface px-1.5 py-0.5 rounded border border-canvas-border/70">
+                <strong className="font-semibold text-slate-900 dark:text-slate-100">
                   {workspaceName || 'Workspace'}
                 </strong>{' '}
                 cannot be deleted because it still contains{' '}
@@ -88,7 +84,7 @@ export const DeleteWorkspaceModal: React.FC<DeleteWorkspaceModalProps> = ({
                   <div className="font-semibold text-xs text-amber-900 dark:text-amber-200">
                     Data Protection Restriction
                   </div>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300/90 leading-relaxed">
+                  <p className="text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed">
                     To prevent accidental loss of important notes and documents, a workspace must be empty before it can be deleted. Please move documents to another workspace or delete them individually first.
                   </p>
                 </div>
@@ -98,7 +94,7 @@ export const DeleteWorkspaceModal: React.FC<DeleteWorkspaceModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-slate-200 hover:text-white transition-colors active:scale-95"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-canvas-surface border border-canvas-border hover:border-canvas-highlight text-slate-200 hover:text-white transition-colors active:scale-95"
                 >
                   Got it
                 </button>
@@ -108,13 +104,13 @@ export const DeleteWorkspaceModal: React.FC<DeleteWorkspaceModalProps> = ({
             <>
               <p className="leading-relaxed">
                 Are you sure you want to delete workspace{' '}
-                <strong className="text-slate-900 dark:text-slate-100 font-semibold font-mono bg-canvas-surface/60 dark:bg-canvas-surface px-1.5 py-0.5 rounded border border-canvas-border/70">
+                <strong className="font-semibold text-slate-900 dark:text-slate-100">
                   {workspaceName || 'Workspace'}
                 </strong>
                 ?
               </p>
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 This workspace is empty and contains no documents.
               </p>
 
@@ -122,14 +118,14 @@ export const DeleteWorkspaceModal: React.FC<DeleteWorkspaceModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-canvas-surface border border-canvas-border hover:border-canvas-highlight transition-colors active:scale-95"
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-canvas-surface border border-canvas-border hover:border-canvas-highlight transition-colors active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={onConfirmDelete}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-sm hover:brightness-105 transition-all active:scale-95"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-sm hover:brightness-105 transition-all active:scale-95"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete Workspace</span>
