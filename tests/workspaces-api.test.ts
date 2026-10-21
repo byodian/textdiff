@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '../src/lib/prisma';
-import { GET as listWorkspaces, POST as createWorkspace } from '../src/app/api/workspaces/route';
-import { GET as listSnippets, POST as createSnippet } from '../src/app/api/snippets/route';
+import { GET as listWorkspaces, POST as createWorkspace } from '../legacy/api/workspaces/route';
+import { GET as listSnippets, POST as createSnippet } from '../legacy/api/snippets/route';
 
 describe('Workspaces & Document Domain API Seam Tests', () => {
   beforeEach(async () => {

@@ -2,7 +2,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { prisma } from '../src/lib/prisma';
-import { POST as createSnippet } from '../src/app/api/snippets/route';
+import { POST as createSnippet } from '../legacy/api/snippets/route';
 
 describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
   beforeEach(async () => {
@@ -70,7 +70,7 @@ describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
     expect(snippet.versions.length).toBe(0);
 
     // 2. Put code and save version
-    const { PUT: updateSnippet } = await import('../src/app/api/snippets/[id]/route');
+    const { PUT: updateSnippet } = await import('../legacy/api/snippets/[id]/route');
     const updateReq = new Request(`http://localhost:3000/api/snippets/${snippet.id}`, {
       method: 'PUT',
       body: JSON.stringify({

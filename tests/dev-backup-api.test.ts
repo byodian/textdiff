@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GET } from '../src/app/api/dev/db-backup/route';
+import { GET } from '../legacy/api/dev/db-backup/route';
 
 describe('Dev Database Backup API', () => {
   it('returns valid BackupData from development SQLite database or backup file', async () => {

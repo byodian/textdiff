@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '../src/lib/prisma';
-import { POST as createWorkspace } from '../src/app/api/workspaces/route';
-import { PUT as renameWorkspace, DELETE as deleteWorkspace } from '../src/app/api/workspaces/[id]/route';
-import { POST as createSnippet, GET as listSnippets } from '../src/app/api/snippets/route';
-import { PUT as updateSnippet } from '../src/app/api/snippets/[id]/route';
+import { POST as createWorkspace } from '../legacy/api/workspaces/route';
+import { PUT as renameWorkspace, DELETE as deleteWorkspace } from '../legacy/api/workspaces/[id]/route';
+import { POST as createSnippet, GET as listSnippets } from '../legacy/api/snippets/route';
+import { PUT as updateSnippet } from '../legacy/api/snippets/[id]/route';
 
 describe('Workspace Management API Tests', () => {
   beforeEach(async () => {

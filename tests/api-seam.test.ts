@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '../src/lib/prisma';
-import { GET as listSnippets, POST as createSnippet } from '../src/app/api/snippets/route';
-import { GET as getSnippet, PUT as updateSnippet, DELETE as deleteSnippet } from '../src/app/api/snippets/[id]/route';
-import { GET as getVersions } from '../src/app/api/snippets/[id]/versions/route';
+import { GET as listSnippets, POST as createSnippet } from '../legacy/api/snippets/route';
+import { GET as getSnippet, PUT as updateSnippet, DELETE as deleteSnippet } from '../legacy/api/snippets/[id]/route';
+import { GET as getVersions } from '../legacy/api/snippets/[id]/versions/route';
 
 describe('HTTP API Seam Tests', () => {
   beforeEach(async () => {
