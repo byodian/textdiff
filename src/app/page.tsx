@@ -17,7 +17,6 @@ import { WorkspaceEmptyState } from '@/components/WorkspaceEmptyState';
 import { StatusBar } from '@/components/StatusBar';
 import { SearchModal } from '@/components/SearchModal';
 import { 
-  detectLanguageFromFilename, 
   detectLanguageFromTitle, 
   detectLanguageFromContent,
   formatTitleWithExtension 
@@ -544,17 +543,17 @@ export default function WorkspacePage() {
   }, [activeId, code, lastSavedCode, cleanupUntouchedEmptyDocument, loadSnippet]);
 
   const requestNewSnippet = useCallback(() => {
-    if (code !== lastSavedCode) {
+    if (activeId && code !== lastSavedCode) {
       setPendingNav({ type: 'new_snippet' });
     } else {
-      const isUntouched = versions.length === 0 && code.trim() === '' && lastSavedCode.trim() === '';
+      const isUntouched = Boolean(activeId) && versions.length === 0 && code.trim() === '' && lastSavedCode.trim() === '';
       if (isUntouched) {
         // Already on a blank untouched document, no need to create another empty duplicate
         return;
       }
       handleNewSnippet();
     }
-  }, [code, lastSavedCode, versions.length, handleNewSnippet]);
+  }, [activeId, code, lastSavedCode, versions.length, handleNewSnippet]);
 
   const requestSelectWorkspace = useCallback((wsId: string) => {
     if (wsId === activeWorkspaceId) return;

@@ -305,5 +305,67 @@ describe('EditorHeader Responsive & Prioritized Actions', () => {
     expect(diffText.className).toContain('hidden xl:inline');
     expect(screen.getByTitle('Diff mode (+8/-3)')).toBeDefined();
   });
+
+  it('fixes title width to max 25 characters with truncate ellipsis across different title lengths', () => {
+    // 1. Short title
+    const { rerender } = render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        title: 'short.ts',
+      })
+    );
+
+    const titleInput = screen.getByPlaceholderText(/Document Title/i) as HTMLInputElement;
+    expect(titleInput.style.width).toBe('25ch');
+    expect(titleInput.className).toContain('w-[25ch]');
+    expect(titleInput.className).toContain('truncate');
+
+    // 2. Extra long title exceeding 25 characters
+    const longTitle = 'this-is-an-extremely-long-document-title-exceeding-twenty-five-characters.tsx';
+    rerender(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        title: longTitle,
+      })
+    );
+
+    expect(titleInput.style.width).toBe('25ch');
+    expect(titleInput.className).toContain('w-[25ch]');
+    expect(titleInput.className).toContain('truncate');
+    expect(titleInput.title).toContain(longTitle);
+  });
+
+  it('centers Editor/Diff mode switcher with absolute positioning independent of title width and unsaved badge', () => {
+    const { container, rerender } = render(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        title: 'index.ts',
+        hasUnsavedChanges: false,
+      })
+    );
+
+    const modeSwitcher = container.querySelector('.bg-canvas-surface.rounded-md')?.parentElement;
+    expect(modeSwitcher).toBeDefined();
+    expect(modeSwitcher?.className).toContain('absolute');
+    expect(modeSwitcher?.className).toContain('left-1/2');
+    expect(modeSwitcher?.className).toContain('top-1/2');
+    expect(modeSwitcher?.className).toContain('-translate-x-1/2');
+    expect(modeSwitcher?.className).toContain('-translate-y-1/2');
+
+    // Rerender with long title and unsaved changes badge active
+    rerender(
+      React.createElement(EditorHeader, {
+        ...defaultProps,
+        title: 'super-long-document-name-with-many-characters.tsx',
+        hasUnsavedChanges: true,
+        diffStats: { added: 10, removed: 5, hasChanges: true },
+      })
+    );
+
+    const modeSwitcherAfter = container.querySelector('.bg-canvas-surface.rounded-md')?.parentElement;
+    expect(modeSwitcherAfter?.className).toContain('absolute');
+    expect(modeSwitcherAfter?.className).toContain('left-1/2');
+    expect(modeSwitcherAfter?.className).toContain('-translate-x-1/2');
+  });
 });
 

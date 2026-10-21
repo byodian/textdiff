@@ -151,4 +151,128 @@ describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
       expect.objectContaining({ method: 'DELETE' })
     );
   });
+
+  it('allows creating a document in an empty workspace via quick area New Document button', async () => {
+    const { render, screen, act, fireEvent } = await import('@testing-library/react');
+    const { default: WorkspacePage } = await import('../src/app/page');
+
+    const createdSnippet = {
+      id: 'new-doc-1',
+      title: 'Untitled Document',
+      language: 'plaintext',
+      currentCode: '',
+      versions: [],
+      updatedAt: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string, options?: any) => {
+      if (url === '/api/workspaces') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{ id: 'ws-empty', name: 'Empty Workspace' }]),
+        });
+      }
+      if (url === '/api/snippets' || url.startsWith('/api/snippets?')) {
+        if (options?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(createdSnippet),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+      }
+      if (url === '/api/snippets/new-doc-1') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(createdSnippet),
+        });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    });
+
+    await act(async () => {
+      render(React.createElement(WorkspacePage));
+    });
+
+    // 1. Initially in an empty workspace, should display WorkspaceEmptyState
+    expect(screen.getByText('No document selected')).toBeDefined();
+
+    // 2. Click the quick area "New Document" button
+    const quickNewDocBtn = screen.getByText('New Document').closest('button')!;
+    expect(quickNewDocBtn).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(quickNewDocBtn);
+    });
+
+    // Verify POST /api/snippets was executed to create a new document in the empty workspace
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/snippets',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"title":"Untitled Document"'),
+      })
+    );
+  });
+
+  it('allows creating a document in an empty workspace via sidebar header add button', async () => {
+    const { render, screen, act, fireEvent } = await import('@testing-library/react');
+    const { default: WorkspacePage } = await import('../src/app/page');
+
+    const createdSnippet = {
+      id: 'new-doc-2',
+      title: 'Untitled Document',
+      language: 'plaintext',
+      currentCode: '',
+      versions: [],
+      updatedAt: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string, options?: any) => {
+      if (url === '/api/workspaces') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{ id: 'ws-empty', name: 'Empty Workspace' }]),
+        });
+      }
+      if (url === '/api/snippets' || url.startsWith('/api/snippets?')) {
+        if (options?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(createdSnippet),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+      }
+      if (url === '/api/snippets/new-doc-2') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(createdSnippet),
+        });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    });
+
+    let renderedContainer: HTMLElement;
+    await act(async () => {
+      const res = render(React.createElement(WorkspacePage));
+      renderedContainer = res.container;
+    });
+
+    // Click the sidebar header add button
+    const sidebarAddBtn = renderedContainer!.querySelector('aside button[title^="New Document"]') as HTMLButtonElement;
+    expect(sidebarAddBtn).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(sidebarAddBtn);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/snippets',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"title":"Untitled Document"'),
+      })
+    );
+  });
 });

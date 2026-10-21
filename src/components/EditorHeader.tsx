@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Columns, 
   History, 
   Save, 
   Copy, 
@@ -11,7 +10,6 @@ import {
   Code, 
   Split,
   FileDiff,
-  X,
   Palette,
   MoreHorizontal,
   Undo2,
@@ -61,8 +59,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   copiedCode,
   copiedDiff,
   versionCount,
-  customDiffLabel,
-  onExitCustomDiff,
   onTitleChange,
   onTitleBlur,
   onToggleDiffMode,
@@ -103,22 +99,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     };
   }, [isMoreOpen]);
 
-  // Calculate dynamic input width based on title character count (CJK counts as 1.8, ASCII as 1)
-  // Ensures 20~30 characters display completely without truncation while keeping unsaved badge adjacent
-  const inputWidthCh = React.useMemo(() => {
-    let width = 0;
-    const str = title || '';
-    if (!str) return 26;
-    for (let i = 0; i < str.length; i++) {
-      width += str.charCodeAt(i) > 127 ? 1.8 : 1;
-    }
-    return Math.min(Math.max(Math.ceil(width) + 2, 24), 64);
-  }, [title]);
-
   return (
     <header className="relative z-30 h-14 border-b border-canvas-border bg-canvas-elevated/70 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-3 select-none">
       {/* Zone 1 (Left): Document Identity (Title & Dirty indicator) */}
-      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 sm:flex-initial">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 max-w-[calc(50vw-45px)] sm:max-w-none">
         <input
           type="text"
           value={title}
@@ -130,9 +114,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             }
           }}
           placeholder="Document Title (e.g. app.tsx, schema.sql)"
-          style={{ width: `${inputWidthCh}ch` }}
-          className="h-7 bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1.5 outline-none transition-all min-w-[100px] sm:min-w-[160px] max-w-full sm:max-w-md lg:max-w-xl xl:max-w-2xl truncate shrink"
-          title="Click to edit document title (auto-saves on blur)"
+          style={{ width: '25ch' }}
+          className="h-7 w-[25ch] bg-transparent border-b border-transparent hover:border-canvas-border focus:border-brand-primary text-xs sm:text-sm font-semibold text-slate-100 px-1.5 outline-none transition-colors truncate shrink-0"
+          title={title ? `${title} (Click to edit)` : 'Click to edit document title (auto-saves on blur)'}
         />
 
         {/* Unsaved changes indicator */}
@@ -158,8 +142,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         )}
       </div>
 
-      {/* Zone 2 (Center): Primary Mode Switcher (Edit vs Diff) */}
-      <div className="flex items-center justify-center shrink-0">
+      {/* Zone 2 (Center): Primary Mode Switcher (Edit vs Diff) - Truly centered */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center">
         <div className="h-7 flex items-center p-0.5 bg-canvas-surface border border-canvas-border rounded-md shadow-inner">
           <button
             type="button"
@@ -201,7 +185,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       </div>
 
       {/* Zone 3 (Right): Actions Toolbar */}
-      <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
+      <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 ml-auto">
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
