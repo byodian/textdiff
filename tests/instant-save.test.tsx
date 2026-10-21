@@ -5,6 +5,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import WorkspacePage from '../src/app/page';
 import { PostSaveToast } from '../src/components/PostSaveToast';
 import { HistoryDrawer } from '../src/components/HistoryDrawer';
+import { storage } from '../src/lib/storage';
 
 // Mock snippet data
 const mockSnippet = {
@@ -13,67 +14,41 @@ const mockSnippet = {
   filename: 'test.ts',
   language: 'typescript',
   currentCode: 'const x = 1;',
+  workspaceId: 'ws-default',
+  createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  versions: [
-    { id: 'v-1', versionNo: 1, title: 'Test Snippet', code: 'const x = 1;', commitMsg: 'Initial', createdAt: new Date().toISOString() },
-  ],
 };
 
 describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks();
-    const storage: Record<string, string> = {};
+    const storageState: Record<string, string> = {};
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: vi.fn((key: string) => storage[key] || null),
-        setItem: vi.fn((key: string, val: string) => { storage[key] = val; }),
-        removeItem: vi.fn((key: string) => { delete storage[key]; }),
-        clear: vi.fn(() => { for (const k in storage) delete storage[k]; }),
+        getItem: vi.fn((key: string) => storageState[key] || null),
+        setItem: vi.fn((key: string, val: string) => { storageState[key] = val; }),
+        removeItem: vi.fn((key: string) => { delete storageState[key]; }),
+        clear: vi.fn(() => { for (const k in storageState) delete storageState[k]; }),
       },
       writable: true,
     });
 
-    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-      if (url === '/api/snippets') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([mockSnippet]),
-        });
-      }
-      if (url === '/api/snippets/snip-1') {
-        if (init?.method === 'PUT') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              ...mockSnippet,
-              versions: [
-                { id: 'v-2', versionNo: 2, title: 'Test Snippet', code: 'const modifiedCode = 2;', commitMsg: 'Snapshot at 17:50', createdAt: new Date().toISOString() },
-                ...mockSnippet.versions,
-              ],
-            }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSnippet),
-        });
-      }
-      if (url === '/api/snippets/snip-1/versions') {
-        if (init?.method === 'PATCH') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ id: 'v-2', commitMsg: 'Updated note' }),
-          });
-        }
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
+    await storage.clearAll();
+    await storage.backup.importData({
+      version: 1,
+      app: 'textdiff',
+      exportedAt: new Date().toISOString(),
+      workspaces: [{ id: 'ws-default', name: 'Personal Workspace', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+      snippets: [mockSnippet],
+      versions: [
+        { id: 'v-1', snippetId: 'snip-1', versionNo: 1, title: 'Test Snippet', code: 'const x = 1;', commitMsg: 'Initial', createdAt: new Date().toISOString() },
+      ],
     });
   });
 
   it('does NOT save when there are no modifications in workspace', async () => {
+    const updateSpy = vi.spyOn(storage.snippets, 'update');
+
     await act(async () => {
       render(React.createElement(WorkspacePage));
     });
@@ -86,7 +61,8 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
       fireEvent.click(saveBtn);
     });
 
-    // No network call to PUT and no toast
+    // No storage update and no toast
+    expect(updateSpy).not.toHaveBeenCalled();
     expect(screen.queryByRole('status')).toBeNull();
 
     // 2. Press Ctrl+S when unmodified
@@ -94,10 +70,13 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
       fireEvent.keyDown(window, { key: 's', ctrlKey: true });
     });
 
+    expect(updateSpy).not.toHaveBeenCalled();
     expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('instant-saves immediately with zero modals when modifications exist', async () => {
+    const updateSpy = vi.spyOn(storage.snippets, 'update');
+
     // Store draft in localStorage beforehand so snippet loads with unsaved modifications
     window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 2;');
 
@@ -117,12 +96,12 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
     // Verify NO blocking modal appears
     expect(screen.queryByText(/Save New Version/i)).toBeNull();
 
-    // Verify PUT was called with createVersion: true
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/snippets/snip-1',
+    // Verify storage update was called with createVersion: true
+    expect(updateSpy).toHaveBeenCalledWith(
+      'snip-1',
       expect.objectContaining({
-        method: 'PUT',
-        body: expect.stringContaining('"createVersion":true'),
+        createVersion: true,
+        currentCode: 'const modifiedCode = 2;',
       })
     );
 
@@ -134,6 +113,8 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
   });
 
   it('instant-saves via Ctrl+S keyboard shortcut when modifications exist', async () => {
+    const updateSpy = vi.spyOn(storage.snippets, 'update');
+
     window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 2;');
 
     await act(async () => {
@@ -147,16 +128,17 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
       fireEvent.keyDown(window, { key: 's', ctrlKey: true });
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/snippets/snip-1',
+    expect(updateSpy).toHaveBeenCalledWith(
+      'snip-1',
       expect.objectContaining({
-        method: 'PUT',
-        body: expect.stringContaining('"createVersion":true'),
+        createVersion: true,
       })
     );
   });
 
   it('instant-saves via Cmd+S keyboard shortcut on macOS', async () => {
+    const updateSpy = vi.spyOn(storage.snippets, 'update');
+
     window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 3;');
 
     await act(async () => {
@@ -168,68 +150,45 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
       fireEvent.keyDown(window, { key: 's', code: 'KeyS', metaKey: true });
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/snippets/snip-1',
+    expect(updateSpy).toHaveBeenCalledWith(
+      'snip-1',
       expect.objectContaining({
-        method: 'PUT',
-        body: expect.stringContaining('"createVersion":true'),
+        createVersion: true,
       })
     );
   });
 
   it('ignores repeated keydown events (e.repeat) when holding Ctrl+S', async () => {
+    const updateSpy = vi.spyOn(storage.snippets, 'update');
+
     window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 4;');
 
     await act(async () => {
       render(React.createElement(WorkspacePage));
     });
 
-    const putCallsBefore = (global.fetch as any).mock.calls.filter(
-      (c: any[]) => c[0] === '/api/snippets/snip-1' && c[1]?.method === 'PUT'
-    ).length;
-
     // Simulate key repeat: e.repeat is true
     await act(async () => {
       fireEvent.keyDown(window, { key: 's', ctrlKey: true, repeat: true });
     });
 
-    const putCallsAfter = (global.fetch as any).mock.calls.filter(
-      (c: any[]) => c[0] === '/api/snippets/snip-1' && c[1]?.method === 'PUT'
-    ).length;
-
-    // Should NOT trigger any new PUT calls
-    expect(putCallsAfter).toBe(putCallsBefore);
+    // Should NOT trigger any storage update calls
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
   it('prevents concurrent in-flight save requests from duplicate button clicks or rapid events', async () => {
     window.localStorage.setItem('textdiff_draft:snip-1', 'const modifiedCode = 5;');
 
-    // Delay fetch resolution to simulate network in-flight state
-    let resolvePut: (val: any) => void;
-    const putPromise = new Promise((resolve) => {
-      resolvePut = resolve;
+    // Delay update resolution to simulate in-flight state
+    let resolveUpdate: (val: any) => void;
+    const updatePromise = new Promise((resolve) => {
+      resolveUpdate = resolve;
     });
 
-    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-      if (url === '/api/snippets') {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([mockSnippet]) });
-      }
-      if (url === '/api/snippets/snip-1') {
-        if (init?.method === 'PUT') {
-          return putPromise.then(() => ({
-            ok: true,
-            json: () => Promise.resolve({
-              ...mockSnippet,
-              versions: [
-                { id: 'v-2', versionNo: 2, title: 'Test Snippet', code: 'const modifiedCode = 5;', commitMsg: 'Snapshot at 17:50', createdAt: new Date().toISOString() },
-                ...mockSnippet.versions,
-              ],
-            }),
-          }));
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSnippet) });
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    const originalUpdate = storage.snippets.update.bind(storage.snippets);
+    const updateSpy = vi.spyOn(storage.snippets, 'update').mockImplementation(async (id, input) => {
+      await updatePromise;
+      return originalUpdate(id, input);
     });
 
     await act(async () => {
@@ -244,16 +203,12 @@ describe('Optimistic Instant Save & Post-Save Annotation (Scheme A)', () => {
       fireEvent.click(saveBtn);
     });
 
-    const putCalls = (global.fetch as any).mock.calls.filter(
-      (c: any[]) => c[0] === '/api/snippets/snip-1' && c[1]?.method === 'PUT'
-    );
-
-    // Only 1 PUT request should be initiated, second must be blocked by in-flight lock
-    expect(putCalls.length).toBe(1);
+    // Only 1 update request should be initiated, second must be blocked by in-flight lock
+    expect(updateSpy).toHaveBeenCalledTimes(1);
 
     // Resolve in-flight promise
     await act(async () => {
-      resolvePut!({});
+      resolveUpdate!({});
     });
   });
 

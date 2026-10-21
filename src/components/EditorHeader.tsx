@@ -13,7 +13,9 @@ import {
   Palette,
   MoreHorizontal,
   Undo2,
-  Redo2
+  Redo2,
+  Download,
+  Upload
 } from 'lucide-react';
 import { getShortcutLabel } from '@/lib/platform';
 
@@ -46,6 +48,8 @@ interface EditorHeaderProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onExportBackup?: () => void;
+  onImportBackup?: () => void;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -71,6 +75,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onRedo,
   canUndo = false,
   canRedo = false,
+  onExportBackup,
+  onImportBackup,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -355,6 +361,40 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               )}
 
               <div className="h-px bg-canvas-border my-1" />
+
+              {/* Export Backup */}
+              {onExportBackup && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onExportBackup();
+                    setIsMoreOpen(false);
+                  }}
+                  className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
+                >
+                  <div className="flex items-center gap-2">
+                    <Download className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Export Backup (JSON)</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Import Backup */}
+              {onImportBackup && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onImportBackup();
+                    setIsMoreOpen(false);
+                  }}
+                  className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
+                >
+                  <div className="flex items-center gap-2">
+                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Import Backup (JSON)</span>
+                  </div>
+                </button>
+              )}
 
               {/* Command Palette / Theme Quick Action */}
               {onOpenThemePalette && (

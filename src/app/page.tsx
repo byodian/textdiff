@@ -26,6 +26,7 @@ import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
 import { ALL_THEMES } from '@/lib/themes';
 import { applyGlobalThemeColors } from '@/lib/theme-colors';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/draft-storage';
+import { storage } from '@/lib/storage';
 
 export default function WorkspacePage() {
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
@@ -152,20 +153,16 @@ export default function WorkspacePage() {
   // 1. Load snippet detail
   const loadSnippet = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`/api/snippets/${id}`);
-      if (!res.ok) return;
-      const s = await res.json();
+      const s = await storage.snippets.get(id);
+      if (!s) return;
       setActiveId(s.id);
 
       // If the loaded snippet belongs to another workspace, switch active workspace
       if (s.workspaceId && s.workspaceId !== activeWorkspaceIdRef.current) {
         setActiveWorkspaceId(s.workspaceId);
         activeWorkspaceIdRef.current = s.workspaceId;
-        const wsRes = await fetch(`/api/snippets?workspaceId=${s.workspaceId}`);
-        if (wsRes.ok) {
-          const wsSnippets = await wsRes.json();
-          setSnippets(wsSnippets);
-        }
+        const wsSnippets = await storage.snippets.list(s.workspaceId);
+        setSnippets(wsSnippets);
       }
 
       const draft = loadDraft(s.id, s.currentCode);
@@ -212,10 +209,8 @@ export default function WorkspacePage() {
   // Fetch all snippets across all workspaces for global search
   const fetchAllSnippets = useCallback(async () => {
     try {
-      const res = await fetch('/api/snippets');
-      if (!res.ok) return;
-      const data = await res.json();
-      setAllSnippets(Array.isArray(data) ? data : []);
+      const data = await storage.snippets.list();
+      setAllSnippets(data);
     } catch (err) {
       console.error('Failed to fetch all snippets', err);
     }
@@ -224,14 +219,10 @@ export default function WorkspacePage() {
   // 2. Fetch snippet list for a workspace
   const fetchSnippets = useCallback(async (wsId?: string | null) => {
     try {
-      const url = wsId ? `/api/snippets?workspaceId=${wsId}` : '/api/snippets';
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      setSnippets(list);
-      if (list.length > 0) {
-        loadSnippet(list[0].id);
+      const data = await storage.snippets.list(wsId || undefined);
+      setSnippets(data);
+      if (data.length > 0) {
+        loadSnippet(data[0].id);
       } else {
         setActiveId(null);
         setTitle('Untitled Document');
@@ -249,17 +240,14 @@ export default function WorkspacePage() {
   const initWorkspaceAndSnippets = useCallback(async () => {
     try {
       fetchAllSnippets();
-      const res = await fetch('/api/workspaces');
-      if (res.ok) {
-        const data = await res.json();
-        setWorkspaces(data);
-        if (data.length > 0) {
-          const defaultWsId = data[0].id;
-          setActiveWorkspaceId(defaultWsId);
-          activeWorkspaceIdRef.current = defaultWsId;
-          fetchSnippets(defaultWsId);
-          return;
-        }
+      const data = await storage.workspaces.list();
+      setWorkspaces(data);
+      if (data.length > 0) {
+        const defaultWsId = data[0].id;
+        setActiveWorkspaceId(defaultWsId);
+        activeWorkspaceIdRef.current = defaultWsId;
+        fetchSnippets(defaultWsId);
+        return;
       }
       fetchSnippets();
     } catch (err) {
@@ -274,25 +262,16 @@ export default function WorkspacePage() {
 
   // 4. New snippet (VS Code style: blank buffer, no default code, plaintext language)
   const handleNewSnippet = useCallback(async () => {
-    const defaultSnippet = {
-      title: 'Untitled Document',
-      language: 'plaintext',
-      currentCode: '',
-      workspaceId: activeWorkspaceId || undefined,
-    };
-
     try {
-      const res = await fetch('/api/snippets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(defaultSnippet),
+      const created = await storage.snippets.create({
+        title: 'Untitled Document',
+        language: 'plaintext',
+        currentCode: '',
+        workspaceId: activeWorkspaceId || undefined,
       });
-      if (res.ok) {
-        const created = await res.json();
-        setSnippets((prev) => [created, ...prev]);
-        setAllSnippets((prev) => [created, ...prev]);
-        loadSnippet(created.id);
-      }
+      setSnippets((prev) => [created, ...prev]);
+      setAllSnippets((prev) => [created, ...prev]);
+      loadSnippet(created.id);
     } catch (err) {
       console.error('Failed to create snippet', err);
     }
@@ -301,35 +280,24 @@ export default function WorkspacePage() {
   // 5. Duplicate snippet
   const handleDuplicateSnippet = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const source = snippets.find((s) => s.id === id);
-    if (!source) return;
-
     try {
-      const detailRes = await fetch(`/api/snippets/${id}`);
-      if (!detailRes.ok) return;
-      const detail = await detailRes.json();
+      const detail = await storage.snippets.get(id);
+      if (!detail) return;
 
-      const dupRes = await fetch('/api/snippets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `${detail.title} (Copy)`,
-          language: detail.language,
-          currentCode: detail.currentCode,
-          workspaceId: detail.workspaceId || activeWorkspaceId || undefined,
-        }),
+      const duplicated = await storage.snippets.create({
+        title: `${detail.title} (Copy)`,
+        language: detail.language,
+        currentCode: detail.currentCode,
+        workspaceId: detail.workspaceId || activeWorkspaceId || undefined,
       });
 
-      if (dupRes.ok) {
-        const duplicated = await dupRes.json();
-        setSnippets((prev) => [duplicated, ...prev]);
-        setAllSnippets((prev) => [duplicated, ...prev]);
-        loadSnippet(duplicated.id);
-      }
+      setSnippets((prev) => [duplicated, ...prev]);
+      setAllSnippets((prev) => [duplicated, ...prev]);
+      loadSnippet(duplicated.id);
     } catch (err) {
       console.error('Failed to duplicate snippet', err);
     }
-  }, [snippets, loadSnippet, activeWorkspaceId]);
+  }, [loadSnippet, activeWorkspaceId]);
 
   // Switch workspace
   const handleSelectWorkspace = useCallback((wsId: string) => {
@@ -341,13 +309,7 @@ export default function WorkspacePage() {
   // Create new workspace
   const handleCreateWorkspace = useCallback(async (name: string) => {
     try {
-      const res = await fetch('/api/workspaces', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (!res.ok) return;
-      const created = await res.json();
+      const created = await storage.workspaces.create(name);
       setWorkspaces((prev) => [...prev, created]);
       setActiveWorkspaceId(created.id);
       activeWorkspaceIdRef.current = created.id;
@@ -360,15 +322,8 @@ export default function WorkspacePage() {
   // Rename workspace
   const handleRenameWorkspace = useCallback(async (id: string, newName: string) => {
     try {
-      const res = await fetch(`/api/workspaces/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setWorkspaces((prev) => prev.map((w) => (w.id === id ? { ...w, name: updated.name } : w)));
-      }
+      const updated = await storage.workspaces.rename(id, newName);
+      setWorkspaces((prev) => prev.map((w) => (w.id === id ? { ...w, name: updated.name } : w)));
     } catch (err) {
       console.error('Failed to rename workspace', err);
     }
@@ -393,26 +348,22 @@ export default function WorkspacePage() {
     const targetId = deleteWorkspaceTarget.id;
     setDeleteWorkspaceTarget(null);
     try {
-      const res = await fetch(`/api/workspaces/${targetId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        const remaining = workspaces.filter((w) => w.id !== targetId);
-        setWorkspaces(remaining);
-        setAllSnippets((prev) => prev.filter((s) => s.workspaceId !== targetId));
+      await storage.workspaces.delete(targetId);
+      const remaining = workspaces.filter((w) => w.id !== targetId);
+      setWorkspaces(remaining);
+      setAllSnippets((prev) => prev.filter((s) => s.workspaceId !== targetId));
 
-        if (activeWorkspaceId === targetId) {
-          const nextWs = remaining[0];
-          if (nextWs) {
-            setActiveWorkspaceId(nextWs.id);
-            activeWorkspaceIdRef.current = nextWs.id;
-            fetchSnippets(nextWs.id);
-          } else {
-            setActiveWorkspaceId(null);
-            activeWorkspaceIdRef.current = null;
-            setSnippets([]);
-            setActiveId(null);
-          }
+      if (activeWorkspaceId === targetId) {
+        const nextWs = remaining[0];
+        if (nextWs) {
+          setActiveWorkspaceId(nextWs.id);
+          activeWorkspaceIdRef.current = nextWs.id;
+          fetchSnippets(nextWs.id);
+        } else {
+          setActiveWorkspaceId(null);
+          activeWorkspaceIdRef.current = null;
+          setSnippets([]);
+          setActiveId(null);
         }
       }
     } catch (err) {
@@ -432,43 +383,36 @@ export default function WorkspacePage() {
     setMoveSnippetTarget(null);
 
     try {
-      const res = await fetch(`/api/snippets/${targetSnippet.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId: targetWorkspaceId }),
-      });
+      await storage.snippets.update(targetSnippet.id, { workspaceId: targetWorkspaceId });
+      const updated = snippets.filter((s) => s.id !== targetSnippet.id);
+      setSnippets(updated);
+      setAllSnippets((prev) =>
+        prev.map((s) => (s.id === targetSnippet.id ? { ...s, workspaceId: targetWorkspaceId } : s))
+      );
 
-      if (res.ok) {
-        const updated = snippets.filter((s) => s.id !== targetSnippet.id);
-        setSnippets(updated);
-        setAllSnippets((prev) =>
-          prev.map((s) => (s.id === targetSnippet.id ? { ...s, workspaceId: targetWorkspaceId } : s))
-        );
-
-        setWorkspaces((prev) =>
-          prev.map((w) => {
-            if (w.id === targetWorkspaceId && w._count) {
-              return { ...w, _count: { snippets: (w._count.snippets || 0) + 1 } };
-            }
-            if (w.id === (targetSnippet.workspaceId || activeWorkspaceId) && w._count) {
-              return { ...w, _count: { snippets: Math.max(0, (w._count.snippets || 1) - 1) } };
-            }
-            return w;
-          })
-        );
-
-        if (activeId === targetSnippet.id) {
-          if (updated.length > 0) {
-            loadSnippet(updated[0].id);
-          } else {
-            setActiveId(null);
-            setTitle('Untitled Document');
-            setFilename('');
-            setLanguage('plaintext');
-            setCode('');
-            setLastSavedCode('');
-            setVersions([]);
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w.id === targetWorkspaceId && w._count) {
+            return { ...w, _count: { snippets: (w._count.snippets || 0) + 1 } };
           }
+          if (w.id === (targetSnippet.workspaceId || activeWorkspaceId) && w._count) {
+            return { ...w, _count: { snippets: Math.max(0, (w._count.snippets || 1) - 1) } };
+          }
+          return w;
+        })
+      );
+
+      if (activeId === targetSnippet.id) {
+        if (updated.length > 0) {
+          loadSnippet(updated[0].id);
+        } else {
+          setActiveId(null);
+          setTitle('Untitled Document');
+          setFilename('');
+          setLanguage('plaintext');
+          setCode('');
+          setLastSavedCode('');
+          setVersions([]);
         }
       }
     } catch (err) {
@@ -492,23 +436,21 @@ export default function WorkspacePage() {
     const id = deleteTarget.id;
     setDeleteTarget(null);
     try {
-      const res = await fetch(`/api/snippets/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        clearDraft(id);
-        const updated = snippets.filter((s) => s.id !== id);
-        setSnippets(updated);
-        setAllSnippets((prev) => prev.filter((s) => s.id !== id));
-        if (activeId === id) {
-          if (updated.length > 0) {
-            loadSnippet(updated[0].id);
-          } else {
-            setActiveId(null);
-            setTitle('Untitled Document');
-            setFilename('');
-            setCode('');
-            setLastSavedCode('');
-            setVersions([]);
-          }
+      await storage.snippets.delete(id);
+      clearDraft(id);
+      const updated = snippets.filter((s) => s.id !== id);
+      setSnippets(updated);
+      setAllSnippets((prev) => prev.filter((s) => s.id !== id));
+      if (activeId === id) {
+        if (updated.length > 0) {
+          loadSnippet(updated[0].id);
+        } else {
+          setActiveId(null);
+          setTitle('Untitled Document');
+          setFilename('');
+          setCode('');
+          setLastSavedCode('');
+          setVersions([]);
         }
       }
     } catch (err) {
@@ -523,7 +465,7 @@ export default function WorkspacePage() {
     if (isUntouched) {
       const idToDelete = activeId;
       clearDraft(idToDelete);
-      fetch(`/api/snippets/${idToDelete}`, { method: 'DELETE' }).catch((err) => {
+      storage.snippets.delete(idToDelete).catch((err) => {
         console.error('Failed to cleanup empty document', err);
       });
       setSnippets((prev) => prev.filter((s) => s.id !== idToDelete));
@@ -568,22 +510,15 @@ export default function WorkspacePage() {
   // Onboarding starter templates
   const handleApplyTemplate = useCallback(async (tpl: { title: string; language: string; code: string }) => {
     try {
-      const res = await fetch('/api/snippets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: tpl.title,
-          language: tpl.language,
-          currentCode: tpl.code,
-          workspaceId: activeWorkspaceId || undefined,
-        }),
+      const created = await storage.snippets.create({
+        title: tpl.title,
+        language: tpl.language,
+        currentCode: tpl.code,
+        workspaceId: activeWorkspaceId || undefined,
       });
-      if (res.ok) {
-        const created = await res.json();
-        setSnippets((prev) => [created, ...prev]);
-        setAllSnippets((prev) => [created, ...prev]);
-        loadSnippet(created.id);
-      }
+      setSnippets((prev) => [created, ...prev]);
+      setAllSnippets((prev) => [created, ...prev]);
+      loadSnippet(created.id);
     } catch (err) {
       console.error('Failed to apply template', err);
     }
@@ -597,22 +532,15 @@ export default function WorkspacePage() {
       }
       const detected = detectLanguageFromContent(text || '', 'plaintext');
       const formattedTitle = formatTitleWithExtension('Pasted Document', detected);
-      const res = await fetch('/api/snippets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formattedTitle,
-          language: detected,
-          currentCode: text || '',
-          workspaceId: activeWorkspaceId || undefined,
-        }),
+      const created = await storage.snippets.create({
+        title: formattedTitle,
+        language: detected,
+        currentCode: text || '',
+        workspaceId: activeWorkspaceId || undefined,
       });
-      if (res.ok) {
-        const created = await res.json();
-        setSnippets((prev) => [created, ...prev]);
-        setAllSnippets((prev) => [created, ...prev]);
-        loadSnippet(created.id);
-      }
+      setSnippets((prev) => [created, ...prev]);
+      setAllSnippets((prev) => [created, ...prev]);
+      loadSnippet(created.id);
     } catch (err) {
       console.error('Failed to paste from clipboard', err);
       handleNewSnippet();
@@ -649,15 +577,11 @@ export default function WorkspacePage() {
     setAllSnippets(updater);
 
     try {
-      await fetch(`/api/snippets/${activeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formattedTitle,
-          language: newLanguage,
-          currentCode: currentCodeParam,
-          createVersion: false,
-        }),
+      await storage.snippets.update(activeId, {
+        title: formattedTitle,
+        language: newLanguage,
+        currentCode: currentCodeParam,
+        createVersion: false,
       });
     } catch (err) {
       console.error('Failed to auto-save metadata', err);
@@ -729,55 +653,48 @@ export default function WorkspacePage() {
       : `Snapshot at ${nowTime} (+${stats.added}/-${stats.removed})`;
 
     try {
-      const res = await fetch(`/api/snippets/${activeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim() || 'Untitled Document',
-          language,
-          currentCode: code,
-          createVersion: true,
-          commitMsg: autoNote,
-        }),
+      const updated = await storage.snippets.update(activeId, {
+        title: title.trim() || 'Untitled Document',
+        language,
+        currentCode: code,
+        createVersion: true,
+        commitMsg: autoNote,
       });
 
-      if (res.ok) {
-        const updated = await res.json();
-        setLastSavedCode(code);
-        setMonacoCanUndo(false);
-        setMonacoCanRedo(false);
-        clearDraft(activeId);
-        const newVersions: VersionItem[] = updated.versions || [];
-        setVersions(newVersions);
-        const updater = (prev: SnippetSummary[]) =>
-          prev.map((s) =>
-            s.id === activeId
-              ? { 
-                  ...s, 
-                  title: title.trim() || 'Untitled Document', 
-                  language, 
-                  updatedAt: new Date().toISOString(),
-                  versions: updated.versions || s.versions,
-                }
-              : s
-          );
-        setSnippets(updater);
-        setAllSnippets(updater);
+      setLastSavedCode(code);
+      setMonacoCanUndo(false);
+      setMonacoCanRedo(false);
+      clearDraft(activeId);
+      const newVersions: VersionItem[] = updated.versions || [];
+      setVersions(newVersions);
+      const updater = (prev: SnippetSummary[]) =>
+        prev.map((s) =>
+          s.id === activeId
+            ? { 
+                ...s, 
+                title: title.trim() || 'Untitled Document', 
+                language, 
+                updatedAt: new Date().toISOString(),
+                versions: updated.versions || s.versions,
+              }
+            : s
+        );
+      setSnippets(updater);
+      setAllSnippets(updater);
 
-        // Flash 'Saved ✓' on header button
-        setIsJustSaved(true);
-        setTimeout(() => setIsJustSaved(false), 800);
+      // Flash 'Saved ✓' on header button
+      setIsJustSaved(true);
+      setTimeout(() => setIsJustSaved(false), 800);
 
-        // Pop up non-intrusive post-save toast
-        const latestVer = newVersions[0];
-        if (latestVer) {
-          setPostSaveToast({
-            versionId: latestVer.id,
-            versionNo: latestVer.versionNo,
-            additions: stats.added,
-            deletions: stats.removed,
-          });
-        }
+      // Pop up non-intrusive post-save toast
+      const latestVer = newVersions[0];
+      if (latestVer) {
+        setPostSaveToast({
+          versionId: latestVer.id,
+          versionNo: latestVer.versionNo,
+          additions: stats.added,
+          deletions: stats.removed,
+        });
       }
     } catch (err) {
       console.error('Failed to save version', err);
@@ -791,16 +708,10 @@ export default function WorkspacePage() {
   const handleUpdateVersionMsg = useCallback(async (versionId: string, newMsg: string) => {
     if (!activeId) return;
     try {
-      const res = await fetch(`/api/snippets/${activeId}/versions`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ versionId, commitMsg: newMsg }),
-      });
-      if (res.ok) {
-        setVersions((prev) =>
-          prev.map((v) => (v.id === versionId ? { ...v, commitMsg: newMsg } : v))
-        );
-      }
+      await storage.versions.update(versionId, newMsg);
+      setVersions((prev) =>
+        prev.map((v) => (v.id === versionId ? { ...v, commitMsg: newMsg } : v))
+      );
     } catch (err) {
       console.error('Failed to update version note', err);
     }
@@ -810,18 +721,11 @@ export default function WorkspacePage() {
   const handleRevertCreatedVersion = useCallback(async (versionId: string) => {
     if (!activeId) return;
     try {
-      const res = await fetch(`/api/snippets/${activeId}/versions?versionId=${versionId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        const versRes = await fetch(`/api/snippets/${activeId}/versions`);
-        if (versRes.ok) {
-          const freshVersions = await versRes.json();
-          setVersions(freshVersions);
-          if (freshVersions[0]) {
-            setLastSavedCode(freshVersions[0].code);
-          }
-        }
+      await storage.versions.delete(versionId);
+      const freshVersions = await storage.versions.list(activeId);
+      setVersions(freshVersions);
+      if (freshVersions[0]) {
+        setLastSavedCode(freshVersions[0].code);
       }
     } catch (err) {
       console.error('Failed to revert version', err);
@@ -834,7 +738,7 @@ export default function WorkspacePage() {
       clearDraft(activeId);
       if (versions.length === 0) {
         const idToDelete = activeId;
-        fetch(`/api/snippets/${idToDelete}`, { method: 'DELETE' }).catch((err) => {
+        storage.snippets.delete(idToDelete).catch((err) => {
           console.error('Failed to cleanup discarded empty document', err);
         });
         setSnippets((prev) => prev.filter((s) => s.id !== idToDelete));
@@ -1226,6 +1130,82 @@ export default function WorkspacePage() {
     setTimeout(() => setCopiedDiff(false), 2000);
   };
 
+  // 18. Backup & Restore operations
+  const handleExportBackup = useCallback(async () => {
+    try {
+      const backup = await storage.backup.exportData();
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `textdiff-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setUndoToast({
+        message: `Exported ${backup.workspaces.length} workspaces and ${backup.snippets.length} documents backup JSON.`,
+        previousCode: '',
+      });
+    } catch (err) {
+      console.error('Failed to export backup:', err);
+    }
+  }, []);
+
+  const handleImportBackup = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json,application/json';
+    fileInput.style.display = 'none';
+
+    fileInput.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const result = await storage.backup.importData(data);
+        if (result.success) {
+          const wsList = await storage.workspaces.list();
+          setWorkspaces(wsList);
+          const firstWsId = wsList[0]?.id;
+          setActiveWorkspaceId(firstWsId);
+          if (firstWsId) {
+            localStorage.setItem('textdiff_active_workspace', firstWsId);
+          }
+          const snipList = await storage.snippets.list(firstWsId);
+          setSnippets(snipList);
+          if (snipList.length > 0) {
+            await loadSnippet(snipList[0].id);
+          } else {
+            setCurrentSnippet(null);
+            setTitle('');
+            setLastSavedCode('');
+            setCode('');
+            setVersions([]);
+          }
+          setUndoToast({
+            message: `Restored ${result.importedCount.workspaces} workspaces and ${result.importedCount.snippets} documents!`,
+            previousCode: '',
+          });
+        }
+      } catch (err) {
+        console.error('Failed to import backup:', err);
+        alert('Failed to import backup: invalid JSON format');
+      } finally {
+        fileInput.remove();
+      }
+    };
+
+    document.body.appendChild(fileInput);
+    fileInput.click();
+  }, [loadSnippet]);
+
   // Auto-persist draft to localStorage (debounced)
   useEffect(() => {
     if (!activeId) return;
@@ -1327,6 +1307,8 @@ export default function WorkspacePage() {
               onRedo={handleRedo}
               canUndo={canUndo}
               canRedo={canRedo}
+              onExportBackup={handleExportBackup}
+              onImportBackup={handleImportBackup}
             />
 
             <div className="flex-1 relative overflow-hidden isolate flex flex-col w-full">
@@ -1394,6 +1376,7 @@ export default function WorkspacePage() {
             onNewDocument={requestNewSnippet}
             onApplyTemplate={handleApplyTemplate}
             onPasteFromClipboard={handlePasteFromClipboard}
+            onImportBackup={handleImportBackup}
           />
         )}
       </main>
@@ -1462,6 +1445,8 @@ export default function WorkspacePage() {
         onPreviewTheme={handlePreviewTheme}
         onOpenEditorCommandPalette={handleOpenEditorCommandPalette}
         onOpenSearch={handleOpenSearchModal}
+        onExportBackup={handleExportBackup}
+        onImportBackup={handleImportBackup}
       />
 
       {/* Navigation Guard Modal for Unsaved Changes */}

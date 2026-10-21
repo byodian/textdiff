@@ -3,57 +3,31 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import WorkspacePage from '../src/app/page';
-
-// Mock snippet data
-const mockSnippet = {
-  id: 'snip-1',
-  title: 'Test Document',
-  filename: 'test.ts',
-  language: 'typescript',
-  currentCode: 'const greeting = "hello";',
-  updatedAt: new Date().toISOString(),
-  versions: [
-    { id: 'v-1', versionNo: 1, title: 'Test Document', code: 'const greeting = "hello";', commitMsg: 'Initial', createdAt: new Date().toISOString() },
-  ],
-};
+import { storage } from '../src/lib/storage';
 
 describe('Command Palette and Search Modal Mutual Exclusivity', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks();
-    const storage: Record<string, string> = {};
+    const storageState: Record<string, string> = {};
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: vi.fn((key: string) => storage[key] || null),
-        setItem: vi.fn((key: string, val: string) => { storage[key] = val; }),
-        removeItem: vi.fn((key: string) => { delete storage[key]; }),
-        clear: vi.fn(() => { for (const k in storage) delete storage[k]; }),
+        getItem: vi.fn((key: string) => storageState[key] || null),
+        setItem: vi.fn((key: string, val: string) => { storageState[key] = val; }),
+        removeItem: vi.fn((key: string) => { delete storageState[key]; }),
+        clear: vi.fn(() => { for (const k in storageState) delete storageState[k]; }),
       },
       writable: true,
     });
 
-    global.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.startsWith('/api/snippets/snip-1')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSnippet),
-        });
-      }
-      if (url.startsWith('/api/snippets')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([mockSnippet]),
-        });
-      }
-      if (url === '/api/workspaces') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([{ id: 'ws-default', name: 'Personal Workspace', isDefault: true, _count: { snippets: 1 } }]),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
+    await storage.clearAll();
+    await storage.workspaces.create('Personal Workspace');
+    const wsList = await storage.workspaces.list();
+    await storage.snippets.create({
+      title: 'Test Document',
+      filename: 'test.ts',
+      language: 'typescript',
+      currentCode: 'const greeting = "hello";',
+      workspaceId: wsList[0]?.id,
     });
   });
 

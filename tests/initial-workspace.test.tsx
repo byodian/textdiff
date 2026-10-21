@@ -3,11 +3,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import WorkspacePage from '../src/app/page';
+import { storage } from '../src/lib/storage';
 
 describe('Initial Workspace Selection and Cross-Workspace Search', () => {
   const dummyWorkspaces = [
-    { id: 'ws-default', name: 'Default Workspace' },
-    { id: 'ws-work', name: 'Work Project' },
+    { id: 'ws-default', name: 'Default Workspace', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'ws-work', name: 'Work Project', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   ];
 
   const defaultSnippets = [
@@ -18,9 +19,12 @@ describe('Initial Workspace Selection and Cross-Workspace Search', () => {
       language: 'markdown',
       currentCode: '# Default workspace doc',
       workspaceId: 'ws-default',
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      versions: [{ versionNo: 1, title: 'default-note.md', code: '# Default workspace doc' }],
     },
+  ];
+  const defaultVersions = [
+    { id: 'v-1', snippetId: 'snip-1', versionNo: 1, title: 'default-note.md', code: '# Default workspace doc', createdAt: new Date().toISOString() },
   ];
 
   const workSnippets = [
@@ -31,67 +35,35 @@ describe('Initial Workspace Selection and Cross-Workspace Search', () => {
       language: 'typescript',
       currentCode: 'export const task = 1;',
       workspaceId: 'ws-work',
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      versions: [{ versionNo: 1, title: 'work-task.ts', code: 'export const task = 1;' }],
     },
   ];
+  const workVersions = [
+    { id: 'v-2', snippetId: 'snip-2', versionNo: 1, title: 'work-task.ts', code: 'export const task = 1;', createdAt: new Date().toISOString() },
+  ];
 
-  const allSnippets = [...defaultSnippets, ...workSnippets];
-
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks();
-    const storage: Record<string, string> = {};
+    const storageState: Record<string, string> = {};
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: vi.fn((key: string) => storage[key] || null),
-        setItem: vi.fn((key: string, val: string) => { storage[key] = val; }),
-        removeItem: vi.fn((key: string) => { delete storage[key]; }),
-        clear: vi.fn(() => { for (const k in storage) delete storage[k]; }),
+        getItem: vi.fn((key: string) => storageState[key] || null),
+        setItem: vi.fn((key: string, val: string) => { storageState[key] = val; }),
+        removeItem: vi.fn((key: string) => { delete storageState[key]; }),
+        clear: vi.fn(() => { for (const k in storageState) delete storageState[k]; }),
       },
       writable: true,
     });
 
-    global.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/workspaces') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(dummyWorkspaces),
-        });
-      }
-      if (url === '/api/snippets') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(allSnippets),
-        });
-      }
-      if (url === '/api/snippets?workspaceId=ws-default') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(defaultSnippets),
-        });
-      }
-      if (url === '/api/snippets?workspaceId=ws-work') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(workSnippets),
-        });
-      }
-      if (url === '/api/snippets/snip-1') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(defaultSnippets[0]),
-        });
-      }
-      if (url === '/api/snippets/snip-2') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(workSnippets[0]),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+    await storage.clearAll();
+    await storage.backup.importData({
+      version: 1,
+      app: 'textdiff',
+      exportedAt: new Date().toISOString(),
+      workspaces: dummyWorkspaces,
+      snippets: [...defaultSnippets, ...workSnippets],
+      versions: [...defaultVersions, ...workVersions],
     });
   });
 
@@ -108,9 +80,6 @@ describe('Initial Workspace Selection and Cross-Workspace Search', () => {
 
     // Work workspace document should NOT be in the sidebar snippet list
     expect(screen.queryByText('work-task')).toBeNull();
-
-    // Verify /api/snippets was requested with workspaceId parameter
-    expect(global.fetch).toHaveBeenCalledWith('/api/snippets?workspaceId=ws-default');
   });
 
   it('switches active workspace automatically when loading a snippet from another workspace', async () => {

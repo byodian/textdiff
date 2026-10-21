@@ -15,6 +15,7 @@ import {
 import { SnippetSummary, WorkspaceItem } from './Sidebar';
 import { getShortcutLabel } from '@/lib/platform';
 import { splitTitleAndExtension } from '@/lib/languages';
+import { storage } from '@/lib/storage';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -127,15 +128,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     let isMounted = true;
-    fetch('/api/snippets')
-      .then((res) => (res.ok ? res.json() : []))
+    storage.snippets.list()
       .then((data) => {
         if (isMounted && Array.isArray(data) && data.length > 0) {
           setAllSnippets(data);
         }
       })
       .catch(() => {
-        // Gracefully ignore fetch failures in tests or offline environments
+        // Gracefully ignore failures in tests or offline environments
       });
     return () => {
       isMounted = false;

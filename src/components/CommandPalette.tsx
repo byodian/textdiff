@@ -21,7 +21,9 @@ import {
   FileCode,
   Search,
   Undo2,
-  Redo2
+  Redo2,
+  Download,
+  Upload
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
@@ -71,6 +73,8 @@ interface CommandPaletteProps {
   canRedo?: boolean;
   onOpenEditorCommandPalette?: () => void;
   onOpenSearch?: () => void;
+  onExportBackup?: () => void;
+  onImportBackup?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -101,6 +105,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   canRedo,
   onOpenEditorCommandPalette,
   onOpenSearch,
+  onExportBackup,
+  onImportBackup,
 }) => {
   const [mode, setMode] = useState<PaletteMode>(initialMode || 'commands');
   const [query, setQuery] = useState('');
@@ -262,6 +268,28 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         },
         keywords: 'diff compare inspect changes code editor',
       },
+      {
+        id: 'data:export',
+        title: 'Data: Export All Workspaces Backup (JSON)',
+        category: 'Data',
+        icon: <Download className="w-4 h-4 text-sky-400" />,
+        action: () => {
+          onClose();
+          onExportBackup?.();
+        },
+        keywords: 'export backup data download json workspaces local snapshot',
+      },
+      {
+        id: 'data:import',
+        title: 'Data: Import Workspaces Backup (JSON)',
+        category: 'Data',
+        icon: <Upload className="w-4 h-4 text-amber-400" />,
+        action: () => {
+          onClose();
+          onImportBackup?.();
+        },
+        keywords: 'import restore upload json backup workspaces file',
+      },
     ];
 
     if (isDiffMode) {
@@ -373,7 +401,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onSetMarkdownViewMode,
     markdownViewMode,
     handleOpenThemePicker,
-    handleOpenLanguagePicker
+    handleOpenLanguagePicker,
+    canRedo,
+    canUndo,
+    onAutoDetectLanguage,
+    onExportBackup,
+    onImportBackup,
+    onOpenEditorCommandPalette,
+    onOpenSearch,
+    onRedo,
+    onUndo
   ]);
 
   // Filter themes if in theme-picker mode

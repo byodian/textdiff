@@ -92,44 +92,40 @@ describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
   it('silently cleans up and deletes newly created empty document when switching away without edits', async () => {
     const { render, screen, act, fireEvent } = await import('@testing-library/react');
     const { default: WorkspacePage } = await import('../src/app/page');
+    const { storage } = await import('../src/lib/storage');
 
-    const snippetsData = [
-      {
-        id: 'empty-doc',
-        title: 'Untitled Document',
-        language: 'plaintext',
-        currentCode: '',
-        versions: [],
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'existing-doc',
-        title: 'Existing.ts',
-        language: 'typescript',
-        currentCode: 'const a = 1;',
-        versions: [{ versionNo: 1, title: 'Existing.ts', code: 'const a = 1;' }],
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-
-    global.fetch = vi.fn().mockImplementation((url: string, options?: any) => {
-      if (url === '/api/workspaces') {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
-      }
-      if (url === '/api/snippets' || url.startsWith('/api/snippets?')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(snippetsData) });
-      }
-      if (url === '/api/snippets/empty-doc') {
-        if (options?.method === 'DELETE') {
-          return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(snippetsData[0]) });
-      }
-      if (url === '/api/snippets/existing-doc') {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(snippetsData[1]) });
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    await storage.clearAll();
+    await storage.backup.importData({
+      version: 1,
+      app: 'textdiff',
+      exportedAt: new Date().toISOString(),
+      workspaces: [{ id: 'ws-default', name: 'Personal Workspace', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+      snippets: [
+        {
+          id: 'empty-doc',
+          title: 'Untitled Document',
+          language: 'plaintext',
+          currentCode: '',
+          workspaceId: 'ws-default',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'existing-doc',
+          title: 'Existing.ts',
+          language: 'typescript',
+          currentCode: 'const a = 1;',
+          workspaceId: 'ws-default',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      versions: [
+        { id: 'v-1', snippetId: 'existing-doc', versionNo: 1, title: 'Existing.ts', code: 'const a = 1;', createdAt: new Date().toISOString() },
+      ],
     });
+
+    const deleteSpy = vi.spyOn(storage.snippets, 'delete');
 
     await act(async () => {
       render(React.createElement(WorkspacePage));
@@ -145,50 +141,18 @@ describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
     // Must NOT pop up Unsaved Changes in Document
     expect(screen.queryByText(/Unsaved Changes in Document/i)).toBeNull();
 
-    // Must delete the empty unedited document
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/snippets/empty-doc',
-      expect.objectContaining({ method: 'DELETE' })
-    );
+    // Must delete the empty unedited document in storage
+    expect(deleteSpy).toHaveBeenCalledWith('empty-doc');
   });
 
   it('allows creating a document in an empty workspace via quick area New Document button', async () => {
     const { render, screen, act, fireEvent } = await import('@testing-library/react');
     const { default: WorkspacePage } = await import('../src/app/page');
+    const { storage } = await import('../src/lib/storage');
 
-    const createdSnippet = {
-      id: 'new-doc-1',
-      title: 'Untitled Document',
-      language: 'plaintext',
-      currentCode: '',
-      versions: [],
-      updatedAt: new Date().toISOString(),
-    };
-
-    global.fetch = vi.fn().mockImplementation((url: string, options?: any) => {
-      if (url === '/api/workspaces') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([{ id: 'ws-empty', name: 'Empty Workspace' }]),
-        });
-      }
-      if (url === '/api/snippets' || url.startsWith('/api/snippets?')) {
-        if (options?.method === 'POST') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(createdSnippet),
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
-      }
-      if (url === '/api/snippets/new-doc-1') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(createdSnippet),
-        });
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    });
+    await storage.clearAll();
+    await storage.workspaces.create('Empty Workspace');
+    const createSpy = vi.spyOn(storage.snippets, 'create');
 
     await act(async () => {
       render(React.createElement(WorkspacePage));
@@ -205,12 +169,10 @@ describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
       fireEvent.click(quickNewDocBtn);
     });
 
-    // Verify POST /api/snippets was executed to create a new document in the empty workspace
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/snippets',
+    // Verify storage.snippets.create was executed to create a new document in the empty workspace
+    expect(createSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"title":"Untitled Document"'),
+        title: 'Untitled Document',
       })
     );
   });
@@ -218,40 +180,11 @@ describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
   it('allows creating a document in an empty workspace via sidebar header add button', async () => {
     const { render, screen, act, fireEvent } = await import('@testing-library/react');
     const { default: WorkspacePage } = await import('../src/app/page');
+    const { storage } = await import('../src/lib/storage');
 
-    const createdSnippet = {
-      id: 'new-doc-2',
-      title: 'Untitled Document',
-      language: 'plaintext',
-      currentCode: '',
-      versions: [],
-      updatedAt: new Date().toISOString(),
-    };
-
-    global.fetch = vi.fn().mockImplementation((url: string, options?: any) => {
-      if (url === '/api/workspaces') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([{ id: 'ws-empty', name: 'Empty Workspace' }]),
-        });
-      }
-      if (url === '/api/snippets' || url.startsWith('/api/snippets?')) {
-        if (options?.method === 'POST') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(createdSnippet),
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
-      }
-      if (url === '/api/snippets/new-doc-2') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(createdSnippet),
-        });
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    });
+    await storage.clearAll();
+    await storage.workspaces.create('Empty Workspace');
+    const createSpy = vi.spyOn(storage.snippets, 'create');
 
     let renderedContainer: HTMLElement;
     await act(async () => {
@@ -267,11 +200,9 @@ describe('Empty Document Lifecycle & No-Blank-Version Rule', () => {
       fireEvent.click(sidebarAddBtn);
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/snippets',
+    expect(createSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"title":"Untitled Document"'),
+        title: 'Untitled Document',
       })
     );
   });

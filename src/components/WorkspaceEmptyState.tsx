@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, Clipboard, Database, FileCode, Server, Braces } from 'lucide-react';
+import { Plus, Clipboard, Database, FileCode, Server, Braces, Upload } from 'lucide-react';
 import { getShortcutLabel } from '@/lib/platform';
 
 interface TemplateOption {
@@ -102,12 +102,14 @@ interface WorkspaceEmptyStateProps {
   onNewDocument: () => void;
   onApplyTemplate: (template: { title: string; language: string; code: string }) => void;
   onPasteFromClipboard: () => void;
+  onImportBackup?: () => void;
 }
 
 export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
   onNewDocument,
   onApplyTemplate,
   onPasteFromClipboard,
+  onImportBackup,
 }) => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 overflow-y-auto text-center">
@@ -145,6 +147,18 @@ export const WorkspaceEmptyState: React.FC<WorkspaceEmptyStateProps> = ({
             <Clipboard className="w-4 h-4 text-slate-400" />
             <span>Paste from Clipboard</span>
           </button>
+
+          {onImportBackup && (
+            <button
+              type="button"
+              onClick={onImportBackup}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-canvas-elevated border border-canvas-border hover:border-canvas-highlight text-slate-200 text-xs font-medium transition-all active:scale-95"
+              title="Import local backup JSON"
+            >
+              <Upload className="w-4 h-4 text-amber-400" />
+              <span>Import Backup</span>
+            </button>
+          )}
         </div>
 
         {/* Divider */}

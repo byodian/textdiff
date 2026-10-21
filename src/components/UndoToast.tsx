@@ -5,7 +5,7 @@ import { RotateCcw, X, CheckCircle2 } from 'lucide-react';
 
 interface UndoToastProps {
   message: string;
-  onUndo: () => void;
+  onUndo?: () => void;
   onDismiss: () => void;
   durationMs?: number;
 }
@@ -28,18 +28,20 @@ export const UndoToast: React.FC<UndoToastProps> = ({
       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
       <span className="font-medium">{message}</span>
       <div className="flex items-center gap-1.5 ml-2">
-        <button
-          type="button"
-          onClick={() => {
-            onUndo();
-            onDismiss();
-          }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold transition-all active:scale-95"
-          title="Revert to previous buffer content"
-        >
-          <RotateCcw className="w-3 h-3" />
-          <span>Undo</span>
-        </button>
+        {onUndo && (
+          <button
+            type="button"
+            onClick={() => {
+              onUndo();
+              onDismiss();
+            }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold transition-all active:scale-95"
+            title="Revert to previous buffer content"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Undo</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={onDismiss}

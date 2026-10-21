@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { SearchModal } from '../src/components/SearchModal';
 import { SnippetSummary, WorkspaceItem } from '../src/components/Sidebar';
+import { storage } from '../src/lib/storage';
 
 describe('Notion-Style SearchModal Component', () => {
   const dummyWorkspaces: WorkspaceItem[] = [
@@ -253,12 +254,8 @@ describe('Notion-Style SearchModal Component', () => {
     expect(screen.queryByText('notes')).toBeNull();
   });
 
-  it('fetches all snippets from /api/snippets when opened if initial snippets list is empty', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(dummySnippets),
-    });
-    global.fetch = fetchMock;
+  it('fetches all snippets from storage when opened if initial snippets list is empty', async () => {
+    const listSpy = vi.spyOn(storage.snippets, 'list').mockResolvedValue(dummySnippets as any);
 
     render(
       <SearchModal
@@ -272,7 +269,7 @@ describe('Notion-Style SearchModal Component', () => {
       />
     );
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/snippets');
+    expect(listSpy).toHaveBeenCalled();
     // Wait for state update
     const authItem = await screen.findByText('auth');
     expect(authItem).toBeDefined();
