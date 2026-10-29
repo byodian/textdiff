@@ -21,7 +21,13 @@ import {
   detectLanguageFromContent,
   formatTitleWithExtension 
 } from '@/lib/languages';
+import { 
+  exportRawDocument, 
+  exportMarkdownToDocx, 
+  exportMarkdownToPdf 
+} from '@/lib/export-utils';
 import { SyntaxDiagnostic } from '@/lib/syntax-validator';
+import { parseSmartOutline } from '@/lib/smart-outline';
 import { calculateDiffStats, createUnifiedPatchText } from '@/lib/diff-utils';
 import { ALL_THEMES } from '@/lib/themes';
 import { applyGlobalThemeColors } from '@/lib/theme-colors';
@@ -107,6 +113,50 @@ export default function WorkspacePage() {
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [commandPaletteMode, setCommandPaletteMode] = useState<PaletteMode>('commands');
+  const [outlinePrefOpen, setOutlinePrefOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const saved = window.localStorage?.getItem('textdiff_smart_outline_open');
+      if (saved === 'false') return false;
+      if (saved === 'true') return true;
+    } catch {}
+    return true;
+  });
+  const [outlineManualOverride, setOutlineManualOverride] = useState<boolean | null>(null);
+
+  const outlineSegments = useMemo(
+    () => parseSmartOutline(code, language),
+    [code, language]
+  );
+
+  // Reset manual override when switching documents
+  useEffect(() => {
+    setOutlineManualOverride(null);
+  }, [activeId]);
+
+  // Strategy A: Remember user preference, but auto-collapse when document only has 1 short segment unless manually toggled
+  const isMultiSegmentOrLongDoc = useMemo(() => {
+    if (outlineSegments.length >= 2) return true;
+    if (outlineSegments.length === 1) {
+      const seg = outlineSegments[0];
+      return seg.endLine - seg.startLine + 1 >= 15;
+    }
+    return false;
+  }, [outlineSegments]);
+
+  const effectiveOutlineOpen =
+    outlineManualOverride !== null
+      ? outlineManualOverride
+      : outlinePrefOpen && isMultiSegmentOrLongDoc;
+
+  const handleToggleOutline = useCallback(() => {
+    const next = !effectiveOutlineOpen;
+    setOutlineManualOverride(next);
+    setOutlinePrefOpen(next);
+    try {
+      window.localStorage?.setItem('textdiff_smart_outline_open', String(next));
+    } catch {}
+  }, [effectiveOutlineOpen]);
 
   // Load persisted theme on mount
   useEffect(() => {
@@ -261,8 +311,12 @@ export default function WorkspacePage() {
     }
   }, [loadSnippet]);
 
+  const isInitializingWorkspacesRef = useRef(false);
+
   // 3. Initialize workspaces on load: select saved workspace (or default) and only its documents
   const initWorkspaceAndSnippets = useCallback(async () => {
+    if (isInitializingWorkspacesRef.current) return;
+    isInitializingWorkspacesRef.current = true;
     try {
       const data = await storage.workspaces.list();
       setWorkspaces(data);
@@ -282,6 +336,8 @@ export default function WorkspacePage() {
     } catch (err) {
       console.error('Failed to initialize workspaces', err);
       fetchSnippets();
+    } finally {
+      isInitializingWorkspacesRef.current = false;
     }
   }, [fetchSnippets, fetchAllSnippets]);
 
@@ -1176,10 +1232,6 @@ export default function WorkspacePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setUndoToast({
-        message: `Exported ${backup.workspaces.length} workspaces and ${backup.snippets.length} documents backup JSON.`,
-        previousCode: '',
-      });
     } catch (err) {
       console.error('Failed to export backup:', err);
     }
@@ -1218,10 +1270,6 @@ export default function WorkspacePage() {
             setCode('');
             setVersions([]);
           }
-          setUndoToast({
-            message: `Restored ${result.importedCount.workspaces} workspaces and ${result.importedCount.snippets} documents!`,
-            previousCode: '',
-          });
         }
       } catch (err) {
         console.error('Failed to import backup:', err);
@@ -1234,6 +1282,36 @@ export default function WorkspacePage() {
     document.body.appendChild(fileInput);
     fileInput.click();
   }, [loadSnippet]);
+
+  // 19. Export Document operations (Raw / PDF / DOCX)
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportDocument = useCallback(
+    async (format: 'raw' | 'pdf' | 'docx') => {
+      try {
+        setIsExporting(true);
+        const contentToExport = code || lastSavedCode || '';
+        if (!code && lastSavedCode) {
+          setCode(lastSavedCode);
+          if (activeId) {
+            clearDraft(activeId);
+          }
+        }
+        if (format === 'raw') {
+          exportRawDocument(title, contentToExport, language);
+        } else if (format === 'pdf') {
+          await exportMarkdownToPdf(title, contentToExport);
+        } else if (format === 'docx') {
+          await exportMarkdownToDocx(title, contentToExport);
+        }
+      } catch (err) {
+        console.error('Failed to export document:', err);
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [title, code, lastSavedCode, activeId, language]
+  );
 
   // Auto-persist draft to localStorage (debounced)
   useEffect(() => {
@@ -1336,8 +1414,14 @@ export default function WorkspacePage() {
               onRedo={handleRedo}
               canUndo={canUndo}
               canRedo={canRedo}
+              language={language}
               onExportBackup={handleExportBackup}
               onImportBackup={handleImportBackup}
+              onExportDocument={handleExportDocument}
+              isExporting={isExporting}
+              isOutlineOpen={effectiveOutlineOpen}
+              outlineCount={outlineSegments.length}
+              onToggleOutline={handleToggleOutline}
             />
 
             <div className="flex-1 relative overflow-hidden isolate flex flex-col w-full">
@@ -1380,6 +1464,9 @@ export default function WorkspacePage() {
                   diffEditorRef={diffEditorRef}
                   onInstantSave={handleInstantSave}
                   onOpenSearch={handleOpenSearchModal}
+                  outlineSegments={outlineSegments}
+                  isOutlineOpen={effectiveOutlineOpen}
+                  onOutlineClose={handleToggleOutline}
                 />
               </div>
 
@@ -1476,6 +1563,7 @@ export default function WorkspacePage() {
         onOpenSearch={handleOpenSearchModal}
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
+        onExportDocument={handleExportDocument}
       />
 
       {/* Navigation Guard Modal for Unsaved Changes */}

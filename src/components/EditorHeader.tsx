@@ -15,12 +15,19 @@ import {
   Undo2,
   Redo2,
   Download,
-  Upload
+  Upload,
+  FileText,
+  FileSpreadsheet,
+  File,
+  ListTree
 } from 'lucide-react';
 import { getShortcutLabel } from '@/lib/platform';
+import { isMarkdownDocument } from '@/lib/export-utils';
 
 interface EditorHeaderProps {
   title: string;
+  language?: string;
+  filename?: string | null;
   onOpenThemePalette?: () => void;
   isDiffMode: boolean;
   isSideBySide?: boolean;
@@ -50,10 +57,17 @@ interface EditorHeaderProps {
   canRedo?: boolean;
   onExportBackup?: () => void;
   onImportBackup?: () => void;
+  onExportDocument?: (format: 'raw' | 'pdf' | 'docx') => void;
+  isExporting?: boolean;
+  isOutlineOpen?: boolean;
+  outlineCount?: number;
+  onToggleOutline?: () => void;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
   title,
+  language,
+  filename,
   onOpenThemePalette,
   isDiffMode,
   diffStats,
@@ -77,16 +91,24 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   canRedo = false,
   onExportBackup,
   onImportBackup,
+  onExportDocument,
+  isExporting = false,
+  isOutlineOpen = false,
+  outlineCount,
+  onToggleOutline,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  const isMarkdown = isMarkdownDocument(language, title, filename);
 
   // Close dropdown on outside click or Escape
   useEffect(() => {
     if (!isMoreOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (moreMenuRef.current && !moreMenuRef.current.contains(target)) {
         setIsMoreOpen(false);
       }
     };
@@ -192,6 +214,30 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* Zone 3 (Right): Actions Toolbar */}
       <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 ml-auto">
+        {/* Smart Outline Toggle Button */}
+        {!isDiffMode && onToggleOutline && (
+          <button
+            type="button"
+            onClick={onToggleOutline}
+            className={`h-7 flex items-center gap-1.5 px-2.5 rounded border text-xs font-medium transition-colors shrink-0 ${
+              isOutlineOpen
+                ? 'bg-brand-primary/15 border-brand-primary/50 text-brand-primary'
+                : 'bg-canvas-surface border-canvas-border hover:border-canvas-highlight text-slate-100 hover:text-white'
+            }`}
+            title={`Smart Outline (${outlineCount ?? 0} segments)`}
+            aria-label="Toggle Smart Outline"
+            aria-pressed={isOutlineOpen}
+          >
+            <ListTree className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+            <span className="hidden xl:inline">大纲</span>
+            {outlineCount !== undefined && outlineCount > 0 && (
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-canvas-highlight text-slate-200 dark:text-slate-100 border border-canvas-border/60 font-semibold hidden lg:inline">
+                {outlineCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* History / Revisions Button */}
         <button
           onClick={onOpenHistory}
@@ -278,7 +324,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <Undo2 className="w-3.5 h-3.5 text-slate-400" />
+                    <Undo2 className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                     <span>Undo</span>
                   </div>
                   <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('undo')}</kbd>
@@ -303,7 +349,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <Redo2 className="w-3.5 h-3.5 text-slate-400" />
+                    <Redo2 className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                     <span>Redo</span>
                   </div>
                   <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('redo')}</kbd>
@@ -321,7 +367,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
                 >
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
+                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-brand-primary" />
                     <span>Format Document</span>
                   </div>
                   <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('format')}</kbd>
@@ -338,7 +384,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                 className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
               >
                 <div className="flex items-center gap-2">
-                  {copiedCode ? <Check className="w-3.5 h-3.5 text-diff-added" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                  {copiedCode ? <Check className="w-3.5 h-3.5 shrink-0 text-diff-added" /> : <Copy className="w-3.5 h-3.5 shrink-0 text-slate-400" />}
                   <span>{copiedCode ? 'Code Copied!' : 'Copy Code'}</span>
                 </div>
               </button>
@@ -354,13 +400,81 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
                 >
                   <div className="flex items-center gap-2">
-                    {copiedDiff ? <Check className="w-3.5 h-3.5 text-diff-added" /> : <FileDiff className="w-3.5 h-3.5 text-slate-400" />}
+                    {copiedDiff ? <Check className="w-3.5 h-3.5 shrink-0 text-diff-added" /> : <FileDiff className="w-3.5 h-3.5 shrink-0 text-slate-400" />}
                     <span>{copiedDiff ? 'Diff Copied!' : 'Copy Diff (Patch)'}</span>
                   </div>
                 </button>
               )}
 
               <div className="h-px bg-canvas-border my-1" />
+
+              {/* Export Document actions in More menu */}
+              {onExportDocument && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onExportDocument('raw');
+                      setIsMoreOpen(false);
+                    }}
+                    disabled={isExporting}
+                    className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                      <span>Export File</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!isMarkdown || isExporting}
+                    onClick={() => {
+                      if (isMarkdown) {
+                        onExportDocument('pdf');
+                        setIsMoreOpen(false);
+                      }
+                    }}
+                    title={isMarkdown ? 'Export as PDF (.pdf)' : 'PDF export is only available for Markdown files'}
+                    className={`w-full px-3 py-2 flex items-center justify-between text-left transition-colors ${
+                      isMarkdown && !isExporting
+                        ? 'hover:bg-canvas-elevated text-slate-200 hover:text-white cursor-pointer'
+                        : 'opacity-40 cursor-not-allowed text-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <File className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                      <span>Export as PDF (.pdf)</span>
+                    </div>
+                    {!isMarkdown && <span className="text-[10px] text-slate-500 font-mono">MD only</span>}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!isMarkdown || isExporting}
+                    onClick={() => {
+                      if (isMarkdown) {
+                        onExportDocument('docx');
+                        setIsMoreOpen(false);
+                      }
+                    }}
+                    title={isMarkdown ? 'Export as Word (.docx)' : 'Word export is only available for Markdown files'}
+                    className={`w-full px-3 py-2 flex items-center justify-between text-left transition-colors ${
+                      isMarkdown && !isExporting
+                        ? 'hover:bg-canvas-elevated text-slate-200 hover:text-white cursor-pointer'
+                        : 'opacity-40 cursor-not-allowed text-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileSpreadsheet className="w-3.5 h-3.5 shrink-0 text-blue-400" />
+                      <span>Export as Word (.docx)</span>
+                    </div>
+                    {!isMarkdown && <span className="text-[10px] text-slate-500 font-mono">MD only</span>}
+                  </button>
+
+                  <div className="h-px bg-canvas-border my-1" />
+                </>
+              )}
 
               {/* Export Backup */}
               {onExportBackup && (
@@ -373,7 +487,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
                 >
                   <div className="flex items-center gap-2">
-                    <Download className="w-3.5 h-3.5 text-sky-400" />
+                    <Download className="w-3.5 h-3.5 shrink-0 text-sky-400" />
                     <span>Export Backup (JSON)</span>
                   </div>
                 </button>
@@ -390,7 +504,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
                 >
                   <div className="flex items-center gap-2">
-                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <Upload className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                     <span>Import Backup (JSON)</span>
                   </div>
                 </button>
@@ -407,7 +521,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   className="w-full px-3 py-2 flex items-center justify-between hover:bg-canvas-elevated text-left transition-colors text-slate-200 hover:text-white"
                 >
                   <div className="flex items-center gap-2">
-                    <Palette className="w-3.5 h-3.5 text-purple-400" />
+                    <Palette className="w-3.5 h-3.5 shrink-0 text-purple-400" />
                     <span>Command Palette</span>
                   </div>
                   <kbd className="text-[10px] text-slate-500 font-mono">{getShortcutLabel('commandPalette')}</kbd>

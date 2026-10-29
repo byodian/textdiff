@@ -108,4 +108,27 @@ describe('Initial Workspace Selection and Cross-Workspace Search', () => {
     expect(screen.getByText('work-task')).toBeDefined();
     expect(screen.queryByText('default-note')).toBeNull();
   });
+
+  it('renders exactly one Default Workspace on completely fresh empty storage', async () => {
+    await storage.clearAll();
+
+    await act(async () => {
+      render(React.createElement(WorkspacePage));
+    });
+
+    // Open workspace switcher dropdown
+    const switchWsBtn = screen.getByTitle('Switch Workspace');
+    await act(async () => {
+      fireEvent.click(switchWsBtn);
+    });
+
+    const workspacesInDb = await storage.workspaces.list();
+    expect(workspacesInDb.length).toBe(1);
+    expect(workspacesInDb[0].name).toBe('Default Workspace');
+
+    // In the workspace dropdown list, there should only be 1 workspace item
+    const checkIcons = screen.getAllByText('Default Workspace');
+    // Button header + 1 item in dropdown = exactly 2
+    expect(checkIcons.length).toBe(2);
+  });
 });

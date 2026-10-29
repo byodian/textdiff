@@ -40,9 +40,9 @@ export function saveDraft(snippetId: string, code: string): void {
 }
 
 /**
- * Retrieve a stored draft. Returns `null` when no draft exists
- * or when the draft matches the current saved code (meaning there
- * is nothing unsaved to restore).
+ * Retrieve a stored draft. Returns `null` when no draft exists,
+ * when the draft matches the current saved code, or when an empty-string
+ * draft would clobber non-empty saved code.
  */
 export function loadDraft(snippetId: string, savedCode: string): string | null {
   try {
@@ -50,6 +50,10 @@ export function loadDraft(snippetId: string, savedCode: string): string | null {
     if (!storage) return null;
     const draft = storage.getItem(draftKey(snippetId));
     if (draft === null || draft === savedCode) return null;
+    if (draft === '' && savedCode && savedCode.length > 0) {
+      storage.removeItem(draftKey(snippetId));
+      return null;
+    }
     return draft;
   } catch {
     return null;

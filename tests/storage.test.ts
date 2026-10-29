@@ -73,6 +73,67 @@ describe('Local-First Storage Engine Tests', () => {
       const list = await storage.listWorkspaces();
       expect(list.find((w) => w.id === ws.id)).toBeUndefined();
     });
+
+    it('prevents duplicate Default Workspace on concurrent initialization', async () => {
+      const freshBackend = new MemoryBackend();
+      const freshStorage = new StorageManager(freshBackend);
+
+      // Trigger concurrent calls before initialization finishes
+      const [listA, listB] = await Promise.all([
+        freshStorage.listWorkspaces(),
+        freshStorage.listWorkspaces(),
+      ]);
+
+      expect(listA.length).toBe(1);
+      expect(listB.length).toBe(1);
+      expect(listA[0].name).toBe('Default Workspace');
+      expect(listB[0].name).toBe('Default Workspace');
+      expect(listA[0].id).toBe(listB[0].id);
+
+      const all = await freshStorage.listWorkspaces();
+      expect(all.length).toBe(1);
+    });
+
+    it('auto-deduplicates existing duplicate Default Workspaces in database and preserves documents', async () => {
+      const freshBackend = new MemoryBackend();
+      // Simulate database with two pre-existing Default Workspaces (e.g. from prior race conditions)
+      await freshBackend.saveWorkspace({
+        id: 'dup-1',
+        name: 'Default Workspace',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      });
+      await freshBackend.saveWorkspace({
+        id: 'dup-2',
+        name: 'Default Workspace',
+        createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+      });
+      // Attach a document to dup-2
+      await freshBackend.saveSnippet({
+        id: 'snip-1',
+        title: 'Notes.md',
+        language: 'markdown',
+        currentCode: '# Hello',
+        workspaceId: 'dup-2',
+        createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+      });
+
+      const freshStorage = new StorageManager(freshBackend);
+      const workspaces = await freshStorage.listWorkspaces();
+
+      expect(workspaces.length).toBe(1);
+      expect(workspaces[0].name).toBe('Default Workspace');
+      // dup-2 had the document, so it should be preserved
+      expect(workspaces[0].id).toBe('dup-2');
+      expect(workspaces[0]._count?.snippets).toBe(1);
+
+      // Verify the document is still present and valid
+      const doc = await freshStorage.getSnippet('snip-1');
+      expect(doc).toBeDefined();
+      expect(doc?.workspaceId).toBe(workspaces[0].id);
+    });
   });
 
   describe('Snippets & Versions Lifecycle', () => {

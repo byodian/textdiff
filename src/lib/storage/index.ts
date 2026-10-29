@@ -360,8 +360,12 @@ export class IndexedDBBackend implements StorageBackend {
 // ---------------------------------------------------------------------------
 // High-Level Storage Facade
 // ---------------------------------------------------------------------------
+export const DEFAULT_WORKSPACE_ID = 'default-workspace';
+export const DEFAULT_WORKSPACE_NAME = 'Default Workspace';
+
 export class StorageManager {
   private backend: StorageBackend;
+  private initPromise: Promise<void> | null = null;
 
   constructor(backend?: StorageBackend) {
     if (backend) {
@@ -375,20 +379,56 @@ export class StorageManager {
 
   setBackend(backend: StorageBackend) {
     this.backend = backend;
+    this.initPromise = null;
   }
 
   private async ensureInitialized(): Promise<void> {
-    const list = await this.backend.getWorkspaces();
-    if (list.length === 0) {
-      const now = new Date().toISOString();
-      const defaultWs: LocalWorkspace = {
-        id: generateId(),
-        name: 'Default Workspace',
-        createdAt: now,
-        updatedAt: now,
-      };
-      await this.backend.saveWorkspace(defaultWs);
+    if (this.initPromise) {
+      return this.initPromise;
     }
+
+    this.initPromise = (async () => {
+      try {
+        const list = await this.backend.getWorkspaces();
+        if (list.length === 0) {
+          const now = new Date().toISOString();
+          const defaultWs: LocalWorkspace = {
+            id: DEFAULT_WORKSPACE_ID,
+            name: DEFAULT_WORKSPACE_NAME,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await this.backend.saveWorkspace(defaultWs);
+          return;
+        }
+
+        // Deduplicate duplicate "Default Workspace" records if any exist (e.g. from prior race conditions)
+        const defaultWorkspaces = list.filter((w) => w.name === DEFAULT_WORKSPACE_NAME);
+        if (defaultWorkspaces.length > 1) {
+          const snippets = await this.backend.getSnippets();
+          defaultWorkspaces.sort((a, b) => {
+            const countA = snippets.filter((s) => s.workspaceId === a.id).length;
+            const countB = snippets.filter((s) => s.workspaceId === b.id).length;
+            if (countB !== countA) return countB - countA;
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          });
+
+          const primaryWs = defaultWorkspaces[0];
+          const duplicates = defaultWorkspaces.slice(1);
+          for (const dup of duplicates) {
+            const dupSnippets = snippets.filter((s) => s.workspaceId === dup.id);
+            for (const s of dupSnippets) {
+              await this.backend.saveSnippet({ ...s, workspaceId: primaryWs.id });
+            }
+            await this.backend.deleteWorkspace(dup.id);
+          }
+        }
+      } finally {
+        this.initPromise = null;
+      }
+    })();
+
+    return this.initPromise;
   }
 
   // Workspaces API
@@ -400,8 +440,24 @@ export class StorageManager {
     // Sort by createdAt ascending
     list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
+    // Deduplicate any residual duplicate Default Workspaces in memory
+    const seenNames = new Set<string>();
+    const seenIds = new Set<string>();
+    const uniqueList: LocalWorkspace[] = [];
+
+    for (const ws of list) {
+      if (seenIds.has(ws.id)) continue;
+      seenIds.add(ws.id);
+
+      if (ws.name === DEFAULT_WORKSPACE_NAME) {
+        if (seenNames.has(DEFAULT_WORKSPACE_NAME)) continue;
+        seenNames.add(DEFAULT_WORKSPACE_NAME);
+      }
+      uniqueList.push(ws);
+    }
+
     // Compute snippet counts
-    return list.map((ws) => ({
+    return uniqueList.map((ws) => ({
       ...ws,
       _count: {
         snippets: snippets.filter((s) => s.workspaceId === ws.id).length,
@@ -651,6 +707,7 @@ export class StorageManager {
     }
 
     await this.backend.clear();
+    this.initPromise = null;
 
     for (const ws of data.workspaces) {
       await this.backend.saveWorkspace(ws);
@@ -675,6 +732,7 @@ export class StorageManager {
   }
 
   async clearAll(): Promise<void> {
+    this.initPromise = null;
     await this.backend.clear();
   }
 }

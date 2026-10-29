@@ -23,7 +23,10 @@ import {
   Undo2,
   Redo2,
   Download,
-  Upload
+  Upload,
+  FileText,
+  FileSpreadsheet,
+  File
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
@@ -76,6 +79,7 @@ interface CommandPaletteProps {
   onOpenSearch?: () => void;
   onExportBackup?: () => void;
   onImportBackup?: () => void;
+  onExportDocument?: (format: 'raw' | 'pdf' | 'docx') => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -108,6 +112,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onOpenSearch,
   onExportBackup,
   onImportBackup,
+  onExportDocument,
 }) => {
   const [mode, setMode] = useState<PaletteMode>(initialMode || 'commands');
   const [query, setQuery] = useState('');
@@ -293,6 +298,47 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
     ];
 
+    if (onExportDocument) {
+      list.push({
+        id: 'file:export-raw',
+        title: 'Export: Document (Raw / As-Is)',
+        category: 'Document',
+        icon: <FileText className="w-4 h-4 text-emerald-400" />,
+        action: () => {
+          onClose();
+          onExportDocument('raw');
+        },
+        keywords: 'export download raw file text save as is source',
+      });
+
+      if (isMarkdown) {
+        list.push(
+          {
+            id: 'file:export-pdf',
+            title: 'Export: Markdown as PDF (.pdf)',
+            category: 'Document',
+            icon: <File className="w-4 h-4 text-rose-400" />,
+            action: () => {
+              onClose();
+              onExportDocument('pdf');
+            },
+            keywords: 'export download pdf markdown document print',
+          },
+          {
+            id: 'file:export-docx',
+            title: 'Export: Markdown as Word (.docx)',
+            category: 'Document',
+            icon: <FileSpreadsheet className="w-4 h-4 text-blue-400" />,
+            action: () => {
+              onClose();
+              onExportDocument('docx');
+            },
+            keywords: 'export download docx word office markdown document',
+          }
+        );
+      }
+    }
+
     if (isDiffMode) {
       list.push(
         {
@@ -408,6 +454,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onAutoDetectLanguage,
     onExportBackup,
     onImportBackup,
+    onExportDocument,
     onOpenEditorCommandPalette,
     onOpenSearch,
     onRedo,
