@@ -4,11 +4,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import {
   parseSmartOutline,
-  extractSqlBusinessKeywords,
   getSemanticFoldingRanges,
 } from '../src/lib/smart-outline';
 import { SmartOutlinePanel } from '../src/components/SmartOutlinePanel';
 import { EditorHeader } from '../src/components/EditorHeader';
+import { CodeCanvas } from '../src/components/CodeCanvas';
 
 describe('Zero-Config Smart Outline & Semantic Folding', () => {
   describe('SQL Semantic Segmentation & Business Keyword Extraction', () => {
@@ -289,6 +289,135 @@ describe('Zero-Config Smart Outline & Semantic Folding', () => {
 
       fireEvent.click(toggleBtn);
       expect(onToggleOutline).toHaveBeenCalledTimes(1);
+    });
+
+    it('locks card first row and right action container to h-5 to prevent hover height jump', () => {
+      render(
+        <SmartOutlinePanel
+          segments={segments}
+          activeLine={1}
+          onSelectSegment={vi.fn()}
+          onClose={vi.fn()}
+        />
+      );
+
+      const firstCardTitle = screen.getByText('dc_energy_anomaly_data');
+      const row1 = firstCardTitle.closest('.h-5');
+      expect(row1).not.toBeNull();
+      expect(row1?.className).toContain('h-5');
+
+      const copyBtn = screen.getByRole('button', {
+        name: '复制段落 dc_energy_anomaly_data',
+      });
+      expect(copyBtn.className).toContain('h-5');
+      expect(copyBtn.parentElement?.className).toContain('h-5');
+    });
+
+    it('filters by secondary sub-categories (CREATE vs ALTER under DDL, HEADING vs TEXT under 章节/文本)', () => {
+      const mixedDoc = [
+        '## 数据库变更说明',
+        '',
+        '本次迭代包含建表与字段修改脚本。',
+        '',
+        '```sql',
+        'CREATE TABLE `t_new_report` (`id` bigint PRIMARY KEY);',
+        '',
+        'ALTER TABLE `t_old_report` ADD COLUMN `status` tinyint DEFAULT 0;',
+        '```',
+      ].join('\n');
+
+      const mixedSegments = parseSmartOutline(mixedDoc, 'markdown');
+      render(
+        <SmartOutlinePanel
+          segments={mixedSegments}
+          activeLine={1}
+          onSelectSegment={vi.fn()}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Initially on "全部", secondary filter bar is hidden
+      expect(screen.queryByRole('group', { name: '子类别筛选' })).toBeNull();
+
+      // Switch to "建表 DDL" tab -> shows CREATE and ALTER sub-filter pills
+      fireEvent.click(screen.getByRole('tab', { name: /建表 DDL/ }));
+      const subGroupDdl = screen.getByRole('group', { name: '子类别筛选' });
+      expect(subGroupDdl).toBeDefined();
+
+      // Click ALTER sub-filter -> only t_old_report is shown
+      fireEvent.click(screen.getByRole('button', { name: 'ALTER (1)' }));
+      expect(screen.getByText('t_old_report')).toBeDefined();
+      expect(screen.queryByText('t_new_report')).toBeNull();
+
+      // Click CREATE sub-filter -> only t_new_report is shown
+      fireEvent.click(screen.getByRole('button', { name: 'CREATE (1)' }));
+      expect(screen.getByText('t_new_report')).toBeDefined();
+      expect(screen.queryByText('t_old_report')).toBeNull();
+
+      // Switch to "章节/文本" tab -> sub-filter resets to 全部 and shows HEADING and TEXT
+      fireEvent.click(screen.getByRole('tab', { name: /章节\/文本/ }));
+      expect(screen.getByText('数据库变更说明')).toBeDefined();
+      expect(screen.getByText('本次迭代包含建表与字段修改脚本。')).toBeDefined();
+
+      // Filter by HEADING only
+      fireEvent.click(screen.getByRole('button', { name: 'HEADING (1)' }));
+      expect(screen.getByText('数据库变更说明')).toBeDefined();
+      expect(screen.queryByText('本次迭代包含建表与字段修改脚本。')).toBeNull();
+
+      // Filter by TEXT only
+      fireEvent.click(screen.getByRole('button', { name: 'TEXT (1)' }));
+      expect(screen.queryByText('数据库变更说明')).toBeNull();
+      expect(screen.getByText('本次迭代包含建表与字段修改脚本。')).toBeDefined();
+    });
+
+    it('scrolls and highlights target block or code line in MarkdownPreview when selecting outline item in Preview mode', () => {
+      const mdContent = [
+        '## 服务列表',
+        '',
+        'Energy-system 发布分支说明',
+        '',
+        '## SQL脚本',
+        '```sql',
+        "UPDATE base_resource SET resource_sort=2 WHERE resource_name='用能监管';",
+        '',
+        "INSERT INTO base_resource VALUES (705, 'AI诊断分析');",
+        '```',
+      ].join('\n');
+
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+      const editorRef = { current: null };
+      const diffEditorRef = { current: null };
+
+      const { container } = render(
+        <CodeCanvas
+          language="markdown"
+          code={mdContent}
+          originalCode={mdContent}
+          isDiffMode={false}
+          isSideBySide={true}
+          markdownViewMode="preview"
+          onCodeChange={vi.fn()}
+          editorRef={editorRef}
+          diffEditorRef={diffEditorRef}
+          isOutlineOpen={true}
+        />
+      );
+
+      // Filter to 数据 DML in Smart Outline while in Preview mode
+      fireEvent.click(screen.getByRole('tab', { name: /数据 DML/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'INSERT (1)' }));
+
+      // Click the INSERT segment in Smart Outline
+      const insertSubtitle = screen.getByText('AI诊断分析');
+      fireEvent.click(insertSubtitle);
+
+      expect(scrollIntoViewMock).toHaveBeenCalled();
+      // Line 9 inside the fenced SQL block should have data-line="9" and highlight styling
+      const line9El = container.querySelector('[data-line="9"]');
+      expect(line9El).not.toBeNull();
+      expect(line9El?.className).toContain('bg-[var(--preview-brand)]/20');
     });
   });
 });

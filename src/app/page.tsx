@@ -1443,7 +1443,7 @@ export default function WorkspacePage() {
 
               <div className="flex-1 relative overflow-hidden isolate w-full">
                 <CodeCanvas
-                  key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}-${language === 'markdown' ? markdownViewMode : 'code'}`}
+                  key={isDiffMode ? `diff-${versionA?.id || 'base'}-${versionB?.id || 'work'}` : `editor-${activeId}`}
                   language={language}
                   code={code}
                   originalCode={originalDiffCode}

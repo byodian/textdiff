@@ -3,7 +3,7 @@
 import React from 'react';
 import Editor, { DiffEditor, loader, DiffOnMount, Monaco, OnMount } from '@monaco-editor/react';
 import { Code, Columns, Eye } from 'lucide-react';
-import { MarkdownPreview } from './MarkdownPreview';
+import { MarkdownPreview, PreviewScrollTarget } from './MarkdownPreview';
 import { SyntaxDiagnosticsBar } from './SyntaxDiagnosticsBar';
 import { SmartOutlinePanel } from './SmartOutlinePanel';
 import { applyMonacoTheme } from '@/lib/themes';
@@ -126,6 +126,8 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
 
   const [diagnostics, setDiagnostics] = React.useState<SyntaxDiagnostic[]>([]);
   const [activeLine, setActiveLine] = React.useState<number>(1);
+  const [previewScrollTarget, setPreviewScrollTarget] =
+    React.useState<PreviewScrollTarget | null>(null);
 
   const segments = React.useMemo(
     () => outlineSegments ?? parseSmartOutline(code, language),
@@ -304,6 +306,11 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   const handleSelectOutlineSegment = React.useCallback(
     (seg: OutlineSegment) => {
       setActiveLine(seg.startLine);
+      setPreviewScrollTarget((prev) => ({
+        startLine: seg.startLine,
+        endLine: seg.endLine,
+        seq: (prev?.seq ?? 0) + 1,
+      }));
       const editor = editorRef.current;
       if (!editor) return;
       editor.trigger?.('smart-outline', 'editor.unfold', {
@@ -442,6 +449,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
 
   const editorElement = (
     <Editor
+      key={`monaco-${language === 'markdown' ? markdownViewMode : 'code'}`}
       width="100%"
       height="100%"
       language={language}
@@ -570,7 +578,11 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             }}
           />
         ) : isMarkdownPreview ? (
-          <MarkdownPreview content={code} theme={theme} />
+          <MarkdownPreview
+            content={code}
+            theme={theme}
+            scrollTarget={previewScrollTarget}
+          />
         ) : isMarkdownSplit ? (
           <div 
             ref={splitContainerRef}
@@ -603,7 +615,11 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
 
             {/* Right Markdown Preview Pane */}
             <div className="h-full min-h-0 flex-1 overflow-hidden min-w-0">
-              <MarkdownPreview content={code} theme={theme} />
+              <MarkdownPreview
+                content={code}
+                theme={theme}
+                scrollTarget={previewScrollTarget}
+              />
             </div>
 
             {/* Transparent drag overlay to prevent event hijacking during drag */}

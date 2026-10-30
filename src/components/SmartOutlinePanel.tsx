@@ -26,6 +26,21 @@ export interface SmartOutlinePanelProps {
   onClose: () => void;
 }
 
+const BADGE_ORDER: OutlineBadgeType[] = [
+  'CREATE',
+  'ALTER',
+  'DROP',
+  'INSERT',
+  'UPDATE',
+  'DELETE',
+  'SQL',
+  'YAML',
+  'JSON',
+  'LINK',
+  'HEADING',
+  'TEXT',
+];
+
 function getBadgeStyle(badge: OutlineBadgeType): string {
   switch (badge) {
     case 'CREATE':
@@ -61,6 +76,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
 }) => {
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | OutlineCategory>('all');
+  const [selectedBadge, setSelectedBadge] = useState<'all' | OutlineBadgeType>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Determine available categories in the current document
@@ -96,10 +112,38 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
     return cats;
   }, [segments.length, categoryCounts]);
 
+  // Sub-category (badge) options when a specific category tab is selected
+  const availableBadges = useMemo(() => {
+    if (selectedCategory === 'all') return [];
+    const categorySegments = segments.filter((s) => s.category === selectedCategory);
+    const counts = new Map<OutlineBadgeType, number>();
+    for (const seg of categorySegments) {
+      counts.set(seg.badge, (counts.get(seg.badge) || 0) + 1);
+    }
+    const items: { key: 'all' | OutlineBadgeType; label: string; count: number }[] = [
+      { key: 'all', label: 'ALL', count: categorySegments.length },
+    ];
+    for (const badge of BADGE_ORDER) {
+      const c = counts.get(badge);
+      if (c && c > 0) {
+        items.push({ key: badge, label: badge, count: c });
+      }
+    }
+    return items;
+  }, [segments, selectedCategory]);
+
+  const handleCategoryChange = (cat: 'all' | OutlineCategory) => {
+    setSelectedCategory(cat);
+    setSelectedBadge('all');
+  };
+
   const filteredSegments = useMemo(() => {
     const q = filterQuery.trim().toLowerCase();
     return segments.filter((seg) => {
       if (selectedCategory !== 'all' && seg.category !== selectedCategory) {
+        return false;
+      }
+      if (selectedBadge !== 'all' && seg.badge !== selectedBadge) {
         return false;
       }
       if (!q) return true;
@@ -110,7 +154,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
         seg.rawText.toLowerCase().includes(q)
       );
     });
-  }, [segments, selectedCategory, filterQuery]);
+  }, [segments, selectedCategory, selectedBadge, filterQuery]);
 
   const hasMultiLineBlocks = useMemo(
     () => segments.some((seg) => seg.endLine > seg.startLine),
@@ -208,16 +252,22 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
           )}
         </div>
 
-        {/* Category Filter Pills (shown when > 2 options including 'all') */}
-        {availableCategories.length > 2 && (
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
+        {/* Primary Category Filter Pills */}
+        {availableCategories.length >= 2 && (
+          <div
+            role="tablist"
+            aria-label="大类筛选"
+            className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5"
+          >
             {availableCategories.map((cat) => {
               const isActive = selectedCategory === cat.key;
               return (
                 <button
                   key={cat.key}
                   type="button"
-                  onClick={() => setSelectedCategory(cat.key)}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => handleCategoryChange(cat.key)}
                   className={`px-2 py-0.5 rounded text-[11px] font-medium shrink-0 transition-colors border ${
                     isActive
                       ? 'bg-brand-primary/15 text-brand-primary border-brand-primary/40 font-semibold'
@@ -225,6 +275,40 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                   }`}
                 >
                   {cat.label} ({cat.count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Secondary Sub-Category (Badge) Filter Pills when a category tab is active */}
+        {selectedCategory !== 'all' && availableBadges.length > 1 && (
+          <div
+            role="group"
+            aria-label="子类别筛选"
+            className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-1 border-t border-canvas-border/50"
+          >
+            {availableBadges.map((item) => {
+              const isSubActive = selectedBadge === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  aria-pressed={isSubActive}
+                  onClick={() =>
+                    setSelectedBadge((prev) =>
+                      prev === item.key && item.key !== 'all' ? 'all' : item.key
+                    )
+                  }
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium shrink-0 transition-colors border ${
+                    isSubActive
+                      ? item.key === 'all'
+                        ? 'bg-brand-primary/15 text-brand-primary border-brand-primary/40 font-semibold'
+                        : `${getBadgeStyle(item.key)} font-semibold`
+                      : 'bg-canvas-surface/40 text-slate-400 border-canvas-border/50 hover:text-slate-200'
+                  }`}
+                >
+                  {item.label} ({item.count})
                 </button>
               );
             })}
@@ -273,18 +357,18 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                     : 'bg-canvas-surface/40 border-transparent hover:bg-canvas-surface hover:border-canvas-border'
                 }`}
               >
-                {/* Row 1: Badge + Title + Line Range / Hover Copy */}
-                <div className="flex items-center justify-between gap-1.5">
+                {/* Row 1: Fixed h-5 height prevents any vertical layout shift on hover */}
+                <div className="h-5 flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
-                      className={`text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded border shrink-0 ${getBadgeStyle(
+                      className={`text-[10px] leading-none font-mono font-semibold px-1.5 py-0.5 rounded border shrink-0 ${getBadgeStyle(
                         seg.badge
                       )}`}
                     >
                       {badgeText}
                     </span>
                     <span
-                      className={`text-xs truncate ${
+                      className={`text-xs leading-none truncate ${
                         seg.badge === 'HEADING'
                           ? 'font-bold text-slate-100'
                           : 'font-mono font-semibold text-slate-100'
@@ -295,14 +379,18 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[10px] font-mono text-slate-400 group-hover:hidden">
+                  <div className="h-5 flex items-center justify-end shrink-0">
+                    <span
+                      className={`text-[10px] leading-none font-mono text-slate-400 ${
+                        isCopied ? 'hidden' : 'group-hover:hidden'
+                      }`}
+                    >
                       {lineLabel}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => handleCopySegment(e, seg)}
-                      className={`h-5 px-1.5 rounded text-[10px] font-medium items-center gap-1 transition-colors border ${
+                      className={`h-5 px-1.5 rounded text-[10px] leading-none font-medium items-center gap-1 transition-colors border ${
                         isCopied
                           ? 'flex bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                           : 'hidden group-hover:flex bg-canvas-elevated hover:bg-brand-primary hover:text-brand-text text-slate-200 border-canvas-border'
@@ -328,7 +416,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                 {/* Row 2: Business Keywords / Subtitle */}
                 {seg.subtitle && (
                   <div
-                    className="mt-1 text-[11px] text-slate-300/90 truncate pl-0.5"
+                    className="mt-1 text-[11px] leading-tight text-slate-300/90 truncate pl-0.5"
                     title={seg.subtitle}
                   >
                     {seg.subtitle}

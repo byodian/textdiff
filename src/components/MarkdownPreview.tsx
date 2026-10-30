@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { Marked, type Token, type TokensList } from 'marked';
 import { getUiThemeColors } from '@/lib/theme-colors';
 import { ALL_THEMES } from '@/lib/themes';
 
+export interface PreviewScrollTarget {
+  startLine: number;
+  endLine: number;
+  seq: number;
+}
+
 interface MarkdownPreviewProps {
   content: string;
   theme?: string;
+  scrollTarget?: PreviewScrollTarget | null;
 }
 
 interface MermaidDiagramProps {
@@ -167,11 +174,40 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isLight }) => {
   );
 };
 
-type PreviewSegment = 
-  | { type: 'html'; html: string }
-  | { type: 'mermaid'; code: string; key: string };
+type PreviewSegment =
+  | {
+      type: 'html';
+      html: string;
+      startLine: number;
+      endLine: number;
+    }
+  | {
+      type: 'code';
+      lang: string;
+      lines: { lineNo: number; text: string }[];
+      startLine: number;
+      endLine: number;
+      key: string;
+    }
+  | {
+      type: 'mermaid';
+      code: string;
+      startLine: number;
+      endLine: number;
+      key: string;
+    };
 
-export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, theme = 'vs-dark' }) => {
+export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
+  content,
+  theme = 'vs-dark',
+  scrollTarget = null,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [highlightedRange, setHighlightedRange] = useState<{
+    startLine: number;
+    endLine: number;
+  } | null>(null);
+
   const themeOption = useMemo(() => {
     return ALL_THEMES.find((t) => t.id === theme);
   }, [theme]);
@@ -179,70 +215,152 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, theme
   const isLight = themeOption ? themeOption.type === 'light' : false;
   const colors = useMemo(() => getUiThemeColors(theme, isLight), [theme, isLight]);
 
-  // Parse markdown into interleaved segments: normal HTML and interactive MermaidDiagrams
+  // Parse markdown into line-mapped segments: HTML blocks, line-anchored code blocks, and MermaidDiagrams
   const segments = useMemo<PreviewSegment[]>(() => {
     try {
-      const rawText = content || '*No content to preview*';
-      const tokens: TokensList = customMarked.lexer(rawText);
+      const normalized = (content || '*No content to preview*').replace(/\r\n/g, '\n');
+      const tokens: TokensList = customMarked.lexer(normalized);
       const result: PreviewSegment[] = [];
-      let accumulatedTokens: Token[] = [];
+      let currentLine = 1;
       let mermaidCounter = 0;
+      let codeCounter = 0;
 
       for (const token of tokens) {
-        const isMermaid = 
-          token.type === 'code' && 
-          (token.lang || '').trim().toLowerCase().split(/\s+/)[0] === 'mermaid';
+        const raw = token.raw || '';
+        const totalNewlines = (raw.match(/\n/g) || []).length;
 
-        if (isMermaid) {
-          if (accumulatedTokens.length > 0) {
-            const list = accumulatedTokens as unknown as TokensList;
-            list.links = tokens.links;
-            result.push({ type: 'html', html: customMarked.parser(list) });
-            accumulatedTokens = [];
-          }
-          result.push({
-            type: 'mermaid',
-            code: token.text,
-            key: `mermaid-seg-${mermaidCounter++}`,
-          });
-        } else {
-          accumulatedTokens.push(token);
+        if (token.type === 'space') {
+          currentLine += totalNewlines;
+          continue;
         }
-      }
 
-      if (accumulatedTokens.length > 0) {
-        const list = accumulatedTokens as unknown as TokensList;
-        list.links = tokens.links;
-        result.push({ type: 'html', html: customMarked.parser(list) });
+        const trimmedTrailing = raw.replace(/\n+$/, '');
+        const contentNewlines = (trimmedTrailing.match(/\n/g) || []).length;
+        const startLine = currentLine;
+        const endLine = startLine + contentNewlines;
+        currentLine += totalNewlines;
+
+        if (token.type === 'code') {
+          const lang = (token.lang || '').trim().split(/\s+/)[0] || '';
+          if (lang.toLowerCase() === 'mermaid') {
+            result.push({
+              type: 'mermaid',
+              code: token.text,
+              startLine,
+              endLine,
+              key: `mermaid-seg-${mermaidCounter++}`,
+            });
+          } else {
+            // Fenced code blocks start with ```lang on `startLine`, so inner lines start at `startLine + 1`
+            const isFenced = /^(`{3,}|~{3,})/.test(raw.trimStart());
+            const innerFirstLine = isFenced ? startLine + 1 : startLine;
+            const rawLines = String(token.text || '').split('\n');
+            const mappedLines = rawLines.map((lineText: string, idx: number) => ({
+              lineNo: innerFirstLine + idx,
+              text: lineText,
+            }));
+            result.push({
+              type: 'code',
+              lang,
+              lines: mappedLines,
+              startLine,
+              endLine,
+              key: `code-seg-${codeCounter++}-${startLine}`,
+            });
+          }
+        } else {
+          const singleList = [token as Token] as unknown as TokensList;
+          singleList.links = tokens.links;
+          result.push({
+            type: 'html',
+            html: customMarked.parser(singleList),
+            startLine,
+            endLine,
+          });
+        }
       }
 
       return result;
     } catch (e) {
       console.error('Failed to parse markdown', e);
-      return [{ type: 'html', html: '<p class="text-rose-400">Error rendering Markdown preview</p>' }];
+      return [
+        {
+          type: 'html',
+          html: '<p class="text-rose-400">Error rendering Markdown preview</p>',
+          startLine: 1,
+          endLine: 1,
+        },
+      ];
     }
   }, [content]);
 
+  // Handle scroll-to-segment requests from Smart Outline
+  useEffect(() => {
+    if (!scrollTarget || !containerRef.current) return;
+    const { startLine, endLine } = scrollTarget;
+    setHighlightedRange({ startLine, endLine });
+
+    const root = containerRef.current;
+
+    // 1. Prefer exact inner code line anchor `[data-line]` if the target is inside a fenced code block
+    const exactLineEl = root.querySelector(`[data-line="${startLine}"]`) as HTMLElement | null;
+    if (exactLineEl) {
+      if (typeof exactLineEl.scrollIntoView === 'function') {
+        exactLineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      // 2. Otherwise locate the block `[data-start-line]` covering or closest to `startLine`
+      const blocks = Array.from(root.querySelectorAll('[data-start-line]')) as HTMLElement[];
+      let matchedBlock: HTMLElement | null = null;
+      for (const blk of blocks) {
+        const s = Number(blk.getAttribute('data-start-line') || 0);
+        const e = Number(blk.getAttribute('data-end-line') || s);
+        if (startLine >= s && startLine <= e) {
+          matchedBlock = blk;
+          break;
+        }
+        if (s >= startLine && !matchedBlock) {
+          matchedBlock = blk;
+          break;
+        }
+      }
+      if (matchedBlock && typeof matchedBlock.scrollIntoView === 'function') {
+        matchedBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    const timer = setTimeout(() => {
+      setHighlightedRange((prev) =>
+        prev && prev.startLine === startLine && prev.endLine === endLine ? null : prev
+      );
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [scrollTarget]);
+
   return (
-    <div 
+    <div
+      ref={containerRef}
       className="h-full w-full overflow-y-auto p-6 md:p-8 transition-colors duration-150 select-text"
-      style={{
-        backgroundColor: colors.editorBg,
-        color: colors.textPrimary,
-        '--preview-editor-bg': colors.editorBg,
-        '--preview-editor-fg': colors.textPrimary,
-        '--preview-secondary': colors.textSecondary,
-        '--preview-muted': colors.textMuted,
-        '--preview-surface': colors.bgSurface,
-        '--preview-elevated': colors.bgElevated,
-        '--preview-border': colors.border,
-        '--preview-brand': colors.brandPrimary,
-        '--scrollbar-thumb': isLight ? 'rgba(55, 53, 47, 0.2)' : 'rgba(255, 255, 255, 0.18)',
-        '--scrollbar-thumb-hover': isLight ? 'rgba(55, 53, 47, 0.38)' : 'rgba(255, 255, 255, 0.35)',
-        '--scrollbar-thumb-active': isLight ? 'rgba(55, 53, 47, 0.55)' : 'rgba(255, 255, 255, 0.55)',
-      } as React.CSSProperties}
+      style={
+        {
+          backgroundColor: colors.editorBg,
+          color: colors.textPrimary,
+          '--preview-editor-bg': colors.editorBg,
+          '--preview-editor-fg': colors.textPrimary,
+          '--preview-secondary': colors.textSecondary,
+          '--preview-muted': colors.textMuted,
+          '--preview-surface': colors.bgSurface,
+          '--preview-elevated': colors.bgElevated,
+          '--preview-border': colors.border,
+          '--preview-brand': colors.brandPrimary,
+          '--scrollbar-thumb': isLight ? 'rgba(55, 53, 47, 0.2)' : 'rgba(255, 255, 255, 0.18)',
+          '--scrollbar-thumb-hover': isLight ? 'rgba(55, 53, 47, 0.38)' : 'rgba(255, 255, 255, 0.35)',
+          '--scrollbar-thumb-active': isLight ? 'rgba(55, 53, 47, 0.55)' : 'rgba(255, 255, 255, 0.55)',
+        } as React.CSSProperties
+      }
     >
-      <div 
+      <div
         className="max-w-4xl mx-auto text-sm leading-relaxed space-y-4
           [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-[var(--preview-editor-fg)] [&_h1]:border-b [&_h1]:border-[var(--preview-border)] [&_h1]:pb-2.5 [&_h1]:mb-4
           [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-[var(--preview-editor-fg)] [&_h2]:border-b [&_h2]:border-[var(--preview-border)]/60 [&_h2]:pb-2 [&_h2]:mb-3
@@ -263,18 +381,76 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, theme
           [&_img]:rounded-lg [&_img]:border [&_img]:border-[var(--preview-border)] [&_img]:max-w-full"
       >
         {segments.map((seg, idx) => {
+          const isBlockHighlighted =
+            highlightedRange !== null &&
+            seg.startLine >= highlightedRange.startLine &&
+            seg.endLine <= highlightedRange.endLine;
+
           if (seg.type === 'mermaid') {
             return (
-              <MermaidDiagram
+              <div
                 key={seg.key}
-                chart={seg.code}
-                isLight={isLight}
-              />
+                data-start-line={seg.startLine}
+                data-end-line={seg.endLine}
+                className={`transition-colors duration-300 rounded-lg ${
+                  isBlockHighlighted ? 'ring-2 ring-[var(--preview-brand)] bg-[var(--preview-brand)]/10' : ''
+                }`}
+              >
+                <MermaidDiagram chart={seg.code} isLight={isLight} />
+              </div>
             );
           }
+
+          if (seg.type === 'code') {
+            const codeClassName = seg.lang ? `language-${seg.lang}` : undefined;
+            return (
+              <div
+                key={seg.key}
+                data-start-line={seg.startLine}
+                data-end-line={seg.endLine}
+                className={`transition-colors duration-300 rounded-lg ${
+                  isBlockHighlighted ? 'ring-2 ring-[var(--preview-brand)]' : ''
+                }`}
+              >
+                <pre>
+                  <code className={codeClassName}>
+                    {seg.lines.map((lineObj, lineIdx) => {
+                      const isLineHighlighted =
+                        highlightedRange !== null &&
+                        lineObj.lineNo >= highlightedRange.startLine &&
+                        lineObj.lineNo <= highlightedRange.endLine;
+                      const isLast = lineIdx === seg.lines.length - 1;
+                      return (
+                        <span
+                          key={lineObj.lineNo}
+                          data-line={lineObj.lineNo}
+                          className={
+                            isLineHighlighted
+                              ? 'bg-[var(--preview-brand)]/20 text-[var(--preview-editor-fg)] rounded-xs px-1 -mx-1 transition-colors duration-300'
+                              : undefined
+                          }
+                        >
+                          {lineObj.text}
+                          {!isLast ? '\n' : ''}
+                        </span>
+                      );
+                    })}
+                  </code>
+                </pre>
+              </div>
+            );
+          }
+
           return (
             <div
-              key={`html-${idx}`}
+              key={`html-${idx}-${seg.startLine}`}
+              data-start-line={seg.startLine}
+              data-end-line={seg.endLine}
+              className={`transition-colors duration-300 rounded ${
+                isBlockHighlighted
+                  ? 'ring-2 ring-[var(--preview-brand)]/70 bg-[var(--preview-brand)]/10 px-2 -mx-2'
+                  : ''
+              }`}
               dangerouslySetInnerHTML={{ __html: seg.html }}
             />
           );

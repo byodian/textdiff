@@ -27,9 +27,14 @@ A **100% Zero-Config Smart Outline Panel (`SmartOutlinePanel`) + Editor Semantic
 
 3. **Right-Side Smart Outline Panel (`src/components/SmartOutlinePanel.tsx`)**:
    - **Header Toggle & Persistence**: Header button (`Outline (N)`) in `EditorHeader` toggles the panel and persists user preference in `localStorage` (`textdiff_smart_outline_open`). Automatically collapses/de-emphasizes when a document has fewer than 2 segments and fewer than 15 lines.
-   - **Jump & Highlight**: Clicking an outline item smoothly scrolls the Monaco Editor to the segment's start line, expands the range if folded, and briefly flashes a line-range highlight. Active cursor position in the editor automatically highlights the corresponding outline item.
-   - **One-Click Segment Copy**: Hovering any outline item reveals a copy action that copies the exact segment text (`startLine` to `endLine`) to the clipboard for immediate execution in Navicat or Nacos.
-   - **Live Search & Category Filter**: Filter segments by keyword (table name, Chinese business name, comment) or category (`All`, `DDL`, `DML`, `Config`, `Doc`).
+   - **Jump & Highlight (Editor & Markdown Preview)**:
+     - Clicking an outline item smoothly scrolls the Monaco Editor to the segment's start line and expands the range if folded.
+     - In Markdown **Preview (`preview`)** and **Split (`split`)** modes, `MarkdownPreview` maps each rendered block (`data-start-line`, `data-end-line`) and each line inside fenced code blocks (`data-line`), smoothly scrolling the preview pane to the clicked segment and highlighting the target range.
+     - Switching between `Edit`, `Split`, and `Preview` modes preserves the active `SmartOutlinePanel` tab and filter state.
+   - **Zero-Jump Hover Copy**: Card header row and action container use a locked `h-5` height so toggling between the line range indicator (`L1–73`) and the hover copy button never causes vertical layout shift.
+   - **Two-Level Category & Sub-Type Filter**:
+     - Primary tabs: `全部`, `建表 DDL`, `数据 DML`, `配置/服务`, `章节/文本`.
+     - Secondary sub-type pills appear when a category tab is selected (e.g., `CREATE` / `ALTER` / `DROP` under `DDL`, `INSERT` / `UPDATE` / `DELETE` under `DML`, `HEADING` / `TEXT` under `章节/文本`).
 
 4. **Semantic Code Folding (`CodeCanvas` + `SmartOutlinePanel`)**:
    - Registers a custom Monaco `FoldingRangeProvider` for all multi-line semantic segments (including consecutive same-table `INSERT`/`UPDATE` batches that standard SQL folding ignores).
