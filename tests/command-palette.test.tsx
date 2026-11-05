@@ -174,11 +174,11 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(allBtn.className).toContain('theme-filter-btn-all');
     expect(allBtn.className).toContain('active');
 
-    // Theme badge buttons exist and have theme-badge-dark / theme-badge-light
-    const darkBadges = document.querySelectorAll('.theme-badge-dark');
-    const lightBadges = document.querySelectorAll('.theme-badge-light');
-    expect(darkBadges.length).toBeGreaterThan(0);
-    expect(lightBadges.length).toBeGreaterThan(0);
+    // Theme option items do not render dark/light selection badges
+    expect(document.querySelectorAll('.theme-badge-dark').length).toBe(0);
+    expect(document.querySelectorAll('.theme-badge-light').length).toBe(0);
+    expect(screen.getByText('VS Dark (Default)')).toBeDefined();
+    expect(screen.getByText('GitHub Light')).toBeDefined();
 
     // Filter to Light themes
     fireEvent.click(lightBtn);
@@ -186,54 +186,16 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(darkBtn.className).not.toContain('active');
 
     // Only light themes should be rendered now
-    const filteredDarkBadges = document.querySelectorAll('.theme-badge-dark');
-    expect(filteredDarkBadges.length).toBe(0);
-    const filteredLightBadges = document.querySelectorAll('.theme-badge-light');
-    expect(filteredLightBadges.length).toBeGreaterThan(0);
+    expect(screen.queryByText('VS Dark (Default)')).toBeNull();
+    expect(screen.getByText('GitHub Light')).toBeDefined();
 
     // Filter to Dark themes
     fireEvent.click(darkBtn);
     expect(darkBtn.className).toContain('active');
     expect(lightBtn.className).not.toContain('active');
 
-    const filteredDarkBadgesAfter = document.querySelectorAll('.theme-badge-dark');
-    expect(filteredDarkBadgesAfter.length).toBeGreaterThan(0);
-    const filteredLightBadgesAfter = document.querySelectorAll('.theme-badge-light');
-    expect(filteredLightBadgesAfter.length).toBe(0);
-  });
-
-  it('filters theme type when clicking a theme badge button in the list', () => {
-    render(
-      React.createElement(CommandPalette, {
-        isOpen: true,
-        currentTheme: 'vs-dark',
-        isDiffMode: false,
-        isMarkdown: false,
-        onClose: vi.fn(),
-        onNewSnippet: vi.fn(),
-        onSavePrompt: vi.fn(),
-        onOpenHistory: vi.fn(),
-        onToggleDiffMode: vi.fn(),
-        onToggleSideBySide: vi.fn(),
-        onFormatDocument: vi.fn(),
-        onCopyContent: vi.fn(),
-        onCopyDiff: vi.fn(),
-        onSelectTheme: vi.fn(),
-        onPreviewTheme: vi.fn(),
-      })
-    );
-
-    // Open Theme Picker
-    fireEvent.click(screen.getByText('Preferences: Color Theme...'));
-
-    // Click the first "light" badge button in the list
-    const firstLightBadge = document.querySelector('.theme-badge-light') as HTMLElement;
-    expect(firstLightBadge).toBeTruthy();
-    fireEvent.click(firstLightBadge);
-
-    // Now only light themes should be visible
-    const darkBadges = document.querySelectorAll('.theme-badge-dark');
-    expect(darkBadges.length).toBe(0);
+    expect(screen.getByText('VS Dark (Default)')).toBeDefined();
+    expect(screen.queryByText('GitHub Light')).toBeNull();
   });
 
   it('applies high-contrast theme-item-highlight and theme-item-title classes on hover/focus', () => {
@@ -474,6 +436,64 @@ describe('CommandPalette Keyboard and Theme Navigation', () => {
     expect(redoItem).toBeDefined();
     fireEvent.click(redoItem);
     expect(handleRedo).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports View: Toggle Minimap command and executes onToggleMinimap callback', () => {
+    const handleToggleMinimap = vi.fn();
+    const handleClose = vi.fn();
+
+    const { rerender } = render(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        isMinimapOpen: false,
+        onClose: handleClose,
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+        onToggleMinimap: handleToggleMinimap,
+      })
+    );
+
+    const openMinimapCmd = screen.getByText('View: Toggle Minimap (打开代码小地图)');
+    expect(openMinimapCmd).toBeDefined();
+
+    fireEvent.click(openMinimapCmd);
+    expect(handleClose).toHaveBeenCalledTimes(1);
+    expect(handleToggleMinimap).toHaveBeenCalledTimes(1);
+
+    rerender(
+      React.createElement(CommandPalette, {
+        isOpen: true,
+        currentTheme: 'vs-dark',
+        isDiffMode: false,
+        isMarkdown: false,
+        isMinimapOpen: true,
+        onClose: handleClose,
+        onNewSnippet: vi.fn(),
+        onSavePrompt: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onToggleDiffMode: vi.fn(),
+        onToggleSideBySide: vi.fn(),
+        onFormatDocument: vi.fn(),
+        onCopyContent: vi.fn(),
+        onCopyDiff: vi.fn(),
+        onSelectTheme: vi.fn(),
+        onPreviewTheme: vi.fn(),
+        onToggleMinimap: handleToggleMinimap,
+      })
+    );
+
+    expect(screen.getByText('View: Toggle Minimap (关闭代码小地图)')).toBeDefined();
   });
 });
 

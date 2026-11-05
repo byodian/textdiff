@@ -26,7 +26,8 @@ import {
   Upload,
   FileText,
   FileSpreadsheet,
-  File
+  File,
+  Map
 } from 'lucide-react';
 import { ALL_THEMES, EditorThemeOption } from '@/lib/themes';
 import { SUPPORTED_LANGUAGES, LanguageOption } from '@/lib/languages';
@@ -80,6 +81,8 @@ interface CommandPaletteProps {
   onExportBackup?: () => void;
   onImportBackup?: () => void;
   onExportDocument?: (format: 'raw' | 'pdf' | 'docx') => void;
+  isMinimapOpen?: boolean;
+  onToggleMinimap?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -113,6 +116,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onExportBackup,
   onImportBackup,
   onExportDocument,
+  isMinimapOpen = false,
+  onToggleMinimap,
 }) => {
   const [mode, setMode] = useState<PaletteMode>(initialMode || 'commands');
   const [query, setQuery] = useState('');
@@ -273,6 +278,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           onToggleDiffMode();
         },
         keywords: 'diff compare inspect changes code editor',
+      },
+      {
+        id: 'view:toggle-minimap',
+        title: isMinimapOpen
+          ? 'View: Toggle Minimap (关闭代码小地图)'
+          : 'View: Toggle Minimap (打开代码小地图)',
+        category: 'View',
+        icon: <Map className="w-4 h-4 text-teal-400" />,
+        action: () => {
+          onClose();
+          onToggleMinimap?.();
+        },
+        keywords: 'minimap map overview code map 小地图 缩略图 预览 视图 toggle show hide 打开 关闭',
       },
       {
         id: 'data:export',
@@ -458,7 +476,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onOpenEditorCommandPalette,
     onOpenSearch,
     onRedo,
-    onUndo
+    onUndo,
+    isMinimapOpen,
+    onToggleMinimap
   ]);
 
   // Filter themes if in theme-picker mode
@@ -909,22 +929,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       }`}>
                         {t.name}
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setThemeTypeFilter(t.type);
-                          setSelectedIndex(0);
-                        }}
-                        className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold transition-all shrink-0 cursor-pointer ${
-                          t.type === 'dark'
-                            ? 'theme-badge-dark'
-                            : 'theme-badge-light'
-                        }`}
-                        title={`Filter by ${t.type} themes`}
-                      >
-                        {t.type}
-                      </button>
                     </div>
 
                     <div className="flex items-center gap-2">

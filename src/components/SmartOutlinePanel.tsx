@@ -41,7 +41,7 @@ const BADGE_ORDER: OutlineBadgeType[] = [
   'TEXT',
 ];
 
-function getBadgeStyle(badge: OutlineBadgeType): string {
+function getBadgeStyle(badge: OutlineBadgeType, headingLevel?: number): string {
   switch (badge) {
     case 'CREATE':
       return 'bg-sky-500/15 text-sky-400 border-sky-500/30';
@@ -60,6 +60,18 @@ function getBadgeStyle(badge: OutlineBadgeType): string {
     case 'LINK':
       return 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
     case 'HEADING':
+      if (headingLevel === 1) {
+        return 'bg-brand-primary/25 text-brand-primary border-brand-primary/50';
+      }
+      if (headingLevel === 2) {
+        return 'bg-brand-primary/15 text-brand-primary border-brand-primary/35';
+      }
+      if (headingLevel === 3) {
+        return 'bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/30';
+      }
+      if (headingLevel && headingLevel >= 4) {
+        return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
+      }
       return 'bg-brand-primary/15 text-brand-primary border-brand-primary/30';
     default:
       return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
@@ -77,6 +89,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | OutlineCategory>('all');
   const [selectedBadge, setSelectedBadge] = useState<'all' | OutlineBadgeType>('all');
+  const [selectedHeadingLevel, setSelectedHeadingLevel] = useState<'all' | number>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Determine available categories in the current document
@@ -132,9 +145,34 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
     return items;
   }, [segments, selectedCategory]);
 
+  // Heading level options (H1~H6) when HEADING is selected under 章节/文本
+  const availableHeadingLevels = useMemo(() => {
+    if (selectedCategory !== 'doc' || selectedBadge !== 'HEADING') return [];
+    const headingSegments = segments.filter(
+      (s) => s.category === 'doc' && s.badge === 'HEADING' && s.headingLevel !== undefined
+    );
+    const counts = new Map<number, number>();
+    for (const seg of headingSegments) {
+      if (seg.headingLevel) {
+        counts.set(seg.headingLevel, (counts.get(seg.headingLevel) || 0) + 1);
+      }
+    }
+    const items: { key: 'all' | number; label: string; count: number }[] = [
+      { key: 'all', label: 'ALL', count: headingSegments.length },
+    ];
+    for (let lvl = 1; lvl <= 6; lvl++) {
+      const c = counts.get(lvl);
+      if (c && c > 0) {
+        items.push({ key: lvl, label: `H${lvl}`, count: c });
+      }
+    }
+    return items;
+  }, [segments, selectedCategory, selectedBadge]);
+
   const handleCategoryChange = (cat: 'all' | OutlineCategory) => {
     setSelectedCategory(cat);
     setSelectedBadge('all');
+    setSelectedHeadingLevel('all');
   };
 
   const filteredSegments = useMemo(() => {
@@ -146,15 +184,25 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
       if (selectedBadge !== 'all' && seg.badge !== selectedBadge) {
         return false;
       }
+      if (
+        selectedCategory === 'doc' &&
+        selectedBadge === 'HEADING' &&
+        selectedHeadingLevel !== 'all' &&
+        seg.headingLevel !== selectedHeadingLevel
+      ) {
+        return false;
+      }
       if (!q) return true;
+      const headingLevelLabel = seg.headingLevel ? `h${seg.headingLevel}` : '';
       return (
         seg.title.toLowerCase().includes(q) ||
         seg.subtitle.toLowerCase().includes(q) ||
         seg.badge.toLowerCase().includes(q) ||
+        headingLevelLabel.includes(q) ||
         seg.rawText.toLowerCase().includes(q)
       );
     });
-  }, [segments, selectedCategory, selectedBadge, filterQuery]);
+  }, [segments, selectedCategory, selectedBadge, selectedHeadingLevel, filterQuery]);
 
   const hasMultiLineBlocks = useMemo(
     () => segments.some((seg) => seg.endLine > seg.startLine),
@@ -196,7 +244,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
             <button
               type="button"
               onClick={onFoldAllBlocks}
-              className="h-6 px-1.5 rounded text-[11px] text-slate-300 hover:text-white hover:bg-canvas-surface border border-transparent hover:border-canvas-border flex items-center gap-1 transition-colors"
+              className="h-6 px-1.5 rounded text-[11px] text-slate-300 hover:text-slate-100 hover:bg-canvas-surface border border-transparent hover:border-canvas-border flex items-center gap-1 transition-colors"
               title="一键折叠所有多行脚本块（一屏纵览全貌）"
               aria-label="折叠长块"
             >
@@ -208,7 +256,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
             <button
               type="button"
               onClick={onExpandAllBlocks}
-              className="h-6 px-1.5 rounded text-[11px] text-slate-300 hover:text-white hover:bg-canvas-surface border border-transparent hover:border-canvas-border flex items-center gap-1 transition-colors"
+              className="h-6 px-1.5 rounded text-[11px] text-slate-300 hover:text-slate-100 hover:bg-canvas-surface border border-transparent hover:border-canvas-border flex items-center gap-1 transition-colors"
               title="展开全部已折叠的代码块"
               aria-label="展开全部"
             >
@@ -295,11 +343,12 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                   key={item.key}
                   type="button"
                   aria-pressed={isSubActive}
-                  onClick={() =>
+                  onClick={() => {
                     setSelectedBadge((prev) =>
                       prev === item.key && item.key !== 'all' ? 'all' : item.key
-                    )
-                  }
+                    );
+                    setSelectedHeadingLevel('all');
+                  }}
                   className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium shrink-0 transition-colors border ${
                     isSubActive
                       ? item.key === 'all'
@@ -314,6 +363,42 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
             })}
           </div>
         )}
+
+        {/* Tertiary Heading Level Filter Pills (H1~H6) when HEADING is active under 章节/文本 */}
+        {selectedCategory === 'doc' &&
+          selectedBadge === 'HEADING' &&
+          availableHeadingLevels.length > 1 && (
+            <div
+              role="group"
+              aria-label="标题层级筛选"
+              className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-1 border-t border-canvas-border/40"
+            >
+              {availableHeadingLevels.map((item) => {
+                const isLevelActive = selectedHeadingLevel === item.key;
+                return (
+                  <button
+                    key={String(item.key)}
+                    type="button"
+                    aria-pressed={isLevelActive}
+                    onClick={() =>
+                      setSelectedHeadingLevel((prev) =>
+                        prev === item.key && item.key !== 'all' ? 'all' : item.key
+                      )
+                    }
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium shrink-0 transition-colors border ${
+                      isLevelActive
+                        ? item.key === 'all'
+                          ? 'bg-brand-primary/15 text-brand-primary border-brand-primary/40 font-semibold'
+                          : `${getBadgeStyle('HEADING', item.key)} font-semibold`
+                        : 'bg-canvas-surface/40 text-slate-400 border-canvas-border/50 hover:text-slate-200'
+                    }`}
+                  >
+                    {item.label} ({item.count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
       </div>
 
       {/* Segment Items List */}
@@ -330,7 +415,9 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
               activeLine >= seg.startLine && activeLine <= seg.endLine;
             const isCopied = copiedId === seg.id;
             const badgeText =
-              seg.count && seg.count > 1
+              seg.badge === 'HEADING' && seg.headingLevel
+                ? `H${seg.headingLevel}`
+                : seg.count && seg.count > 1
                 ? `${seg.badge} ×${seg.count}`
                 : seg.badge;
             const lineLabel =
@@ -343,6 +430,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                 key={seg.id}
                 role="button"
                 tabIndex={0}
+                data-heading-level={seg.headingLevel}
                 onClick={() => onSelectSegment(seg)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -350,8 +438,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                     onSelectSegment(seg);
                   }
                 }}
-                style={{ paddingLeft: seg.level > 0 ? '0.85rem' : '0.5rem' }}
-                className={`group relative rounded-md pr-2 py-1.5 transition-all cursor-pointer border text-left ${
+                className={`group relative rounded-md px-2 py-1.5 transition-all cursor-pointer border text-left ${
                   isActive
                     ? 'bg-brand-primary/12 border-brand-primary/50 shadow-xs'
                     : 'bg-canvas-surface/40 border-transparent hover:bg-canvas-surface hover:border-canvas-border'
@@ -362,7 +449,8 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
                       className={`text-[10px] leading-none font-mono font-semibold px-1.5 py-0.5 rounded border shrink-0 ${getBadgeStyle(
-                        seg.badge
+                        seg.badge,
+                        seg.headingLevel
                       )}`}
                     >
                       {badgeText}
@@ -370,7 +458,9 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                     <span
                       className={`text-xs leading-none truncate ${
                         seg.badge === 'HEADING'
-                          ? 'font-bold text-slate-100'
+                          ? seg.headingLevel === 1 || seg.headingLevel === 2
+                            ? 'font-bold text-slate-100'
+                            : 'font-semibold text-slate-200'
                           : 'font-mono font-semibold text-slate-100'
                       }`}
                       title={seg.title}
@@ -416,7 +506,7 @@ export const SmartOutlinePanel: React.FC<SmartOutlinePanelProps> = ({
                 {/* Row 2: Business Keywords / Subtitle */}
                 {seg.subtitle && (
                   <div
-                    className="mt-1 text-[11px] leading-tight text-slate-300/90 truncate pl-0.5"
+                    className="mt-1 text-[11px] leading-tight text-slate-300 truncate pl-0.5"
                     title={seg.subtitle}
                   >
                     {seg.subtitle}

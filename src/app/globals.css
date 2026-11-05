@@ -58,6 +58,7 @@ mark {
 }
 
 /* Dynamic contrast mapping for light themes so elements remain crisp and readable */
+.light-theme .text-slate-50,
 .light-theme .text-slate-100 {
   color: #0f172a !important; /* Very dark navy slate */
 }

@@ -101,6 +101,33 @@ describe('Zero-Config Smart Outline & Semantic Folding', () => {
       expect(segments[0].endLine).toBe(18);
     });
 
+    it('prioritizes table-level COMMENT for CREATE statements in Markdown DDL blocks and falls back to column COMMENTs when absent', () => {
+      const md = [
+        '# 计算项异常数据拦截处理',
+        '',
+        '## MySQL 脚本',
+        '',
+        '```sql',
+        'CREATE TABLE `dc_energy_anomaly_data` (',
+        '  `id` bigint unsigned NOT NULL AUTO_INCREMENT,',
+        "  `tenant_id` varchar(64) DEFAULT NULL COMMENT '租户ID',",
+        "  `station_id` varchar(64) DEFAULT NULL COMMENT '场站ID',",
+        "  `device_id` varchar(64) NOT NULL COMMENT '设备ID',",
+        "  `compute_item` varchar(64) NOT NULL COMMENT '计算项编码',",
+        "  `statistic_value` decimal(28,8) NOT NULL COMMENT '异常统计值(实际用电量)',",
+        '  PRIMARY KEY (`id`)',
+        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='能源计算异常数据表';",
+        '```',
+      ].join('\n');
+
+      const segments = parseSmartOutline(md, 'markdown');
+      const createSeg = segments.find((s) => s.badge === 'CREATE');
+      expect(createSeg).toBeDefined();
+      expect(createSeg?.category).toBe('ddl');
+      expect(createSeg?.title).toBe('dc_energy_anomaly_data');
+      expect(createSeg?.subtitle).toBe('能源计算异常数据表');
+    });
+
     it('penetrates Markdown headings, fenced SQL blocks, and unfenced SQL blocks with exact line numbers', () => {
       const md = [
         '## 服务',
@@ -368,6 +395,79 @@ describe('Zero-Config Smart Outline & Semantic Folding', () => {
       fireEvent.click(screen.getByRole('button', { name: 'TEXT (1)' }));
       expect(screen.queryByText('数据库变更说明')).toBeNull();
       expect(screen.getByText('本次迭代包含建表与字段修改脚本。')).toBeDefined();
+    });
+
+    it('renders heading level badges (H1~H6), parent breadcrumb subtitles without indentation, and H1/H2/H3 tertiary filter under 章节/文本 -> HEADING', () => {
+      const mdWithHierarchy = [
+        '# 能源2.5.0开发计划',
+        '',
+        '## 接口',
+        '节能报告损耗分析数据接口开发',
+        '',
+        '## 电能数据新增',
+        '',
+        '### 费用',
+        '总电费用数据统计公式',
+        '',
+        '### 复费率',
+        '返回各用能时段的用电量',
+      ].join('\n');
+
+      const hierarchySegments = parseSmartOutline(mdWithHierarchy, 'markdown');
+      const headingSegments = hierarchySegments.filter((s) => s.badge === 'HEADING');
+      expect(
+        headingSegments.map((h) => ({
+          title: h.title,
+          headingLevel: h.headingLevel,
+          subtitle: h.subtitle,
+        }))
+      ).toEqual([
+        { title: '能源2.5.0开发计划', headingLevel: 1, subtitle: '章节标题 (H1)' },
+        { title: '接口', headingLevel: 2, subtitle: '能源2.5.0开发计划' },
+        { title: '电能数据新增', headingLevel: 2, subtitle: '能源2.5.0开发计划' },
+        { title: '费用', headingLevel: 3, subtitle: '能源2.5.0开发计划 › 电能数据新增' },
+        { title: '复费率', headingLevel: 3, subtitle: '能源2.5.0开发计划 › 电能数据新增' },
+      ]);
+
+      render(
+        <SmartOutlinePanel
+          segments={hierarchySegments}
+          activeLine={1}
+          onSelectSegment={vi.fn()}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Cards render H1, H2, H3 badges and stay strictly left-aligned (no inline paddingLeft indentation)
+      const h1Card = screen.getAllByText('能源2.5.0开发计划')[0].closest('[role="button"]') as HTMLElement;
+      const h2Card = screen.getByText('电能数据新增').closest('[role="button"]') as HTMLElement;
+      const h3Card = screen.getByText('费用').closest('[role="button"]') as HTMLElement;
+      expect(h1Card.getAttribute('data-heading-level')).toBe('1');
+      expect(h2Card.getAttribute('data-heading-level')).toBe('2');
+      expect(h3Card.getAttribute('data-heading-level')).toBe('3');
+      expect(h1Card.style.paddingLeft).toBe('');
+      expect(h2Card.style.paddingLeft).toBe('');
+      expect(h3Card.style.paddingLeft).toBe('');
+      expect(screen.getAllByText('能源2.5.0开发计划 › 电能数据新增')).toHaveLength(2);
+
+      // Switch to 章节/文本 -> HEADING to reveal H1 / H2 / H3 filter pills
+      fireEvent.click(screen.getByRole('tab', { name: /章节\/文本/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'HEADING (5)' }));
+
+      const levelGroup = screen.getByRole('group', { name: '标题层级筛选' });
+      expect(levelGroup).toBeDefined();
+
+      // Filter by H3 only -> only 费用 and 复费率 are shown with their parent breadcrumb context
+      fireEvent.click(screen.getByRole('button', { name: 'H3 (2)' }));
+      expect(screen.getByText('费用')).toBeDefined();
+      expect(screen.getByText('复费率')).toBeDefined();
+      expect(screen.queryByText('接口')).toBeNull();
+
+      // Filter by H2 only -> only 接口 and 电能数据新增 are shown
+      fireEvent.click(screen.getByRole('button', { name: 'H2 (2)' }));
+      expect(screen.getByText('接口')).toBeDefined();
+      expect(screen.getByText('电能数据新增')).toBeDefined();
+      expect(screen.queryByText('费用')).toBeNull();
     });
 
     it('scrolls and highlights target block or code line in MarkdownPreview when selecting outline item in Preview mode', () => {

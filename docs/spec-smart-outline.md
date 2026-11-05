@@ -21,9 +21,11 @@ A **100% Zero-Config Smart Outline Panel (`SmartOutlinePanel`) + Editor Semantic
    - Penetrates Markdown headings (`#`–`######`), fenced code blocks (` ```sql `, ` ```yaml `), and raw unfenced SQL/YAML/service URL blocks inside Markdown documents.
 
 2. **Automatic Business Keyword & Comment Extraction**:
-   - **SQL Blocks**: Extracts operation type (`CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, `INSERT ×N`, `UPDATE ×N`, `DELETE ×N`), target table name, preceding SQL comments (`--` or `/* ... */`), and—crucially—**Chinese business literals inside `VALUES (...)`, `WHERE`, `SET`, or `COMMENT '...'`** (e.g., `'报告说明' · '目的' · '标准依据'`, `'AI诊断分析' · '节能诊断报告' · '节能报告模板配置'`).
+   - **SQL Blocks**:
+     - For `CREATE TABLE` statements (including `DROP TABLE` + `CREATE TABLE`), prioritizes the table-level `COMMENT` (e.g., `COMMENT='能源计算异常数据表'`), and falls back to non-generic column-level `COMMENT '...'` descriptions (e.g., `'标识符 · 计算项'`) when no table-level `COMMENT` is present.
+     - For `ALTER TABLE` and DML (`INSERT ×N`, `UPDATE ×N`, `DELETE ×N`), extracts target table name, preceding SQL comments (`--` or `/* ... */`), and Chinese business literals inside `VALUES (...)`, `WHERE`, `SET`, or `COMMENT '...'` (e.g., `'报告说明' · '目的' · '标准依据'`, `'AI诊断分析' · '节能诊断报告' · '节能报告模板配置'`).
    - **YAML / JSON Blocks**: Extracts top-level keys and nested section keys with line ranges.
-   - **Markdown & Plaintext Blocks**: Extracts headings, service-link pairs, and paragraph summaries.
+   - **Markdown & Plaintext Blocks**: Extracts headings with explicit heading levels (`H1`–`H6`) and parent section breadcrumb paths (e.g., `能源2.5.0开发计划 › 电能数据新增`), service-link pairs, and paragraph summaries.
 
 3. **Right-Side Smart Outline Panel (`src/components/SmartOutlinePanel.tsx`)**:
    - **Header Toggle & Persistence**: Header button (`Outline (N)`) in `EditorHeader` toggles the panel and persists user preference in `localStorage` (`textdiff_smart_outline_open`). Automatically collapses/de-emphasizes when a document has fewer than 2 segments and fewer than 15 lines.
@@ -32,9 +34,10 @@ A **100% Zero-Config Smart Outline Panel (`SmartOutlinePanel`) + Editor Semantic
      - In Markdown **Preview (`preview`)** and **Split (`split`)** modes, `MarkdownPreview` maps each rendered block (`data-start-line`, `data-end-line`) and each line inside fenced code blocks (`data-line`), smoothly scrolling the preview pane to the clicked segment and highlighting the target range.
      - Switching between `Edit`, `Split`, and `Preview` modes preserves the active `SmartOutlinePanel` tab and filter state.
    - **Zero-Jump Hover Copy**: Card header row and action container use a locked `h-5` height so toggling between the line range indicator (`L1–73`) and the hover copy button never causes vertical layout shift.
-   - **Two-Level Category & Sub-Type Filter**:
+   - **Multi-Level Category, Sub-Type & Heading Level Filter**:
      - Primary tabs: `全部`, `建表 DDL`, `数据 DML`, `配置/服务`, `章节/文本`.
      - Secondary sub-type pills appear when a category tab is selected (e.g., `CREATE` / `ALTER` / `DROP` under `DDL`, `INSERT` / `UPDATE` / `DELETE` under `DML`, `HEADING` / `TEXT` under `章节/文本`).
+     - Tertiary heading-level pills (`H1`–`H6`) appear when `HEADING` is selected under `章节/文本`. All outline cards remain strictly left-aligned without indentation; heading hierarchy is conveyed via `H1`–`H6` badge color/contrast gradations and parent section breadcrumb subtitles.
 
 4. **Semantic Code Folding (`CodeCanvas` + `SmartOutlinePanel`)**:
    - Registers a custom Monaco `FoldingRangeProvider` for all multi-line semantic segments (including consecutive same-table `INSERT`/`UPDATE` batches that standard SQL folding ignores).

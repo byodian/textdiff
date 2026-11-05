@@ -91,4 +91,29 @@ describe('Markdown Floating View Controls in Edit Area', () => {
     expect(screen.queryByTitle(/Side-by-side edit and rendered preview/i)).toBeNull();
     expect(screen.queryByTitle(/Rendered preview only/i)).toBeNull();
   });
+
+  it('offsets floating markdown controls to the left when minimap is open in edit mode to avoid overlapping the minimap', () => {
+    const { rerender } = render(
+      React.createElement(CodeCanvas, {
+        ...defaultProps,
+        markdownViewMode: 'edit',
+        isMinimapOpen: true,
+      })
+    );
+
+    const container = screen.getByRole('group', { name: 'Markdown view mode' });
+    expect(container.className).toContain('right-32');
+    expect(container.className).not.toContain('right-4');
+
+    // In split or preview mode, the right edge is MarkdownPreview (no minimap), so it stays at right-4
+    rerender(
+      React.createElement(CodeCanvas, {
+        ...defaultProps,
+        markdownViewMode: 'split',
+        isMinimapOpen: true,
+      })
+    );
+    expect(container.className).toContain('right-4');
+    expect(container.className).not.toContain('right-32');
+  });
 });

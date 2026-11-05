@@ -32,6 +32,8 @@ export interface OutlineSegment {
   subtitle: string;
   /** Badge type for visual categorization */
   badge: OutlineBadgeType;
+  /** Optional Markdown heading level (1 for H1 `#`, 2 for H2 `##`, ..., 6 for H6 `######`) */
+  headingLevel?: number;
   /** Optional count of statements in this contiguous block (e.g. 73 for 73 INSERT rows) */
   count?: number;
   /** Broad category for quick filtering */
@@ -127,6 +129,48 @@ export function extractSqlBusinessKeywords(sqlText: string, maxKeywords = 5): st
 }
 
 /**
+ * Extracts description for a CREATE TABLE statement, prioritizing the table-level COMMENT
+ * (e.g. `) ENGINE=InnoDB ... COMMENT='能源计算异常数据表';`) and falling back to column COMMENTs.
+ */
+export function extractCreateTableSubtitle(sqlText: string, defaultSubtitle: string): string {
+  const commentRegex = /\bCOMMENT\s*=?\s*(['"])((?:\\.|(?!\1)[^\\\r\n])*)\1/gi;
+  let match: RegExpExecArray | null;
+  const columnComments: string[] = [];
+
+  while ((match = commentRegex.exec(sqlText)) !== null) {
+    const rawComment = match[2].replace(/\\(['"])/g, '$1').trim();
+    if (!rawComment) continue;
+
+    const matchEnd = match.index + match[0].length;
+    const beforeText = sqlText.slice(0, match.index);
+    const afterTextWithoutQuotes = sqlText
+      .slice(matchEnd)
+      .replace(/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g, '');
+
+    const hasExplicitEquals = /\bCOMMENT\s*=/i.test(match[0]);
+    const isAfterClosingParen =
+      beforeText.includes(')') && !afterTextWithoutQuotes.includes(')');
+
+    if (hasExplicitEquals || isAfterClosingParen) {
+      return rawComment;
+    }
+
+    columnComments.push(rawComment);
+  }
+
+  if (columnComments.length > 0) {
+    const quotedCommentsSql = columnComments.map((c) => `'${c}'`).join(' ');
+    const commentKeywords = extractSqlBusinessKeywords(quotedCommentsSql);
+    if (commentKeywords.length > 0) {
+      return commentKeywords.join(' · ');
+    }
+  }
+
+  const fallbackKeywords = extractSqlBusinessKeywords(sqlText);
+  return fallbackKeywords.length > 0 ? fallbackKeywords.join(' · ') : defaultSubtitle;
+}
+
+/**
  * Parses a range of lines (1-based offset `baseLineOffset`) as SQL and returns OutlineSegments.
  * Respects blank lines as segment boundaries between consecutive DML statements.
  */
@@ -202,11 +246,10 @@ function parseSqlRange(
           }
           if (endIdx >= n) endIdx = n - 1;
           const rawText = getSliceText(dropStart, endIdx);
-          const keywords = extractSqlBusinessKeywords(rawText);
           segments.push({
             id: `sql-create-${baseLineOffset + dropStart}-${dropTable}`,
             title: dropTable,
-            subtitle: keywords.length > 0 ? keywords.join(' · ') : '建表语句 (DROP & CREATE)',
+            subtitle: extractCreateTableSubtitle(rawText, '建表语句 (DROP & CREATE)'),
             badge: 'CREATE',
             category: 'ddl',
             startLine: baseLineOffset + dropStart,
@@ -249,11 +292,10 @@ function parseSqlRange(
       }
       if (endIdx >= n) endIdx = n - 1;
       const rawText = getSliceText(startIdx, endIdx);
-      const keywords = extractSqlBusinessKeywords(rawText);
       segments.push({
         id: `sql-create-${baseLineOffset + startIdx}-${tableName}`,
         title: tableName,
-        subtitle: keywords.length > 0 ? keywords.join(' · ') : '建表语句 (CREATE TABLE)',
+        subtitle: extractCreateTableSubtitle(rawText, '建表语句 (CREATE TABLE)'),
         badge: 'CREATE',
         category: 'ddl',
         startLine: baseLineOffset + startIdx,
@@ -446,6 +488,7 @@ function parseMarkdownOutline(lines: string[]): OutlineSegment[] {
   let i = 0;
   const n = lines.length;
   let currentHeadingLevel = 0;
+  const headingStack: { level: number; title: string }[] = [];
 
   const getSliceText = (startIdx: number, endIdx: number) =>
     lines.slice(startIdx, endIdx + 1).join('\n');
@@ -464,12 +507,28 @@ function parseMarkdownOutline(lines: string[]): OutlineSegment[] {
     if (headingMatch) {
       const hashes = headingMatch[1].length;
       const headingTitle = headingMatch[2].trim();
-      currentHeadingLevel = 1;
+
+      while (
+        headingStack.length > 0 &&
+        headingStack[headingStack.length - 1].level >= hashes
+      ) {
+        headingStack.pop();
+      }
+
+      const parentBreadcrumb =
+        headingStack.length > 0
+          ? headingStack.map((h) => h.title).join(' › ')
+          : `章节标题 (H${hashes})`;
+
+      headingStack.push({ level: hashes, title: headingTitle });
+      currentHeadingLevel = headingStack.length;
+
       segments.push({
         id: `md-heading-${i + 1}`,
         title: headingTitle,
-        subtitle: `章节标题 (H${hashes})`,
+        subtitle: parentBreadcrumb,
         badge: 'HEADING',
+        headingLevel: hashes,
         category: 'doc',
         startLine: i + 1,
         endLine: i + 1,

@@ -32,6 +32,7 @@ export type MonacoEditorInstance = {
   trigger?: (source: string, handlerId: string, payload: unknown) => void;
   layout?: () => void;
   focus?: () => void;
+  updateOptions?: (options: Record<string, unknown>) => void;
   getModel?: () => MonacoModelInstance | null;
   addCommand?: (keybinding: number, handler: () => void) => void;
   setPosition?: (position: { lineNumber: number; column: number }) => void;
@@ -42,6 +43,7 @@ export type MonacoEditorInstance = {
 export type MonacoDiffEditorInstance = {
   goToDiff?: (target: 'next' | 'previous') => void;
   getLineChanges?: () => unknown[] | null;
+  updateOptions?: (options: Record<string, unknown>) => void;
   getModifiedEditor?: () => MonacoEditorInstance | null;
   getOriginalEditor?: () => MonacoEditorInstance | null;
 };
@@ -54,6 +56,7 @@ interface CodeCanvasProps {
   theme?: string;
   isDiffMode: boolean;
   isSideBySide: boolean;
+  isMinimapOpen?: boolean;
   markdownViewMode?: 'edit' | 'split' | 'preview';
   onMarkdownViewModeChange?: (mode: 'edit' | 'split' | 'preview') => void;
   onCodeChange: (val: string) => void;
@@ -82,6 +85,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
   theme = 'vs-dark',
   isDiffMode,
   isSideBySide,
+  isMinimapOpen = false,
   markdownViewMode = 'edit',
   onMarkdownViewModeChange,
   onCodeChange,
@@ -250,6 +254,16 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       applyMonacoTheme(monacoRef.current, theme);
     }
   }, [theme]);
+
+  // Dynamically update minimap option when toggled
+  React.useEffect(() => {
+    if (isDiffMode) {
+      diffEditorRef.current?.updateOptions?.({ minimap: { enabled: isMinimapOpen } });
+      diffEditorRef.current?.getModifiedEditor?.()?.updateOptions?.({ minimap: { enabled: isMinimapOpen } });
+    } else {
+      editorRef.current?.updateOptions?.({ minimap: { enabled: isMinimapOpen } });
+    }
+  }, [isMinimapOpen, isDiffMode, editorRef, diffEditorRef]);
 
   // Syntax validation and Monaco markers update on code or language changes
   React.useEffect(() => {
@@ -458,7 +472,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
       onMount={handleEditorDidMount}
       theme={theme}
       options={{
-        minimap: { enabled: false },
+        minimap: { enabled: isMinimapOpen },
         folding: true,
         showFoldingControls: 'mouseover',
         fontSize: 13,
@@ -497,7 +511,9 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
         {/* Floating Markdown View Mode Controls in Edit Area (Compact h-6, smaller than header h-7 controls) */}
         {!isDiffMode && language === 'markdown' && onMarkdownViewModeChange && (
           <div 
-            className="absolute top-2.5 right-4 z-30 h-6 flex items-center bg-canvas-elevated/90 backdrop-blur-sm border border-canvas-border rounded p-0.5 select-none gap-0.5 shadow-sm" 
+            className={`absolute top-2.5 z-30 h-6 flex items-center bg-canvas-elevated/90 backdrop-blur-sm border border-canvas-border rounded p-0.5 select-none gap-0.5 shadow-sm transition-[right] duration-150 ${
+              isMinimapOpen && markdownViewMode === 'edit' ? 'right-32' : 'right-4'
+            }`}
             role="group" 
             aria-label="Markdown view mode"
           >
@@ -555,7 +571,7 @@ export const CodeCanvas: React.FC<CodeCanvasProps> = ({
             options={{
               renderSideBySide: isSideBySide,
               readOnly: false,
-              minimap: { enabled: false },
+              minimap: { enabled: isMinimapOpen },
               fontSize: 13,
               lineNumbers: 'on',
               scrollBeyondLastLine: false,

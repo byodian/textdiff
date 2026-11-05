@@ -158,6 +158,25 @@ export default function WorkspacePage() {
     } catch {}
   }, [effectiveOutlineOpen]);
 
+  const [isMinimapOpen, setIsMinimapOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.localStorage?.getItem('textdiff_minimap_open') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleMinimap = useCallback(() => {
+    setIsMinimapOpen((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage?.setItem('textdiff_minimap_open', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   // Load persisted theme on mount
   useEffect(() => {
     try {
@@ -1451,6 +1470,7 @@ export default function WorkspacePage() {
                   theme={editorTheme}
                   isDiffMode={isDiffMode}
                   isSideBySide={isSideBySide}
+                  isMinimapOpen={isMinimapOpen}
                   markdownViewMode={markdownViewMode}
                   onMarkdownViewModeChange={setMarkdownViewMode}
                   onCodeChange={handleCodeChange}
@@ -1564,6 +1584,8 @@ export default function WorkspacePage() {
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
         onExportDocument={handleExportDocument}
+        isMinimapOpen={isMinimapOpen}
+        onToggleMinimap={handleToggleMinimap}
       />
 
       {/* Navigation Guard Modal for Unsaved Changes */}
